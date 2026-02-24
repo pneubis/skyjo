@@ -590,11 +590,29 @@ function applyRoomState(s){
     });
   }
 }
-function applyCards(payload){
-  if(!payload)return;
-  G.players.forEach(p=>{ if(payload[p.id]) p.cards=payload[p.id]; });
+function applyCards(payload) {
+    if (!payload) return;
+    G.players.forEach(p => {
+        if (payload[p.id]) {
+            p.cards = payload[p.id];
+            const playerElement = document.getElementById(`player-${p.id}`);
+            if (playerElement) {
+                const cardsContainer = playerElement.querySelector('.cards-container');
+                if (cardsContainer) {
+                    cardsContainer.innerHTML = '';
+                    p.cards.forEach((card, index) => {
+                        const cardElement = document.createElement('div');
+                        cardElement.className = `mycard ${card.revealed ? '' : 'bk'}`;
+                        if (card.revealed) {
+                            cardElement.textContent = card.val;
+                        }
+                        cardsContainer.appendChild(cardElement);
+                    });
+                }
+            }
+        }
+    });
 }
-
 // ═══════════════════════════════════════
 //  LOGIQUE JEU (hôte uniquement)
 // ═══════════════════════════════════════
