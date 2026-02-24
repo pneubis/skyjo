@@ -618,17 +618,19 @@ function processAction(pid, action){
     if(G.deck.length===0) reshuffleDiscard();
     if(G.deck.length===0) return;
     heldCards[pid]=G.deck.pop();
+    heldCards[pid].revealed = true; // Ajoutez cette ligne
     G.phase='place';
     bcastState();
     sendHeld(pid);
-  }
+}
   else if(action.type==='draw_discard'){
     if(G.phase!=='draw'||G.discard.length===0) return;
     heldCards[pid]=G.discard.pop();
+    heldCards[pid].revealed = true; // Ajoutez cette ligne
     G.phase='place';
     bcastState();
     sendHeld(pid);
-  }
+}
   else if(action.type==='place_card'){
     if(G.phase!=='place'||heldCards[pid]===undefined) return;
     const old=player.cards[action.idx].val;
