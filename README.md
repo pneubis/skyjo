@@ -1,70 +1,36 @@
-# ✈ Sky Joe — Mise en ligne sur GitHub Pages
+# Skyjo Multijoueur - Plan de développement
 
-## Ce que vous obtiendrez
-Une URL permanente et gratuite du type :
-**https://VOTRE-PSEUDO.github.io/skyjoe/**
+## Design
+- **Style**: Minimaliste, fond sombre, cartes colorées
+- **Palette de couleurs**:
+  - Fond: #1a1a2e (bleu nuit)
+  - Cartes face cachée: #4a4a6a
+  - Cartes négatives (-2,-1): #2ecc71 (vert)
+  - Cartes zéro: #3498db (bleu)
+  - Cartes faibles (1-4): #f1c40f (jaune)
+  - Cartes moyennes (5-8): #e67e22 (orange)
+  - Cartes hautes (9-12): #e74c3c (rouge)
+  - Texte: #ffffff
+  - Accent: #9b59b6 (violet)
 
-Tout le monde peut y accéder depuis n'importe quel appareil
-(téléphone, tablette, PC) sans rien installer.
+## Architecture (1 seul fichier index.html)
+- **index.html**: Contient tout (HTML + CSS inline + JS inline)
+  - PeerJS via CDN pour WebRTC peer-to-peer
+  - QRCode.js via CDN pour génération QR code
+  - Écrans: Menu → Lobby → Jeu → Scores
 
----
+## Règles Skyjo implémentées
+- 150 cartes: 5x(-2), 10x(-1), 15x(0), 10x(1-12)
+- 2-8 joueurs
+- Distribution: 12 cartes par joueur en grille 3x4, toutes face cachée
+- Début: chaque joueur retourne 2 cartes, celui avec la plus haute somme commence
+- Tour: piocher (pioche ou défausse) puis placer ou défausser
+- Si pioche depuis pioche: peut remplacer une carte OU défausser et retourner une face cachée
+- Si pioche depuis défausse: DOIT remplacer une carte
+- Colonne de 3 cartes identiques → éliminée (les 3 cartes vont à la défausse)
+- Fin de manche: quand un joueur a toutes ses cartes visibles, un dernier tour pour les autres
+- Score: si le joueur qui termine n'a pas le plus bas score, son score est doublé
+- Fin de partie: quand un joueur atteint 100 points
 
-## Étape 1 — Créer un compte GitHub
-→ https://github.com/signup
-(Si vous en avez déjà un, passez à l'étape 2)
-
----
-
-## Étape 2 — Créer un nouveau dépôt
-
-1. Connectez-vous sur https://github.com
-2. Cliquez sur le bouton vert **"New"** (en haut à gauche)
-3. Remplissez :
-   - **Repository name** : `skyjoe`
-   - Visibilité : **Public** ← important pour GitHub Pages gratuit
-   - Cochez ✅ **"Add a README file"**
-4. Cliquez **"Create repository"**
-
----
-
-## Étape 3 — Uploader le fichier index.html
-
-1. Dans votre dépôt, cliquez **"Add file"** → **"Upload files"**
-2. Glissez-déposez le fichier **index.html** dans la zone
-3. En bas, cliquez **"Commit changes"**
-
----
-
-## Étape 4 — Activer GitHub Pages
-
-1. Cliquez sur **"Settings"** (onglet en haut du dépôt)
-2. Dans le menu gauche, cliquez **"Pages"**
-3. Sous **"Branch"**, sélectionnez **main** puis **/ (root)**
-4. Cliquez **"Save"**
-
-⏳ Attendez 1 à 2 minutes…
-
----
-
-## Étape 5 — Récupérer votre URL
-
-Retournez dans Settings → Pages.
-GitHub affiche :
-> ✅ Your site is live at **https://VOTRE-PSEUDO.github.io/skyjoe/**
-
-**C'est cette URL que vous mettez dans les marque-pages !**
-
----
-
-## Comment jouer
-
-1. Ouvrez **https://VOTRE-PSEUDO.github.io/skyjoe/** sur votre téléphone
-2. Entrez votre prénom → **Créer une partie**
-3. Un QR code s'affiche — faites-le scanner à vos amis
-   (ils arrivent directement dans la salle d'attente)
-4. Une fois tout le monde connecté → **Lancer**
-
-### ⚠️ Note importante
-La connexion utilise PeerJS (WebRTC) via un serveur de signalisation public.
-Tous les appareils doivent avoir accès à internet.
-Aucun serveur personnel n'est nécessaire.
+## Fichiers
+1. **index.html** - Fichier unique contenant tout le jeu
