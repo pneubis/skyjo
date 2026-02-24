@@ -615,9 +615,14 @@ function processAction(pid, action){
 
   if(action.type==='draw_deck'){
     if(G.phase!=='draw') return;
-    if (!Array.isArray(G.deck) || G.deck.length === 0) {
+    if (!Array.isArray(G.deck)) {
+        console.error("G.deck n'est pas un tableau.");
+        G.deck = []; // Reset as an empty array
+        return;
+    }
+    if (G.deck.length === 0) {
         reshuffleDiscard();
-        if (!Array.isArray(G.deck) || G.deck.length === 0) {
+        if (G.deck.length === 0) {
             console.error("Le deck est vide et ne peut pas être utilisé.");
             return;
         }
