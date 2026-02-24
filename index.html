@@ -555,7 +555,9 @@ function cardsFor(){
 }
 function applyRoomState(s){
   G.phase=s.phase; G.currentTurn=s.currentTurn;
-  G.deck={length:s.deck_count}; G.discard=s.discard||G.discard;
+  // L'hôte conserve son vrai tableau G.deck — seuls les clients utilisent le stub {length}
+  if(!isHost) G.deck={length:s.deck_count};
+  G.discard=s.discard||G.discard;
   G.round=s.round; G.initCounts=s.initCounts||{};
   G.finalRound=s.finalRound; G.finalBy=s.finalBy;
   if(s.players){
