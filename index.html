@@ -72,29 +72,7 @@ body{background:var(--bg);background-image:radial-gradient(ellipse 65% 45% at 18
 #mzone{display:flex;flex-direction:column;align-items:center;gap:5px;}
 .mzone-lbl{font-family:'Playfair Display',serif;font-size:.85rem;color:var(--gold);letter-spacing:.1em;text-transform:uppercase;}
 .mgrid2{display:grid;grid-template-columns:repeat(4,1fr);gap:5px;}
-
-.mycard {
-    width: 56px;
-    height: 84px;
-    border-radius: 7px;
-    cursor: pointer;
-    transition: transform .15s, box-shadow .15s;
-    color: #000; /* Ensure text is black for contrast */
-    background-color: #FFD700; /* Gold color for better visibility */
-}
-
-.mycard .mcf {
-    color: #000; /* Ensure text is black for contrast */
-    font-weight: bold; /* Make the numbers bold for better readability */
-}
-
-@media(min-width:420px) {
-    .mycard {
-        width: 66px;
-        height: 98px;
-    }
-}
-
+.mycard{width:56px;height:84px;border-radius:7px;cursor:pointer;transition:transform .15s,box-shadow .15s;}
 @media(min-width:420px){.mycard{width:66px;height:98px;}}
 .mycard:hover:not(.na){transform:translateY(-4px);box-shadow:0 6px 15px rgba(0,0,0,.5);}.mycard.na{cursor:default;}
 .mcf{width:100%;height:100%;border-radius:7px;display:flex;align-items:center;justify-content:center;font-family:'Playfair Display',serif;font-size:1.35rem;font-weight:700;border:2px solid transparent;user-select:none;}
@@ -613,26 +591,15 @@ function processAction(pid, action){
 
   if(!curP()||curP().id!==pid) return;
 
-  if (action.type === 'draw_deck') {
-    if (G.phase !== 'draw') return;
-    ensureDeckIsArray();
-    if (G.deck.length === 0) {
-        console.log('Deck is empty, reshuffling discard...');
-        reshuffleDiscard();
-        ensureDeckIsArray();
-        if (G.deck.length === 0) {
-            console.error("Le deck est vide et ne peut pas être utilisé.");
-            return;
-        }
-    }
-    console.log('Drawing a card from deck:', G.deck);
-    heldCards[pid] = G.deck.pop();
-    console.log('Card drawn, remaining deck:', G.deck);
-    heldCards[pid].revealed = true;
-    G.phase = 'place';
+  if(action.type==='draw_deck'){
+    if(G.phase!=='draw') return;
+    if(G.deck.length===0) reshuffleDiscard();
+    if(G.deck.length===0) return;
+    heldCards[pid]=G.deck.pop();
+    G.phase='place';
     bcastState();
     sendHeld(pid);
-}
+  }
   else if(action.type==='draw_discard'){
     if(G.phase!=='draw'||G.discard.length===0) return;
     heldCards[pid]=G.discard.pop();
@@ -686,19 +653,13 @@ function checkElim(cards){
   }
 }
 function allRev(cards){return cards.every(c=>c.revealed);}
-function reshuffleDiscard() {
-    console.log('Reshuffling discard into deck...');
-    while (G.discard.length > 0) {
-        G.deck.push(G.discard.pop());
-    }
-    console.log('Deck after reshuffle:', G.deck);
-    // Shuffle the deck
-    for (let i = G.deck.length - 1; i > 0; i--) {
-        const j = Math.floor(Math.random() * (i + 1));
-        [G.deck[i], G.deck[j]] = [G.deck[j], G.deck[i]];
-    }
-    console.log('Deck after shuffle:', G.deck);
+function reshuffleDiscard(){
+  if(G.discard.length<=1)return;
+  const top=G.discard.pop();
+  G.deck=shuffle(G.discard.slice());
+  G.discard=[top];
 }
+
 function afterTurn(player){
   if(allRev(player.cards)&&!G.finalRound){G.finalRound=true;G.finalBy=player.id;}
   let next=(G.currentTurn+1)%G.players.length;
@@ -735,21 +696,6 @@ function bcastState(){
 // ═══════════════════════════════════════
 //  RENDU
 // ═══════════════════════════════════════
-function initGame() {
-    console.log('Initializing game and deck...');
-    G.deck = [];
-    // Add cards to the deck
-    for (let i = 0; i < 150; i++) {
-        G.deck.push({ val: Math.floor(Math.random() * 12) - 2, revealed: false, elim: false });
-    }
-    console.log('Deck initialized:', G.deck);
-    // Shuffle the deck
-    for (let i = G.deck.length - 1; i > 0; i--) {
-        const j = Math.floor(Math.random() * (i + 1));
-        [G.deck[i], G.deck[j]] = [G.deck[j], G.deck[i]];
-    }
-    console.log('Deck shuffled:', G.deck);
-}
 function renderGame(){
   const m=me(); if(!m)return;
   $('tb-r').textContent=G.round||1;
@@ -804,14 +750,6 @@ function renderGame(){
   if(top===null||top===undefined){disc.textContent='—';disc.className='pc mt';disc.style.cssText='';}
   else{disc.textContent=fmt(top);disc.className='pc';clr(disc,top);}
   if(!canDraw||top===null) disc.classList.add('off');
-
-  // Vérifier Deck est un tableau
-  function ensureDeckIsArray() {
-    if (!Array.isArray(G.deck)) {
-        console.warn('G.deck was not an array, resetting to empty array.');
-        G.deck = [];
-    }
-  }
 
   // Carte en main
   const hv=$('held-viz');
