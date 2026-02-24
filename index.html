@@ -4,29 +4,8 @@
 <meta charset="UTF-8">
 <title>Sky Joe</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/peerjs/1.5.2/peerjs.min.js"></script>
-<style>
-body{background:#0b1320;color:white;font-family:Arial;text-align:center}
-.card{width:60px;height:90px;border:1px solid #888;display:inline-flex;align-items:center;justify-content:center;margin:5px;background:#1e2a44}
-button{margin:5px;padding:8px 15px}
-</style>
 </head>
 <body>
-
-<h1>Sky Joe</h1>
-<div id="status">Lobby</div>
-
-<div>
-<button onclick="hostGame()">Créer</button>
-<input id="code" placeholder="Code">
-<button onclick="joinGame()">Rejoindre</button>
-</div>
-
-<div id="game" style="display:none">
-<h2>Phase: <span id="phase"></span></h2>
-<h3>Deck: <span id="deckCount"></span></h3>
-<div id="held"></div>
-<button onclick="drawDeck()">Piocher</button>
-</div>
 
 <script>
 'use strict';
@@ -35,12 +14,8 @@ button{margin:5px;padding:8px 15px}
    ÉTAT GLOBAL
 =================================*/
 
-let peer=null;
-let myId=null;
-let isHost=false;
-let conn=null;
-let clients={};
-let lastSeq=0;
+let peer=null, myId=null, isHost=false;
+let hostConn=null, clientConns={};
 
 let G={
   players:[],
@@ -48,7 +23,10 @@ let G={
   discard:[],
   phase:'lobby',
   currentTurn:0,
-  seq:0
+  finalRound:false,
+  finalBy:null,
+  round:1,
+  initCounts:{}
 };
 
 /* ===============================
@@ -56,151 +34,125 @@ let G={
 =================================*/
 
 function shuffle(a){
-  for(let i=a.length-1;i>0;i--){
+  const r=[...a];
+  for(let i=r.length-1;i>0;i--){
     const j=Math.floor(Math.random()*(i+1));
-    [a[i],a[j]]=[a[j],a[i]];
+    [r[i],r[j]]=[r[j],r[i]];
   }
-  return a;
+  return r;
 }
 
 function buildDeck(){
   const d=[];
-  for(let i=1;i<=12;i++)
-    for(let j=0;j<5;j++)d.push(i);
+  for(let i=0;i<5;i++)d.push(-2);
+  for(let i=0;i<10;i++)d.push(-1);
+  for(let i=0;i<15;i++)d.push(0);
+  for(let v=1;v<=12;v++)
+    for(let i=0;i<10;i++)d.push(v);
   return shuffle(d);
 }
 
 /* ===============================
-   SYNCHRO DÉTERMINISTE
+   ROOM STATE (CORRIGÉ)
 =================================*/
 
-function sync(){
-  const payload={
-    type:'sync',
-    seq:++G.seq,
-    state:G
+function roomState(){
+  return{
+    phase:G.phase,
+    currentTurn:G.currentTurn,
+    deck_count:G.deck.length,
+    discard:G.discard,
+    round:G.round,
+    initCounts:G.initCounts,
+    finalRound:G.finalRound,
+    finalBy:G.finalBy,
+    players:G.players.map(p=>({
+      id:p.id,
+      name:p.name,
+      total:p.total||0
+    }))
   };
-
-  if(isHost){
-    Object.values(clients).forEach(c=>{
-      if(c.open)c.send(payload);
-    });
-  }
-
-  applySync(payload);
 }
 
-function applySync(data){
+/* ===============================
+   FIX CRITIQUE ICI
+=================================*/
 
+function applyRoomState(s){
+
+  G.phase=s.phase;
+  G.currentTurn=s.currentTurn;
+
+  // 🔥 FIX IMPORTANT
   if(!isHost){
-    if(data.seq<=lastSeq)return;
-    lastSeq=data.seq;
+    G.deck = new Array(s.deck_count);
   }
 
-  G=data.state;
-  render();
-}
+  G.discard=s.discard||[];
+  G.round=s.round;
+  G.initCounts=s.initCounts||{};
+  G.finalRound=s.finalRound;
+  G.finalBy=s.finalBy;
 
-/* ===============================
-   HOST
-=================================*/
-
-function hostGame(){
-
-  isHost=true;
-  const room='skyjoe-'+Math.random().toString(36).slice(2,8);
-
-  peer=new Peer(room);
-
-  peer.on('open',()=>{
-    document.getElementById('status').innerText='Code: '+room.replace('skyjoe-','');
-    G.players=[{id:room}];
-    G.deck=buildDeck();
-    G.phase='draw';
-    document.getElementById('game').style.display='block';
-    sync();
-  });
-
-  peer.on('connection',c=>{
-    clients[c.peer]=c;
-    c.on('data',handleHostMsg);
-  });
-}
-
-function handleHostMsg(data){
-
-  if(data.type==='action'){
-    processAction(data.action,data.player);
-  }
-}
-
-function processAction(action,pid){
-
-  if(action==='draw'){
-    const card=G.deck.pop();
-    if(!card)return;
-    G.players[0].held=card;
-    G.phase='place';
-    sync();
-  }
-}
-
-/* ===============================
-   CLIENT
-=================================*/
-
-function joinGame(){
-
-  const code=document.getElementById('code').value.trim();
-  if(!code)return;
-
-  isHost=false;
-  peer=new Peer();
-
-  peer.on('open',id=>{
-    myId=id;
-    conn=peer.connect('skyjoe-'+code);
-
-    conn.on('data',data=>{
-      if(data.type==='sync')applySync(data);
+  if(s.players){
+    s.players.forEach(sp=>{
+      const ex=G.players.find(p=>p.id===sp.id);
+      if(ex){
+        ex.name=sp.name;
+        ex.total=sp.total;
+      }else{
+        G.players.push({...sp,cards:[]});
+      }
     });
+  }
+}
+
+/* ===============================
+   ACTIONS HÔTE
+=================================*/
+
+function processAction(pid, action){
+
+  const player=G.players.find(p=>p.id===pid);
+  if(!player)return;
+
+  if(action.type==='draw_deck'){
+
+    console.log("Deck size before draw:",G.deck.length);
+
+    if(G.deck.length===0)return;
+
+    const card=G.deck.pop();
+
+    console.log("Card drawn:",card);
+
+    player.held=card;
+    G.phase='place';
+
+    broadcastState();
+  }
+}
+
+/* ===============================
+   NETWORK
+=================================*/
+
+function sendTo(id,msg){
+  const c=clientConns[id];
+  if(c&&c.open)c.send(msg);
+}
+
+function broadcastState(){
+  const state=roomState();
+  Object.values(clientConns).forEach(c=>{
+    if(c&&c.open)c.send({type:'state_upd',roomState:state});
   });
 }
 
 /* ===============================
-   ACTIONS
+   FIN
 =================================*/
 
-function drawDeck(){
-
-  if(isHost){
-    processAction('draw',myId);
-  }else{
-    conn.send({type:'action',action:'draw',player:myId});
-  }
-}
-
-/* ===============================
-   RENDU
-=================================*/
-
-function render(){
-
-  document.getElementById('phase').innerText=G.phase;
-  document.getElementById('deckCount').innerText=G.deck.length;
-
-  const heldDiv=document.getElementById('held');
-  heldDiv.innerHTML='';
-
-  const me=isHost?G.players[0]:G.players.find(p=>p.id===myId);
-
-  if(me && me.held){
-    const div=document.createElement('div');
-    div.className='card';
-    div.innerText=me.held;
-    heldDiv.appendChild(div);
-  }
-}
 </script>
 
 </body>
