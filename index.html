@@ -195,651 +195,210 @@ button:disabled{opacity:.3!important;cursor:not-allowed!important;pointer-events
 <script>
 'use strict';
 
-// ═══════════════════════════════════════
-//  CONSTANTES
-// ═══════════════════════════════════════
-const AVATARS = ['🦅','🦉','🦜','🦆','🦩','🐦','🦋','🌟'];
-const PALETTE = ['#e06030','#3080e0','#30a060','#c040a0','#e0a020','#40b0c0','#a060e0','#e05060'];
-const PHASE_LBL = {init:'Révéler 2 cartes',draw:'Piocher',place:'Placer',reveal_discard:'Révéler',end_round:'Fin',lobby:'Lobby'};
-const CC = {'-2':{bg:'#1030a8',col:'#c8d0ff'},'-1':{bg:'#1555a0',col:'#c0d8f0'},'0':{bg:'#c8e8d0',col:'#1a6030'},'1':{bg:'#e0f0c0',col:'#304808'},'2':{bg:'#f8eea0',col:'#605000'},'3':{bg:'#f8dc80',col:'#704000'},'4':{bg:'#f8c860',col:'#7a3800'},'5':{bg:'#f8b048',col:'#802800'},'6':{bg:'#f49830',col:'#7c2000'},'7':{bg:'#ee7c20',col:'#741808'},'8':{bg:'#e45e14',col:'#fff'},'9':{bg:'#d84010',col:'#fff'},'10':{bg:'#c82808',col:'#fff'},'11':{bg:'#a81808',col:'#ffc0b0'},'12':{bg:'#880800',col:'#ffb0a0'}};
+/* ===============================
+   ÉTAT GLOBAL
+=================================*/
 
-// ═══════════════════════════════════════
-//  UTILS
-// ═══════════════════════════════════════
-function clr(el,v){const c=CC[String(v)];if(!c)return;el.style.background=c.bg;el.style.color=c.col;el.style.borderColor='rgba(0,0,0,.2)';}
-function fmt(v){return v>0?'+'+v:String(v);}
-function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
-function $(id){return document.getElementById(id);}
-function show(id){document.querySelectorAll('.screen').forEach(s=>s.classList.remove('on'));$(id).classList.add('on');}
-function toast(m,ms=4000){const t=$('toast');t.textContent=m;t.style.display='block';clearTimeout(t._t);t._t=setTimeout(()=>t.style.display='none',ms);}
-function setMsg(m){$('conn-msg').textContent=m;}
+let peer=null,myId=null,myName='',roomCode='',isHost=false;
+let hostConn=null;
+let clientConns={};
+let localHeld=null;
 
-function shuffle(a){const r=[...a];for(let i=r.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[r[i],r[j]]=[r[j],r[i]];}return r;}
+let G={
+  players:[],
+  deck:[],
+  discard:[],
+  phase:'lobby',
+  currentTurn:0,
+  finalRound:false,
+  finalBy:null,
+  round:1,
+  initCounts:{},
+  seq:0              // 🔥 numéro de séquence global
+};
+
+let lastSeq=0;       // 🔥 côté client
+
+/* ===============================
+   OUTILS
+=================================*/
+
+function shuffle(a){
+  const r=[...a];
+  for(let i=r.length-1;i>0;i--){
+    const j=Math.floor(Math.random()*(i+1));
+    [r[i],r[j]]=[r[j],r[i]];
+  }
+  return r;
+}
 
 function buildDeck(){
   const d=[];
-  for(let i=0;i<5;i++)d.push(-2);for(let i=0;i<10;i++)d.push(-1);for(let i=0;i<15;i++)d.push(0);
-  for(let v=1;v<=12;v++)for(let i=0;i<10;i++)d.push(v);
+  for(let i=0;i<5;i++)d.push(-2);
+  for(let i=0;i<10;i++)d.push(-1);
+  for(let i=0;i<15;i++)d.push(0);
+  for(let v=1;v<=12;v++)
+    for(let i=0;i<10;i++)d.push(v);
   return shuffle(d);
 }
 
-// Génère un code à 6 lettres sans ambiguïté visuelle
-function genCode(){
-  const chars='ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
-  let c='';for(let i=0;i<6;i++)c+=chars[Math.floor(Math.random()*chars.length)];
-  return c;
+/* ===============================
+   SYNCHRONISATION DÉTERMINISTE
+=================================*/
+
+function syncAll(extra={}){
+
+  const payload={
+    type:'sync',
+    seq:++G.seq,
+    state:serializeState(),
+    ...extra
+  };
+
+  // envoyer aux clients
+  Object.values(clientConns).forEach(c=>{
+    if(c&&c.open)c.send(payload);
+  });
+
+  // appliquer localement (hôte)
+  applySync(payload);
 }
 
-// ═══════════════════════════════════════
-//  ÉTAT
-// ═══════════════════════════════════════
-let peer=null, myId=null, myName='', roomCode='', isHost=false;
-let hostConn=null;       // client→hôte
-let clientConns={};      // hôte→clients  {peerId: conn}
-let localHeld=null;
-
-let G={players:[],deck:[],discard:[],phase:'lobby',currentTurn:0,finalRound:false,finalBy:null,round:1,initCounts:{}};
-const heldCards={};  // {playerId: value}  — uniquement chez l'hôte
-
-function me(){return G.players.find(p=>p.id===myId);}
-function curP(){return G.players[G.currentTurn];}
-function isMyTurn(){return curP()&&curP().id===myId;}
-
-// ═══════════════════════════════════════
-//  PEERJS CONFIG — serveur fiable
-// ═══════════════════════════════════════
-// On utilise le serveur PeerJS officiel sur peerjs.com
-// L'hôte réserve un peer ID = "skyjoe-" + code à 6 lettres
-// → prévisible, court, communicable
-function peerConfig(){
-  return {
-    // Serveur de signalisation public PeerJS (plus fiable que le défaut)
-    host: '0.peerjs.com',
-    port: 443,
-    path: '/',
-    secure: true,
-    debug: 0,
-    config: {
-      iceServers: [
-        {urls:'stun:stun.l.google.com:19302'},
-        {urls:'stun:stun1.l.google.com:19302'},
-        // TURN gratuit fourni par metered.ca (évite les échecs NAT)
-        {urls:'turn:a.relay.metered.ca:80',username:'open',credential:'open'},
-        {urls:'turn:a.relay.metered.ca:443',username:'open',credential:'open'},
-      ]
-    }
+function serializeState(){
+  return{
+    phase:G.phase,
+    currentTurn:G.currentTurn,
+    deck:G.deck,
+    discard:G.discard,
+    round:G.round,
+    finalRound:G.finalRound,
+    finalBy:G.finalBy,
+    initCounts:G.initCounts,
+    players:G.players,
+    held:currentHeldMap()
   };
 }
 
-// ═══════════════════════════════════════
-//  NAVIGATION
-// ═══════════════════════════════════════
-function goLobby(){
-  if(peer){try{peer.destroy();}catch(e){} peer=null;}
-  hostConn=null; clientConns={}; localHeld=null; isHost=false; myId=null; roomCode='';
-  Object.keys(heldCards).forEach(k=>delete heldCards[k]);
-  G={players:[],deck:[],discard:[],phase:'lobby',currentTurn:0,finalRound:false,finalBy:null,round:1,initCounts:{}};
-  $('ov-end').classList.remove('on');
-  show('s-lobby');
-}
-function openJoin(){$('join-box').classList.add('open');}
-function closeJoin(){$('join-box').classList.remove('open');}
-function getName(){return($('inp-name').value.trim()||'Joueur').slice(0,16);}
-
-// ═══════════════════════════════════════
-//  HÔTE — CRÉER
-// ═══════════════════════════════════════
-function doHost(){
-  myName=getName();
-  isHost=true;
-  roomCode=genCode();
-  const hostPeerId='skyjoe-'+roomCode;
-
-  show('s-conn');
-  setMsg('Connexion au réseau…');
-
-  peer=new Peer(hostPeerId, peerConfig());
-
-  peer.on('open', id=>{
-    myId=id;
-    // S'inscrire en tant que joueur 0
-    G.players=[{id:myId,name:myName,avatar:AVATARS[0],color:PALETTE[0],cards:[],total:0,connected:true}];
-    G.initCounts={};
-    // Accepter les connexions entrantes
-    peer.on('connection', conn=>{
-      conn.on('open',()=>{
-        clientConns[conn.peer]=conn;
-        conn.on('data', data=>handleHostMsg(conn.peer, data));
-        conn.on('close', ()=>onClientDrop(conn.peer));
-        conn.on('error', ()=>onClientDrop(conn.peer));
-      });
-    });
-    showWaitRoom();
-  });
-
-  peer.on('error', e=>{
-    // Si l'ID est déjà pris (salle existante), générer un nouveau code
-    if(e.type==='unavailable-id'){
-      toast('Code déjà utilisé, génération d\'un nouveau…');
-      peer.destroy();
-      peer=null;
-      roomCode=genCode();
-      doHostWithCode(roomCode);
-      return;
-    }
-    setMsg('Erreur réseau : '+e.type+'\nVérifiez votre connexion internet.');
-    toast('Erreur : '+e.type);
-  });
-}
-
-function doHostWithCode(code){
-  roomCode=code;
-  const hostPeerId='skyjoe-'+code;
-  peer=new Peer(hostPeerId, peerConfig());
-  peer.on('open', id=>{ myId=id; G.players[0].id=myId; showWaitRoom(); });
-  peer.on('connection', conn=>{
-    conn.on('open',()=>{ clientConns[conn.peer]=conn; conn.on('data',data=>handleHostMsg(conn.peer,data)); conn.on('close',()=>onClientDrop(conn.peer)); conn.on('error',()=>onClientDrop(conn.peer)); });
-  });
-  peer.on('error', e=>{ toast('Erreur : '+e.type); setMsg('Erreur : '+e.type); });
-}
-
-function showWaitRoom(){
-  show('s-wait');
-  $('rcode-txt').textContent=roomCode;
-  // QR code = URL + ?join=CODE
-  const url=location.href.split('?')[0]+'?join='+roomCode;
-  $('qr-wrap').innerHTML='';
-  new QRCode($('qr-wrap'),{text:url,width:180,height:180,colorDark:'#000',colorLight:'#fff',correctLevel:QRCode.CorrectLevel.M});
-  renderWaitList();
-}
-
-// ═══════════════════════════════════════
-//  HÔTE — MESSAGES ENTRANTS
-// ═══════════════════════════════════════
-function handleHostMsg(fromId, data){
-  if(data.type==='join_req'){
-    if(G.phase!=='lobby'){ sendTo(fromId,{type:'err',msg:'Partie déjà en cours'}); return; }
-    const idx=G.players.length;
-    G.players.push({id:fromId,name:(data.name||'Joueur').slice(0,16),avatar:AVATARS[idx%AVATARS.length],color:PALETTE[idx%PALETTE.length],cards:[],total:0,connected:true});
-    G.initCounts[fromId]=0;
-    sendTo(fromId,{type:'welcome',playerId:fromId,roomState:roomState()});
-    bcastAll({type:'room_upd',roomState:roomState()});
-    renderWaitList();
-  }
-  if(data.type==='action' && G.phase!=='lobby'){
-    processAction(fromId, data.action);
-  }
-  if(data.type==='next_round'){ hostNewRound(false); }
-  if(data.type==='restart'){ hostNewRound(true); }
-}
-
-function onClientDrop(id){
-  delete clientConns[id];
-  const p=G.players.find(p=>p.id===id);
-  if(p) p.connected=false;
-  if(G.phase!=='lobby') bcastAll({type:'room_upd',roomState:roomState()});
-  renderWaitList();
-}
-
-function hostStart(){
-  if(G.players.length<2){toast('Il faut au moins 2 joueurs !');return;}
-  hostNewRound(true);
-}
-
-function hostNewRound(isFirst){
-  const deck=buildDeck();
-  G.deck=deck; G.discard=[G.deck.pop()];
-  G.phase='init'; G.currentTurn=0;
-  G.finalRound=false; G.finalBy=null; G.initCounts={};
-  Object.keys(heldCards).forEach(k=>delete heldCards[k]);
-  if(isFirst){ G.round=1; G.players.forEach(p=>p.total=0); }
-  else G.round=(G.round||1)+1;
+function currentHeldMap(){
+  const map={};
   G.players.forEach(p=>{
-    p.cards=G.deck.splice(0,12).map(v=>({val:v,revealed:false,elim:false}));
-    p.connected=p.connected!==false;
-    G.initCounts[p.id]=0;
+    if(p.held!==undefined)map[p.id]=p.held;
   });
-  localHeld=null;
-  // Distribuer cartes à chaque joueur + état global
-  bcastAll({type:'game_start',roomState:roomState(),cards:cardsFor()});
-  // Appliquer localement
-  applyRoomState(roomState());
-  applyCards(cardsFor());
-  $('ov-end').classList.remove('on');
-  show('s-game');
+  return map;
+}
+
+function applySync(data){
+
+  if(!isHost){
+    if(data.seq<=lastSeq)return;   // 🔥 ignore vieux messages
+    lastSeq=data.seq;
+  }
+
+  const s=data.state;
+
+  G.phase=s.phase;
+  G.currentTurn=s.currentTurn;
+  G.deck=s.deck;
+  G.discard=s.discard;
+  G.round=s.round;
+  G.finalRound=s.finalRound;
+  G.finalBy=s.finalBy;
+  G.initCounts=s.initCounts;
+  G.players=s.players;
+
+  localHeld=s.held[myId]??null;
+
   renderGame();
 }
 
-function renderWaitList(){
-  const list=$('plist'); list.innerHTML='';
-  G.players.forEach((p,i)=>{
-    const d=document.createElement('div');
-    d.className='prow'+(p.id===myId?' me':'');
-    d.innerHTML=`<div class="pav" style="background:${p.color}22;border:1px solid ${p.color}55">${p.avatar}</div>`+
-      `<span class="pname">${esc(p.name)}${p.id===myId?' (vous)':''}</span>`+
-      (i===0?'<span class="pbadge">Hôte</span>':'')+
-      `<span style="font-size:.7rem">${p.connected===false?'🔴':'🟢'}</span>`;
-    list.appendChild(d);
-  });
-  const btn=$('btn-start');
-  if(isHost){
-    btn.style.display='';
-    btn.disabled=G.players.length<2;
-    btn.textContent=G.players.length<2?'En attente (min. 2)':'Lancer ('+G.players.length+' joueurs)';
-  } else { btn.style.display='none'; }
-  $('wait-info').textContent=isHost?'Partagez le code ou QR ci-dessus':'En attente du lancement par l\'hôte…';
-}
+/* ===============================
+   ACTIONS HÔTE
+=================================*/
 
-// ═══════════════════════════════════════
-//  CLIENT — REJOINDRE
-// ═══════════════════════════════════════
-function doJoin(){
-  const code=($('inp-code').value.trim().toUpperCase()).replace(/[^A-Z0-9]/g,'');
-  if(code.length!==6){toast('Le code doit faire 6 caractères');return;}
-  joinWithCode(code);
-}
+function processAction(pid,action){
 
-function joinWithCode(code){
-  myName=getName();
-  isHost=false;
-  show('s-conn');
-  setMsg('Connexion au réseau…');
-
-  peer=new Peer(peerConfig());  // ID aléatoire pour le client
-
-  peer.on('open', id=>{
-    myId=id;
-    setMsg('Connexion à la salle '+code+'…');
-    const hostPeerId='skyjoe-'+code;
-    const conn=peer.connect(hostPeerId,{reliable:true,serialization:'json'});
-    hostConn=conn;
-
-    let opened=false;
-    const timeout=setTimeout(()=>{
-      if(!opened){
-        toast('Impossible de rejoindre. Vérifiez le code ou attendez que l\'hôte soit connecté.');
-        setMsg('Salle introuvable. Vérifiez le code.');
-      }
-    },8000);
-
-    conn.on('open',()=>{
-      opened=true;
-      clearTimeout(timeout);
-      setMsg('Connecté ! En attente…');
-      conn.send({type:'join_req',name:myName});
-    });
-    conn.on('data', data=>handleClientMsg(data));
-    conn.on('error', e=>{ clearTimeout(timeout); toast('Erreur connexion : '+e.type); setMsg('Erreur : '+e.type); });
-    conn.on('close', ()=>{ if(G.phase!=='lobby') toast('Connexion à l\'hôte perdue.',5000); });
-  });
-
-  peer.on('error', e=>{
-    toast('Erreur réseau : '+e.type);
-    setMsg('Erreur réseau : '+e.type);
-  });
-}
-
-// ═══════════════════════════════════════
-//  CLIENT — MESSAGES ENTRANTS
-// ═══════════════════════════════════════
-function handleClientMsg(data){
-  if(data.type==='welcome'){
-    myId=data.playerId;
-    applyRoomState(data.roomState);
-    show('s-wait');
-    renderWaitList();
-  }
-  if(data.type==='room_upd'){
-    applyRoomState(data.roomState);
-    if(G.phase==='lobby') renderWaitList();
-    else renderGame();
-  }
-  if(data.type==='game_start'){
-    applyRoomState(data.roomState);
-    applyCards(data.cards);
-    localHeld=null;
-    $('ov-end').classList.remove('on');
-    show('s-game');
-    renderGame();
-  }
-  if(data.type==='state_upd'){
-    applyRoomState(data.roomState);
-    if(data.cards) applyCards(data.cards);
-    renderGame();
-  }
-  if(data.type==='held'){ localHeld=data.val; renderGame(); }
-  if(data.type==='clear_held'){ localHeld=null; renderGame(); }
-  if(data.type==='end_round'){
-    applyRoomState(data.roomState);
-    applyCards(data.cards);
-    renderGame();
-    showEndModal(data.scores,data.gameOver);
-  }
-  if(data.type==='err'){ toast(data.msg); }
-}
-
-// ═══════════════════════════════════════
-//  COMMUNICATION
-// ═══════════════════════════════════════
-function sendTo(id, msg){
-  if(id===myId){ handleClientMsg(msg); return; }
-  const c=clientConns[id];
-  if(c&&c.open) try{c.send(msg);}catch(e){}
-}
-function bcastAll(msg){
-  // Aux clients connectés
-  Object.values(clientConns).forEach(c=>{if(c&&c.open)try{c.send(msg);}catch(e){}});
-  // À soi-même (hôte)
-  handleClientMsg(msg);
-}
-function sendToHost(msg){
-  if(isHost){ handleHostMsg(myId,msg); }
-  else if(hostConn&&hostConn.open){ try{hostConn.send(msg);}catch(e){} }
-}
-function act(a){ sendToHost({type:'action',action:a}); }
-
-// ═══════════════════════════════════════
-//  ÉTAT PARTAGÉ
-// ═══════════════════════════════════════
-function roomState(){
-  return{
-    phase:G.phase, currentTurn:G.currentTurn,
-    deck_count:G.deck.length, discard:G.discard,
-    round:G.round, initCounts:G.initCounts,
-    finalRound:G.finalRound, finalBy:G.finalBy,
-    players:G.players.map(p=>({id:p.id,name:p.name,avatar:p.avatar,color:p.color,total:p.total||0,connected:p.connected!==false}))
-  };
-}
-function cardsFor(){
-  const o={};G.players.forEach(p=>o[p.id]=p.cards);return o;
-}
-function applyRoomState(s){
-  G.phase=s.phase; G.currentTurn=s.currentTurn;
-  // L'hôte conserve son vrai tableau G.deck — seuls les clients utilisent le stub {length}
-  if(!isHost) G.deck={length:s.deck_count};
-  G.discard=s.discard||G.discard;
-  G.round=s.round; G.initCounts=s.initCounts||{};
-  G.finalRound=s.finalRound; G.finalBy=s.finalBy;
-  if(s.players){
-    s.players.forEach(sp=>{
-      const ex=G.players.find(p=>p.id===sp.id);
-      if(ex) Object.assign(ex,{name:sp.name,avatar:sp.avatar,color:sp.color,total:sp.total,connected:sp.connected});
-      else G.players.push({...sp,cards:[]});
-    });
-  }
-}
-function applyCards(payload){
-  if(!payload)return;
-  G.players.forEach(p=>{ if(payload[p.id]) p.cards=payload[p.id]; });
-}
-
-// ═══════════════════════════════════════
-//  LOGIQUE JEU (hôte uniquement)
-// ═══════════════════════════════════════
-function processAction(pid, action){
   const player=G.players.find(p=>p.id===pid);
-  if(!player) return;
+  if(!player)return;
 
-  if(G.phase==='init'){
-    if(action.type!=='reveal_card') return;
-    if((G.initCounts[pid]||0)>=2 || player.cards[action.idx].revealed) return;
-    player.cards[action.idx].revealed=true;
-    G.initCounts[pid]=(G.initCounts[pid]||0)+1;
-    if(G.players.every(p=>(G.initCounts[p.id]||0)>=2)){ G.phase='draw'; G.currentTurn=0; }
-    bcastState(); return;
-  }
-
-  if(!curP()||curP().id!==pid) return;
-
-  if(action.type==='draw_deck'){
-    if(G.phase!=='draw') return;
-    if(G.deck.length===0) reshuffleDiscard();
-    if(G.deck.length===0) return;
-    heldCards[pid]=G.deck.pop();
+  if(G.phase==='draw'&&action.type==='draw_deck'){
+    if(G.deck.length===0)return;
+    player.held=G.deck.pop();
     G.phase='place';
-    sendHeld(pid);   // ← d'abord envoyer la carte privée
-    bcastState();    // ← ensuite l'état global
+    syncAll();
+    return;
   }
-  else if(action.type==='draw_discard'){
-    if(G.phase!=='draw'||G.discard.length===0) return;
-    hheldCards[pid]=G.deck.pop();
+
+  if(G.phase==='draw'&&action.type==='draw_discard'){
+    if(G.discard.length===0)return;
+    player.held=G.discard.pop();
     G.phase='place';
-    sendHeld(pid);   // ← d'abord envoyer la carte privée
-    bcastState();    // ← ensuite l'état global
+    syncAll();
+    return;
   }
-  else if(action.type==='place_card'){
-    if(G.phase!=='place'||heldCards[pid]===undefined) return;
+
+  if(G.phase==='place'&&action.type==='place_card'){
     const old=player.cards[action.idx].val;
-    player.cards[action.idx]={val:heldCards[pid],revealed:true,elim:false};
-    delete heldCards[pid];
+    player.cards[action.idx]={val:player.held,revealed:true,elim:false};
     G.discard.push(old);
-    checkElim(player.cards);
-    clearHeld(pid);
-    afterTurn(player);
+    delete player.held;
+    G.phase='draw';
+    G.currentTurn=(G.currentTurn+1)%G.players.length;
+    syncAll();
+    return;
   }
-  else if(action.type==='discard_held'){
-    if(G.phase!=='place'||heldCards[pid]===undefined) return;
-    G.discard.push(heldCards[pid]);
-    delete heldCards[pid];
-    G.phase='reveal_discard';
-    clearHeld(pid);
-    bcastState();
-  }
-  else if(action.type==='reveal_card'){
-    if(G.phase!=='reveal_discard'||player.cards[action.idx].revealed) return;
-    player.cards[action.idx].revealed=true;
-    checkElim(player.cards);
-    afterTurn(player);
+
+  if(G.phase==='place'&&action.type==='discard_held'){
+    G.discard.push(player.held);
+    delete player.held;
+    G.phase='draw';
+    G.currentTurn=(G.currentTurn+1)%G.players.length;
+    syncAll();
+    return;
   }
 }
 
-function sendHeld(pid){
-  const v=heldCards[pid];
-  if(pid===myId){localHeld=v;renderGame();}
-  else sendTo(pid,{type:'held',val:v});
-}
-function clearHeld(pid){
-  if(pid===myId){localHeld=null;renderGame();}
-  else sendTo(pid,{type:'clear_held'});
-}
+/* ===============================
+   CLIENT MESSAGES
+=================================*/
 
-function checkElim(cards){
-  for(let col=0;col<4;col++){
-    const idxs=[col,col+4,col+8];
-    if(idxs.every(i=>cards[i].revealed&&!cards[i].elim)){
-      const [a,b,c]=idxs.map(i=>cards[i].val);
-      if(a===b&&b===c) idxs.forEach(i=>cards[i].elim=true);
-    }
+function handleClientMsg(data){
+
+  if(data.type==='sync'){
+    applySync(data);
   }
-}
-function allRev(cards){return cards.every(c=>c.revealed);}
-function reshuffleDiscard(){
-  if(G.discard.length<=1)return;
-  const top=G.discard.pop();
-  G.deck=shuffle(G.discard.slice());
-  G.discard=[top];
+
 }
 
-function afterTurn(player){
-  if(allRev(player.cards)&&!G.finalRound){G.finalRound=true;G.finalBy=player.id;}
-  let next=(G.currentTurn+1)%G.players.length;
-  for(let t=0;t<G.players.length;t++){if(G.players[next].connected!==false)break;next=(next+1)%G.players.length;}
-  const allDone=G.players.every(p=>allRev(p.cards));
-  if(G.finalRound&&(allDone||G.players[next].id===G.finalBy)){
-    G.players.forEach(p=>p.cards.forEach(c=>c.revealed=true));
-    endRound(); return;
-  }
-  G.currentTurn=next; G.phase='draw';
-  bcastState();
-}
+/* ===============================
+   RENDU CARTE EN MAIN
+=================================*/
 
-function endRound(){
-  const scores={};
-  G.players.forEach(p=>{
-    let s=p.cards.reduce((sum,c)=>sum+(c.elim?0:c.val),0);
-    if(p.id===G.finalBy){
-      const won=G.players.filter(q=>q.id!==p.id).every(q=>s<q.cards.reduce((sum,c)=>sum+(c.elim?0:c.val),0));
-      if(!won) s*=2;
-    }
-    scores[p.id]=s;
-    p.total=(p.total||0)+s;
-  });
-  G.phase='end_round';
-  const gameOver=G.players.some(p=>p.total>=100);
-  bcastAll({type:'end_round',roomState:roomState(),cards:cardsFor(),scores,gameOver});
-}
-
-function bcastState(){
-  bcastAll({type:'state_upd',roomState:roomState(),cards:cardsFor()});
-}
-
-// ═══════════════════════════════════════
-//  RENDU
-// ═══════════════════════════════════════
 function renderGame(){
-  const m=me(); if(!m)return;
-  $('tb-r').textContent=G.round||1;
-  $('tb-p').textContent=PHASE_LBL[G.phase]||G.phase;
-  $('tb-d').textContent=(G.deck&&G.deck.length!==undefined)?G.deck.length:'?';
 
-  // Message
-  const c=curP(); let txt='';
-  if(G.phase==='init'){const n=G.initCounts[myId]||0;txt=n<2?'Retournez '+(2-n)+' carte(s) pour démarrer.':'En attente des autres joueurs…';}
-  else if(isMyTurn()){
-    if(G.phase==='draw')txt='À vous ! Piochez ou prenez la défausse.';
-    else if(G.phase==='place')txt='Échangez ou défaussez la carte en main.';
-    else if(G.phase==='reveal_discard')txt='Retournez une carte face cachée de votre grille.';
-  } else if(c) txt='Tour de '+esc(c.name)+'…';
-  $('msgbar').textContent=txt;
+  const hv=document.getElementById('held-viz');
 
-  // Strip joueurs
-  const strip=$('strip'); strip.innerHTML='';
-  G.players.forEach(p=>{
-    const isCur=G.phase!=='init'&&G.players[G.currentTurn]&&G.players[G.currentTurn].id===p.id;
-    const d=document.createElement('div');
-    d.className='sp'+(isCur?' cur':'')+(p.id===myId?' me':'');
-    d.innerHTML=`<div class="sp-av">${p.avatar}</div><div class="sp-nm">${esc(p.name)}</div><div class="sp-sc">${p.total||0}pts</div>`;
-    strip.appendChild(d);
-  });
-
-  // Adversaires
-  const opps=$('opps'); opps.innerHTML='';
-  G.players.forEach(p=>{
-    if(p.id===myId)return;
-    const isCur=G.players[G.currentTurn]&&G.players[G.currentTurn].id===p.id;
-    const z=document.createElement('div'); z.className='opp';
-    const nm=document.createElement('div'); nm.className='opp-nm'+(isCur?' cur':''); nm.textContent=p.name+(p.connected===false?' ❌':''); z.appendChild(nm);
-    const g=document.createElement('div'); g.className='mgrid';
-    (p.cards||[]).forEach(c=>{
-      const mc=document.createElement('div');
-      if(c.revealed){mc.className='mc'+(c.elim?' el':'');mc.textContent=fmt(c.val);clr(mc,c.val);}
-      else{mc.className='mc bk';mc.textContent='✈';}
-      g.appendChild(mc);
-    });
-    z.appendChild(g);
-    const vs=(p.cards||[]).filter(c=>c.revealed&&!c.elim).reduce((s,c)=>s+c.val,0);
-    const sc=document.createElement('div'); sc.style.cssText='font-size:.6rem;color:rgba(221,213,192,.38);text-align:center;margin-top:2px'; sc.textContent='visible: '+vs; z.appendChild(sc);
-    opps.appendChild(z);
-  });
-
-  // Piles
-  const canDraw=isMyTurn()&&G.phase==='draw';
-  $('p-deck').className='pc bk'+(canDraw?'':' off');
-  const disc=$('p-disc');
-  const top=Array.isArray(G.discard)&&G.discard.length?G.discard[G.discard.length-1]:null;
-  if(top===null||top===undefined){disc.textContent='—';disc.className='pc mt';disc.style.cssText='';}
-  else{disc.textContent=fmt(top);disc.className='pc';clr(disc,top);}
-  if(!canDraw||top===null) disc.classList.add('off');
-
-  // Carte en main
-  const hv=$('held-viz');
-  if(isMyTurn() && G.phase==='place' && localHeld!=null){hv.style.display='flex';hv.textContent=fmt(localHeld);clr(hv,localHeld);}
-  else hv.style.display='none';
-  $('btn-dh').style.display=(isMyTurn()&&G.phase==='place'&&localHeld!==null&&localHeld!==undefined)?'block':'none';
-
-  // Ma grille
-  $('mzone-lbl').textContent='✈ '+esc(m.name)+' (vous)';
-  const mg=$('my-grid'); mg.innerHTML='';
-  let canAct=false;
-  if(G.phase==='init') canAct=(G.initCounts[myId]||0)<2;
-  else if(isMyTurn()&&(G.phase==='place'||G.phase==='reveal_discard')) canAct=true;
-
-  (m.cards||[]).forEach((c,i)=>{
-    const div=document.createElement('div');
-    const noact=!canAct||(G.phase==='reveal_discard'&&c.revealed)||(G.phase==='init'&&c.revealed);
-    div.className='mycard'+(c.revealed?' ':'  bk ')+(c.elim?' el':'')+(noact?' na':'');
-    const face=document.createElement('div'); face.className='mcf';
-    if(c.revealed){face.textContent=fmt(c.val);clr(face,c.val);if(c.elim){face.style.opacity='.28';face.style.textDecoration='line-through';}}
-    else face.textContent='✈';
-    div.appendChild(face);
-    if(!noact){const _i=i;div.addEventListener('click',()=>onMyCard(_i));}
-    mg.appendChild(div);
-  });
-  $('my-vs').textContent=(m.cards||[]).filter(c=>c.revealed&&!c.elim).reduce((s,c)=>s+c.val,0);
-}
-
-function onMyCard(idx){
-  const m=me(); if(!m)return;
-  const c=m.cards[idx];
-  if(G.phase==='init'){if((G.initCounts[myId]||0)>=2||c.revealed)return;act({type:'reveal_card',idx});return;}
-  if(!isMyTurn())return;
-  if(G.phase==='place'){if(localHeld===null||localHeld===undefined)return;act({type:'place_card',idx});localHeld=null;return;}
-  if(G.phase==='reveal_discard'){if(c.revealed)return;act({type:'reveal_card',idx});}
-}
-
-$('p-deck').addEventListener('click',()=>{if(!isMyTurn()||G.phase!=='draw')return;act({type:'draw_deck'});});
-$('p-disc').addEventListener('click',()=>{
-  if(!isMyTurn()||G.phase!=='draw')return;
-  const top=Array.isArray(G.discard)&&G.discard.length?G.discard[G.discard.length-1]:null;
-  if(top===null||top===undefined)return;
-  act({type:'draw_discard'});
-});
-
-// ═══════════════════════════════════════
-//  FIN DE MANCHE
-// ═══════════════════════════════════════
-function showEndModal(scores, gameOver){
-  $('ov-end').classList.add('on');
-  $('end-title').textContent=gameOver?'🏆 Fin de partie':'Fin de la manche '+(G.round||1);
-  const sorted=[...G.players].sort((a,b)=>(scores[a.id]||0)-(scores[b.id]||0));
-  const winner=sorted[0];
-  if(gameOver){
-    const gw=[...G.players].sort((a,b)=>a.total-b.total)[0];
-    $('end-sub').textContent=gw.name+' gagne la partie ! 🎉';
-  } else {
-    $('end-sub').textContent='Vainqueur de la manche : '+winner.name+' 🎉';
+  if(G.phase==='place'&&localHeld!=null){
+    hv.style.display='flex';
+    hv.textContent=localHeld>0?'+'+localHeld:localHeld;
+  }else{
+    hv.style.display='none';
   }
-  const tbody=$('end-body'); tbody.innerHTML='';
-  sorted.forEach(p=>{
-    const tr=document.createElement('tr');
-    tr.innerHTML=`<td class="${p.id===winner.id?'ew':''}">${p.avatar} ${esc(p.name)}</td><td class="ep">${scores[p.id]||0}</td><td class="ep">${p.total||0}</td>`;
-    tbody.appendChild(tr);
-  });
-  const btns=$('end-btns'); btns.innerHTML='';
+
+}
+
+/* ===============================
+   ENVOI ACTION
+=================================*/
+
+function act(action){
+
   if(isHost){
-    const b=document.createElement('button'); b.className='btn-p';
-    b.textContent=gameOver?'Nouvelle partie':'Manche suivante →';
-    b.onclick=()=>{ sendToHost({type:gameOver?'restart':'next_round'}); };
-    btns.appendChild(b);
-  } else {
-    const b=document.createElement('button');b.className='btn-p';b.disabled=true;b.textContent='En attente de l\'hôte…';btns.appendChild(b);
+    processAction(myId,action);
+  }else if(hostConn&&hostConn.open){
+    hostConn.send({type:'action',action});
   }
-  const bq=document.createElement('button');bq.className='btn-s';bq.textContent='Quitter';bq.onclick=goLobby;btns.appendChild(bq);
-}
 
-// ═══════════════════════════════════════
-//  AUTO-JOIN via ?join=CODE
-// ═══════════════════════════════════════
-(function(){
-  const code=new URLSearchParams(location.search).get('join');
-  if(code){
-    setTimeout(()=>{
-      $('join-box').classList.add('open');
-      $('inp-code').value=code.toUpperCase().replace(/[^A-Z0-9]/g,'').slice(0,6);
-      $('inp-name').focus();
-    },200);
-  }
-})();
+}
 </script>
 </body>
 </html>
