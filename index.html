@@ -2,10 +2,31 @@
 <html lang="fr">
 <head>
 <meta charset="UTF-8">
-<title>Sky Joe</title>
+<title>Sky Joe - Stable</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/peerjs/1.5.2/peerjs.min.js"></script>
+<style>
+body{background:#0b1320;color:white;font-family:Arial;text-align:center}
+.card{width:60px;height:90px;border:1px solid #888;display:inline-flex;align-items:center;justify-content:center;margin:5px;background:#1e2a44}
+button{margin:5px;padding:8px 15px}
+</style>
 </head>
 <body>
+
+<h1>Sky Joe</h1>
+<div id="status">Lobby</div>
+
+<div>
+<button onclick="hostGame()">Créer</button>
+<input id="code" placeholder="Code">
+<button onclick="joinGame()">Rejoindre</button>
+</div>
+
+<div id="game" style="display:none">
+<h2>Phase: <span id="phase"></span></h2>
+<h3>Deck: <span id="deckCount"></span></h3>
+<div id="held"></div>
+<button onclick="drawDeck()">Piocher</button>
+</div>
 
 <script>
 'use strict';
@@ -14,19 +35,20 @@
    ÉTAT GLOBAL
 =================================*/
 
-let peer=null, myId=null, isHost=false;
-let hostConn=null, clientConns={};
+let peer=null;
+let myId=null;
+let isHost=false;
+let conn=null;
+let clients={};
+
+let realDeck=[]; // 🔥 deck réel uniquement côté hôte
 
 let G={
   players:[],
-  deck:[],
+  deck_count:0, // 🔥 seule info synchronisée
   discard:[],
   phase:'lobby',
-  currentTurn:0,
-  finalRound:false,
-  finalBy:null,
-  round:1,
-  initCounts:{}
+  currentTurn:0
 };
 
 /* ===============================
@@ -34,99 +56,96 @@ let G={
 =================================*/
 
 function shuffle(a){
-  const r=[...a];
-  for(let i=r.length-1;i>0;i--){
+  for(let i=a.length-1;i>0;i--){
     const j=Math.floor(Math.random()*(i+1));
-    [r[i],r[j]]=[r[j],r[i]];
+    [a[i],a[j]]=[a[j],a[i]];
   }
-  return r;
+  return a;
 }
 
 function buildDeck(){
   const d=[];
-  for(let i=0;i<5;i++)d.push(-2);
-  for(let i=0;i<10;i++)d.push(-1);
-  for(let i=0;i<15;i++)d.push(0);
-  for(let v=1;v<=12;v++)
-    for(let i=0;i<10;i++)d.push(v);
+  for(let i=1;i<=12;i++)
+    for(let j=0;j<5;j++)d.push(i);
   return shuffle(d);
 }
 
 /* ===============================
-   ROOM STATE (CORRIGÉ)
+   SYNCHRONISATION
 =================================*/
 
-function roomState(){
-  return{
-    phase:G.phase,
-    currentTurn:G.currentTurn,
-    deck_count:G.deck.length,
-    discard:G.discard,
-    round:G.round,
-    initCounts:G.initCounts,
-    finalRound:G.finalRound,
-    finalBy:G.finalBy,
-    players:G.players.map(p=>({
-      id:p.id,
-      name:p.name,
-      total:p.total||0
-    }))
+function broadcastState(){
+
+  const payload={
+    type:'state',
+    state:G
   };
+
+  if(isHost){
+    Object.values(clients).forEach(c=>{
+      if(c.open)c.send(payload);
+    });
+  }
+
+  applyState(payload.state);
+}
+
+function applyState(state){
+  G=state;
+  render();
 }
 
 /* ===============================
-   FIX CRITIQUE ICI
+   HOST
 =================================*/
 
-function applyRoomState(s){
+function hostGame(){
 
-  G.phase=s.phase;
-  G.currentTurn=s.currentTurn;
+  isHost=true;
+  const room='skyjoe-'+Math.random().toString(36).slice(2,8);
 
-  // 🔥 FIX IMPORTANT
-  if(!isHost){
-    G.deck = new Array(s.deck_count);
-  }
+  peer=new Peer(room);
 
-  G.discard=s.discard||[];
-  G.round=s.round;
-  G.initCounts=s.initCounts||{};
-  G.finalRound=s.finalRound;
-  G.finalBy=s.finalBy;
+  peer.on('open',()=>{
+    document.getElementById('status').innerText='Code: '+room.replace('skyjoe-','');
 
-  if(s.players){
-    s.players.forEach(sp=>{
-      const ex=G.players.find(p=>p.id===sp.id);
-      if(ex){
-        ex.name=sp.name;
-        ex.total=sp.total;
-      }else{
-        G.players.push({...sp,cards:[]});
+    G.players=[{id:room}];
+
+    realDeck=buildDeck();           // 🔥 vrai deck ici
+    G.deck_count=realDeck.length;   // 🔥 seulement la longueur synchronisée
+
+    G.phase='draw';
+
+    document.getElementById('game').style.display='block';
+    broadcastState();
+  });
+
+  peer.on('connection',c=>{
+    clients[c.peer]=c;
+
+    c.on('data',data=>{
+      if(data.type==='action'){
+        processAction(data.action);
       }
     });
-  }
+  });
 }
 
 /* ===============================
    ACTIONS HÔTE
 =================================*/
 
-function processAction(pid, action){
+function processAction(action){
 
-  const player=G.players.find(p=>p.id===pid);
-  if(!player)return;
+  if(action==='draw'){
 
-  if(action.type==='draw_deck'){
+    if(realDeck.length===0)return;   // 🔥 on utilise realDeck
 
-    console.log("Deck size before draw:",G.deck.length);
+    const card=realDeck.pop();
 
-    if(G.deck.length===0)return;
+    G.deck_count=realDeck.length;    // 🔥 mise à jour synchro
 
-    const card=G.deck.pop();
-
-    console.log("Card drawn:",card);
-
-    player.held=card;
+    G.players[0].held=card;
     G.phase='place';
 
     broadcastState();
@@ -134,26 +153,65 @@ function processAction(pid, action){
 }
 
 /* ===============================
-   NETWORK
+   CLIENT
 =================================*/
 
-function sendTo(id,msg){
-  const c=clientConns[id];
-  if(c&&c.open)c.send(msg);
-}
+function joinGame(){
 
-function broadcastState(){
-  const state=roomState();
-  Object.values(clientConns).forEach(c=>{
-    if(c&&c.open)c.send({type:'state_upd',roomState:state});
+  const code=document.getElementById('code').value.trim();
+  if(!code)return;
+
+  isHost=false;
+
+  peer=new Peer();
+
+  peer.on('open',id=>{
+    myId=id;
+    conn=peer.connect('skyjoe-'+code);
+
+    conn.on('data',data=>{
+      if(data.type==='state'){
+        applyState(data.state);
+      }
+    });
   });
 }
 
 /* ===============================
-   FIN
+   ACTIONS
 =================================*/
 
-</script>
+function drawDeck(){
 
+  if(isHost){
+    processAction('draw');
+  }else{
+    conn.send({type:'action',action:'draw'});
+  }
+}
+
+/* ===============================
+   RENDU
+=================================*/
+
+function render(){
+
+  document.getElementById('phase').innerText=G.phase;
+  document.getElementById('deckCount').innerText=G.deck_count;
+
+  const heldDiv=document.getElementById('held');
+  heldDiv.innerHTML='';
+
+  const me=isHost?G.players[0]:G.players.find(p=>p.id===myId);
+
+  if(me && me.held){
+    const div=document.createElement('div');
+    div.className='card';
+    div.innerText=me.held;
+    heldDiv.appendChild(div);
+  }
+}
+
+</script>
 </body>
 </html>
