@@ -590,29 +590,11 @@ function applyRoomState(s){
     });
   }
 }
-function applyCards(payload) {
-    if (!payload) return;
-    G.players.forEach(p => {
-        if (payload[p.id]) {
-            p.cards = payload[p.id];
-            const playerElement = document.getElementById(`player-${p.id}`);
-            if (playerElement) {
-                const cardsContainer = playerElement.querySelector('.cards-container');
-                if (cardsContainer) {
-                    cardsContainer.innerHTML = '';
-                    p.cards.forEach((card, index) => {
-                        const cardElement = document.createElement('div');
-                        cardElement.className = `mycard ${card.revealed ? '' : 'bk'}`;
-                        if (card.revealed) {
-                            cardElement.textContent = card.val;
-                        }
-                        cardsContainer.appendChild(cardElement);
-                    });
-                }
-            }
-        }
-    });
+function applyCards(payload){
+  if(!payload)return;
+  G.players.forEach(p=>{ if(payload[p.id]) p.cards=payload[p.id]; });
 }
+
 // ═══════════════════════════════════════
 //  LOGIQUE JEU (hôte uniquement)
 // ═══════════════════════════════════════
@@ -633,10 +615,15 @@ function processAction(pid, action){
 
   if(action.type==='draw_deck'){
     if(G.phase!=='draw') return;
-    if(G.deck.length===0) reshuffleDiscard();
-    if(G.deck.length===0) return;
-    heldCards[pid]=G.deck.pop();
-    heldCards[pid].revealed = true; // Ajoutez cette ligne
+    if (!Array.isArray(G.deck) || G.deck.length === 0) {
+        reshuffleDiscard();
+        if (!Array.isArray(G.deck) || G.deck.length === 0) {
+            console.error("Le deck est vide et ne peut pas être utilisé.");
+            return;
+        }
+    }
+    heldCards[pid] = G.deck.pop();
+    heldCards[pid].revealed = true;
     G.phase='place';
     bcastState();
     sendHeld(pid);
@@ -644,11 +631,10 @@ function processAction(pid, action){
   else if(action.type==='draw_discard'){
     if(G.phase!=='draw'||G.discard.length===0) return;
     heldCards[pid]=G.discard.pop();
-    heldCards[pid].revealed = true; // Ajoutez cette ligne
     G.phase='place';
     bcastState();
     sendHeld(pid);
-}
+  }
   else if(action.type==='place_card'){
     if(G.phase!=='place'||heldCards[pid]===undefined) return;
     const old=player.cards[action.idx].val;
