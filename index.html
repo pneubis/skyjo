@@ -68,7 +68,7 @@ body{background:var(--bg);background-image:radial-gradient(ellipse 65% 45% at 18
 .pc:hover:not(.off){transform:translateY(-3px);box-shadow:0 6px 15px rgba(0,0,0,.5);}.pc.off{pointer-events:none;opacity:.36;}
 .pc.bk{background:var(--back);border-color:var(--back-b);color:rgba(180,148,58,.17);background-image:repeating-linear-gradient(45deg,rgba(255,255,255,.02) 0,rgba(255,255,255,.02) 1px,transparent 1px,transparent 8px),repeating-linear-gradient(-45deg,rgba(255,255,255,.02) 0,rgba(255,255,255,.02) 1px,transparent 1px,transparent 8px);}
 .pc.mt{background:rgba(255,255,255,.03);border:2px dashed rgba(180,148,58,.19);color:rgba(221,213,192,.14);}
-#held-viz{width:56px;height:84px;border-radius:7px;display:none;align-items:center;justify-content:center;font-family:'Playfair Display',serif;font-size:1.38rem;font-weight:700;border:2px solid var(--gold2);box-shadow:0 0 14px rgba(200,144,58,.36);}
+#held-viz{width:56px;height:84px;border-radius:7px;display:none !important;align-items:center;justify-content:center;font-family:'Playfair Display',serif;font-size:1.38rem;font-weight:700;border:2px solid var(--gold2);box-shadow:0 0 14px rgba(200,144,58,.36);}
 #mzone{display:flex;flex-direction:column;align-items:center;gap:5px;}
 .mzone-lbl{font-family:'Playfair Display',serif;font-size:.85rem;color:var(--gold);letter-spacing:.1em;text-transform:uppercase;}
 .mgrid2{display:grid;grid-template-columns:repeat(4,1fr);gap:5px;}
@@ -597,15 +597,15 @@ function processAction(pid, action){
     if(G.deck.length===0) return;
     heldCards[pid]=G.deck.pop();
     G.phase='place';
-    bcastState();
-    sendHeld(pid);
+    sendHeld(pid);   // ← d'abord envoyer la carte privée
+    bcastState();    // ← ensuite l'état global
   }
   else if(action.type==='draw_discard'){
     if(G.phase!=='draw'||G.discard.length===0) return;
-    heldCards[pid]=G.discard.pop();
+    hheldCards[pid]=G.deck.pop();
     G.phase='place';
-    bcastState();
-    sendHeld(pid);
+    sendHeld(pid);   // ← d'abord envoyer la carte privée
+    bcastState();    // ← ensuite l'état global
   }
   else if(action.type==='place_card'){
     if(G.phase!=='place'||heldCards[pid]===undefined) return;
@@ -753,7 +753,7 @@ function renderGame(){
 
   // Carte en main
   const hv=$('held-viz');
-  if(isMyTurn()&&localHeld!==null&&localHeld!==undefined){hv.style.display='flex';hv.textContent=fmt(localHeld);clr(hv,localHeld);}
+  if(isMyTurn() && G.phase==='place' && localHeld!=null){hv.style.display='flex';hv.textContent=fmt(localHeld);clr(hv,localHeld);}
   else hv.style.display='none';
   $('btn-dh').style.display=(isMyTurn()&&G.phase==='place'&&localHeld!==null&&localHeld!==undefined)?'block':'none';
 
