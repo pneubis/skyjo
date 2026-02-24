@@ -613,23 +613,23 @@ function processAction(pid, action){
 
   if(!curP()||curP().id!==pid) return;
 
-  if(action.type==='draw_deck'){
-    if(G.phase!=='draw') return;
-    if (!Array.isArray(G.deck)) {
-        console.error("G.deck n'est pas un tableau.");
-        G.deck = []; // Reset as an empty array
-        return;
-    }
+  if (action.type === 'draw_deck') {
+    if (G.phase !== 'draw') return;
+    ensureDeckIsArray();
     if (G.deck.length === 0) {
+        console.log('Deck is empty, reshuffling discard...');
         reshuffleDiscard();
+        ensureDeckIsArray();
         if (G.deck.length === 0) {
             console.error("Le deck est vide et ne peut pas être utilisé.");
             return;
         }
     }
+    console.log('Drawing a card from deck:', G.deck);
     heldCards[pid] = G.deck.pop();
+    console.log('Card drawn, remaining deck:', G.deck);
     heldCards[pid].revealed = true;
-    G.phase='place';
+    G.phase = 'place';
     bcastState();
     sendHeld(pid);
 }
@@ -686,13 +686,19 @@ function checkElim(cards){
   }
 }
 function allRev(cards){return cards.every(c=>c.revealed);}
-function reshuffleDiscard(){
-  if(G.discard.length<=1)return;
-  const top=G.discard.pop();
-  G.deck=shuffle(G.discard.slice());
-  G.discard=[top];
+function reshuffleDiscard() {
+    console.log('Reshuffling discard into deck...');
+    while (G.discard.length > 0) {
+        G.deck.push(G.discard.pop());
+    }
+    console.log('Deck after reshuffle:', G.deck);
+    // Shuffle the deck
+    for (let i = G.deck.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [G.deck[i], G.deck[j]] = [G.deck[j], G.deck[i]];
+    }
+    console.log('Deck after shuffle:', G.deck);
 }
-
 function afterTurn(player){
   if(allRev(player.cards)&&!G.finalRound){G.finalRound=true;G.finalBy=player.id;}
   let next=(G.currentTurn+1)%G.players.length;
@@ -729,6 +735,21 @@ function bcastState(){
 // ═══════════════════════════════════════
 //  RENDU
 // ═══════════════════════════════════════
+function initGame() {
+    console.log('Initializing game and deck...');
+    G.deck = [];
+    // Add cards to the deck
+    for (let i = 0; i < 150; i++) {
+        G.deck.push({ val: Math.floor(Math.random() * 12) - 2, revealed: false, elim: false });
+    }
+    console.log('Deck initialized:', G.deck);
+    // Shuffle the deck
+    for (let i = G.deck.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [G.deck[i], G.deck[j]] = [G.deck[j], G.deck[i]];
+    }
+    console.log('Deck shuffled:', G.deck);
+}
 function renderGame(){
   const m=me(); if(!m)return;
   $('tb-r').textContent=G.round||1;
@@ -783,6 +804,14 @@ function renderGame(){
   if(top===null||top===undefined){disc.textContent='—';disc.className='pc mt';disc.style.cssText='';}
   else{disc.textContent=fmt(top);disc.className='pc';clr(disc,top);}
   if(!canDraw||top===null) disc.classList.add('off');
+
+  // Vérifier Deck est un tableau
+  function ensureDeckIsArray() {
+    if (!Array.isArray(G.deck)) {
+        console.warn('G.deck was not an array, resetting to empty array.');
+        G.deck = [];
+    }
+  }
 
   // Carte en main
   const hv=$('held-viz');
