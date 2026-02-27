@@ -337,6 +337,7 @@ let reconnectAttempts = 0;
 let reconnectTimer = null;
 let heartbeatTimer = null;
 let isReconnecting = false;
+let intentionalDisconnect = false; // true quand on quitte volontairement
 const MAX_RECONNECT_ATTEMPTS = 10;
 const HEARTBEAT_INTERVAL = 15000; // 15s
 const SESSION_KEY = 'skyjo_session';
@@ -510,6 +511,7 @@ function clearSession() {
 function startHeartbeat() {
   stopHeartbeat();
   heartbeatTimer = setInterval(() => {
+    if (intentionalDisconnect) { stopHeartbeat(); return; }
     if (isHost) {
       Object.entries(connections).forEach(([pid, conn]) => {
         try {
@@ -545,6 +547,7 @@ function hideReconnectOverlay() {
 }
 
 function abortReconnect() {
+  intentionalDisconnect = true;
   stopReconnect();
   clearSession();
   backToMenu();
@@ -557,7 +560,8 @@ function stopReconnect() {
 }
 
 function startReconnect() {
-  if (isReconnecting || isHost) return;
+  if (intentionalDisconnect || isHost) return; // ne jamais reconnecter si déco volontaire
+  if (isReconnecting) return; // déjà en cours
   if (reconnectAttempts >= MAX_RECONNECT_ATTEMPTS) {
     hideReconnectOverlay();
     toast('Reconnexion impossible. Retour au menu.');
@@ -571,45 +575,70 @@ function startReconnect() {
 }
 
 async function attemptReconnect() {
+  if (intentionalDisconnect) return;
   const session = loadSession();
   if (!session) { abortReconnect(); return; }
 
   stopHeartbeat();
+
+  // Détruire l'ancien peer sans déclencher de nouvelle reconnexion
+  intentionalDisconnect = true;
   try { if (peer) peer.destroy(); } catch(e) {}
   peer = null;
   hostConn = null;
+  intentionalDisconnect = false;
 
+  // isReconnecting reste true pendant toute la tentative
   const tryId = session.myPeerId;
+  let connected = false;
   try {
     await initPeer(tryId);
+    connected = true;
   } catch(e) {
-    try { await initPeer(tryId + '-r' + reconnectAttempts); }
-    catch(e2) { startReconnect(); return; }
+    try {
+      await initPeer(tryId + '-r' + reconnectAttempts);
+      connected = true;
+    } catch(e2) {}
+  }
+
+  if (!connected) {
+    isReconnecting = false; // libérer pour permettre une nouvelle tentative
+    startReconnect();
+    return;
   }
 
   const hostId = 'skyjo-' + session.roomCode;
   const conn = peer.connect(hostId, { reliable: true });
-  const timeout = setTimeout(() => { if (isReconnecting) startReconnect(); }, 8000);
+  const timeout = setTimeout(() => {
+    if (isReconnecting) {
+      isReconnecting = false;
+      startReconnect();
+    }
+  }, 8000);
 
   conn.on('open', () => {
     clearTimeout(timeout);
     hostConn = conn;
     conn.send({ type: 'rejoin', name: session.myName, id: session.myPlayerId, peerId: myPeerId });
-    conn.on('data', (data) => handleClientMessage(data));
-    conn.on('close', () => { if (!isReconnecting) startReconnect(); });
-    conn.on('error', () => { if (!isReconnecting) startReconnect(); });
-    stopReconnect();
+    conn.on('data',  (data) => handleClientMessage(data));
+    conn.on('close', () => { if (!intentionalDisconnect) startReconnect(); });
+    conn.on('error', () => { if (!intentionalDisconnect) startReconnect(); });
+    stopReconnect(); // remet isReconnecting = false, reconnectAttempts = 0
     startHeartbeat();
     saveSession();
     toast('✅ Reconnecté !');
   });
-  conn.on('error', () => { clearTimeout(timeout); startReconnect(); });
+  conn.on('error', () => {
+    clearTimeout(timeout);
+    isReconnecting = false;
+    startReconnect();
+  });
 }
 
 // --- DÉTECTION RÉVEIL ÉCRAN (mise en veille smartphone) ---
 document.addEventListener('visibilitychange', () => {
   if (document.visibilityState === 'visible') {
-    if (!isHost && gameState && gameState.phase !== 'lobby' && gameState.phase !== null) {
+    if (!intentionalDisconnect && !isHost && gameState && gameState.phase !== 'lobby' && gameState.phase !== null) {
       if (!hostConn || !hostConn.open) {
         startReconnect();
       } else {
@@ -650,13 +679,20 @@ function initPeer(id) {
         if (err.type === 'unavailable-id') reject(new Error('Code déjà utilisé'));
         else reject(err);
       } else {
-        if (!isHost && err.type !== 'peer-unavailable') startReconnect();
+        // Erreur runtime : tenter reconnexion sauf si déco volontaire ou hôte
+        if (!intentionalDisconnect && !isHost && err.type !== 'peer-unavailable') {
+          startReconnect();
+        }
       }
     });
     p.on('disconnected', () => {
+      if (intentionalDisconnect) return; // déco volontaire, on ignore
+      // Essayer de se reconnecter au serveur de signaling PeerJS
       try { p.reconnect(); } catch(e) {}
       setTimeout(() => {
-        if (!isHost && p.disconnected && !isReconnecting) startReconnect();
+        if (!intentionalDisconnect && !isHost && p.disconnected && !isReconnecting) {
+          startReconnect();
+        }
       }, 3000);
     });
   });
@@ -745,13 +781,13 @@ async function joinGame() {
   });
   
   hostConn.on('close', () => {
-    if (!isReconnecting && gameState) startReconnect();
-    else if (!gameState) { toast('Déconnecté de l\'hôte'); backToMenu(); }
+    if (!intentionalDisconnect && gameState) startReconnect();
+    else if (!intentionalDisconnect && !gameState) { toast('Déconnecté de l\'hôte'); backToMenu(); }
   });
   
   hostConn.on('error', (err) => {
-    if (!isReconnecting && gameState) startReconnect();
-    else { toast('Impossible de rejoindre'); console.error(err); }
+    if (!intentionalDisconnect && gameState) startReconnect();
+    else if (!intentionalDisconnect) { toast('Impossible de rejoindre'); console.error(err); }
   });
   
   setTimeout(() => {
@@ -922,6 +958,7 @@ function copyCode() {
 }
 
 function leaveLobby() {
+  intentionalDisconnect = true;
   stopHeartbeat();
   stopReconnect();
   clearSession();
@@ -934,6 +971,7 @@ function leaveLobby() {
 }
 
 function backToMenu() {
+  intentionalDisconnect = true;
   stopHeartbeat();
   stopReconnect();
   clearSession();
@@ -943,6 +981,9 @@ function backToMenu() {
   gameState = null;
   isHost = false;
   reconnectAttempts = 0;
+  isReconnecting = false;
+  // Réactiver après un tick pour les prochaines connexions
+  setTimeout(() => { intentionalDisconnect = false; }, 100);
   showScreen('screen-menu');
 }
 
