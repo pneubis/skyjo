@@ -660,64 +660,84 @@ function generateRoomCode() {
 }
 
 function initPeer(id) {
-  return new Promise((resolve, reject) => {
-    const p = new Peer(id, {
-      // Serveur de signaling officiel stable (api.peerjs.com)
-      host: 'api.peerjs.com',
-      port: 443,
-      path: '/',
-      secure: true,
-      key: 'peerjs',
-      debug: 0,
-      config: {
-        iceServers: [
-          { urls: 'stun:stun.l.google.com:19302' },
-          { urls: 'stun:stun1.l.google.com:19302' },
-          { urls: 'stun:stun2.l.google.com:19302' }
-        ]
+  // Configs de signaling à essayer dans l'ordre
+  const PEER_CONFIGS = [
+    // 1. Config par défaut PeerJS 1.5 (0.peerjs.com) - sans rien spécifier
+    {},
+    // 2. Serveur PeerJS alternatif
+    { host: 'peer.minitlabs.com', port: 443, path: '/', secure: true },
+    // 3. Serveur PeerJS communauté
+    { host: 'peerjs.92k.de', port: 443, path: '/', secure: true },
+  ];
+
+  const ICE = {
+    config: {
+      iceServers: [
+        { urls: 'stun:stun.l.google.com:19302' },
+        { urls: 'stun:stun1.l.google.com:19302' },
+        { urls: 'stun:stun2.l.google.com:19302' }
+      ]
+    }
+  };
+
+  function tryConfig(index) {
+    return new Promise((resolve, reject) => {
+      if (index >= PEER_CONFIGS.length) {
+        reject(new Error('Tous les serveurs sont inaccessibles'));
+        return;
       }
-    });
-    let resolved = false;
 
-    p.on('open', (pid) => {
-      peer = p;
-      myPeerId = pid;
-      resolved = true;
-      resolve(pid);
-    });
+      const cfg = Object.assign({}, PEER_CONFIGS[index], ICE, { debug: 0 });
+      const p = new Peer(id, cfg);
+      let resolved = false;
 
-    p.on('error', (err) => {
-      console.error('Peer error:', err.type, err);
-      if (!resolved) {
-        if (err.type === 'unavailable-id') reject(new Error('Code déjà utilisé'));
-        else if (err.type === 'network' || err.type === 'server-error') reject(new Error('Serveur inaccessible'));
-        else reject(err);
-      } else {
-        if (!intentionalDisconnect && !isHost && err.type !== 'peer-unavailable') {
-          startReconnect();
+      const timeout = setTimeout(() => {
+        if (!resolved) {
+          try { p.destroy(); } catch(e) {}
+          // Essayer la config suivante
+          tryConfig(index + 1).then(resolve).catch(reject);
         }
-      }
-    });
+      }, 6000);
 
-    p.on('disconnected', () => {
-      if (intentionalDisconnect) return;
-      // Tenter de se reconnecter au serveur de signaling
-      try { p.reconnect(); } catch(e) {}
-      setTimeout(() => {
-        if (!intentionalDisconnect && !isHost && p.disconnected && !isReconnecting) {
-          startReconnect();
+      p.on('open', (pid) => {
+        clearTimeout(timeout);
+        peer = p;
+        myPeerId = pid;
+        resolved = true;
+        resolve(pid);
+      });
+
+      p.on('error', (err) => {
+        console.warn('Peer config ' + index + ' erreur:', err.type);
+        if (!resolved) {
+          clearTimeout(timeout);
+          try { p.destroy(); } catch(e) {}
+          if (err.type === 'unavailable-id') {
+            reject(new Error('Code déjà utilisé'));
+          } else {
+            // Essayer la config suivante
+            tryConfig(index + 1).then(resolve).catch(reject);
+          }
+        } else {
+          if (!intentionalDisconnect && !isHost && err.type !== 'peer-unavailable') {
+            startReconnect();
+          }
         }
-      }, 3000);
-    });
+      });
 
-    // Timeout global de connexion au serveur de signaling (10s)
-    setTimeout(() => {
-      if (!resolved) {
-        try { p.destroy(); } catch(e) {}
-        reject(new Error('Timeout connexion serveur'));
-      }
-    }, 10000);
-  });
+      p.on('disconnected', () => {
+        if (intentionalDisconnect) return;
+        try { p.reconnect(); } catch(e) {}
+        setTimeout(() => {
+          if (!intentionalDisconnect && !isHost && p.disconnected && !isReconnecting) {
+            startReconnect();
+          }
+        }, 3000);
+      });
+    });
+  }
+
+  return tryConfig(0);
 }
 
 // --- MENU ---
@@ -745,11 +765,22 @@ async function createGame() {
   myName = getName();
   roomCode = generateRoomCode();
   isHost = true;
-  
+  intentionalDisconnect = false;
+
+  // Nettoyer tout peer résiduel
+  if (peer) {
+    intentionalDisconnect = true;
+    try { peer.destroy(); } catch(e) {}
+    peer = null;
+    intentionalDisconnect = false;
+  }
+
+  toast('Connexion au serveur...');
   try {
     await initPeer('skyjo-' + roomCode);
   } catch(e) {
-    toast('Erreur: ' + e.message);
+    toast('Serveur indisponible. Réessayez dans quelques secondes.');
+    isHost = false;
     return;
   }
   
@@ -796,7 +827,7 @@ async function joinGame() {
   try {
     await initPeer('skyjo-' + roomCode + '-' + Math.random().toString(36).substr(2,4));
   } catch(e) {
-    toast('Erreur de connexion : ' + (e.message || e));
+    toast('Serveur indisponible. Réessayez dans quelques secondes.');
     return;
   }
 
