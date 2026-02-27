@@ -761,42 +761,79 @@ async function joinGame() {
   if (!code) { toast('Entrez un code'); return; }
   roomCode = code;
   isHost = false;
-  
+  intentionalDisconnect = false;
+
+  // Nettoyer tout peer résiduel
+  if (peer) {
+    intentionalDisconnect = true;
+    try { peer.destroy(); } catch(e) {}
+    peer = null;
+    intentionalDisconnect = false;
+  }
+
   try {
     await initPeer('skyjo-' + roomCode + '-' + Math.random().toString(36).substr(2,4));
   } catch(e) {
-    toast('Erreur connexion');
+    toast('Erreur de connexion : ' + (e.message || e));
     return;
   }
-  
+
   myPlayerId = myPeerId;
   const hostId = 'skyjo-' + roomCode;
+
+  // Timeout si l'hôte ne répond pas en 8s
+  let joinTimeout = setTimeout(() => {
+    if (!gameState) {
+      toast('Hôte introuvable. Vérifiez le code.');
+      intentionalDisconnect = true;
+      if (peer) { try { peer.destroy(); } catch(e) {} peer = null; }
+      intentionalDisconnect = false;
+      showScreen('screen-join');
+    }
+  }, 8000);
+
+  // Intercepter l'erreur peer-unavailable (hôte inexistant)
+  const unavailableHandler = (err) => {
+    if (err.type === 'peer-unavailable') {
+      clearTimeout(joinTimeout);
+      toast('Salle introuvable. Vérifiez le code.');
+      peer.off('error', unavailableHandler);
+      intentionalDisconnect = true;
+      if (peer) { try { peer.destroy(); } catch(e) {} peer = null; }
+      intentionalDisconnect = false;
+      showScreen('screen-join');
+    }
+  };
+  peer.on('error', unavailableHandler);
+
   hostConn = peer.connect(hostId, { reliable: true });
-  
+
   hostConn.on('open', () => {
+    clearTimeout(joinTimeout);
+    peer.off('error', unavailableHandler);
     hostConn.send({ type: 'join', name: myName, id: myPeerId });
     hostConn.on('data', (data) => handleClientMessage(data));
     saveSession();
     startHeartbeat();
+    showScreen('screen-lobby');
+    document.getElementById('lobby-code').textContent = roomCode;
+    generateQR();
   });
-  
+
   hostConn.on('close', () => {
     if (!intentionalDisconnect && gameState) startReconnect();
-    else if (!intentionalDisconnect && !gameState) { toast('Déconnecté de l\'hôte'); backToMenu(); }
+    else if (!intentionalDisconnect && !gameState) { toast('Déconnecté de l\'hôte'); showScreen('screen-join'); }
   });
-  
+
   hostConn.on('error', (err) => {
+    clearTimeout(joinTimeout);
     if (!intentionalDisconnect && gameState) startReconnect();
-    else if (!intentionalDisconnect) { toast('Impossible de rejoindre'); console.error(err); }
-  });
-  
-  setTimeout(() => {
-    if (currentScreen !== 'screen-lobby') {
-      showScreen('screen-lobby');
-      document.getElementById('lobby-code').textContent = roomCode;
-      generateQR();
+    else if (!intentionalDisconnect) {
+      toast('Erreur de connexion à la salle.');
+      console.error(err);
+      showScreen('screen-join');
     }
-  }, 1000);
+  });
 }
 
 // --- HOST MESSAGE HANDLING ---
@@ -962,12 +999,12 @@ function leaveLobby() {
   stopHeartbeat();
   stopReconnect();
   clearSession();
-  if (peer) peer.destroy();
-  peer = null;
+  if (peer) { try { peer.destroy(); } catch(e) {} peer = null; }
   connections = {};
   hostConn = null;
   gameState = null;
-  backToMenu();
+  intentionalDisconnect = false;
+  showScreen('screen-menu');
 }
 
 function backToMenu() {
@@ -975,15 +1012,15 @@ function backToMenu() {
   stopHeartbeat();
   stopReconnect();
   clearSession();
-  if (peer) { peer.destroy(); peer = null; }
+  if (peer) { try { peer.destroy(); } catch(e) {} peer = null; }
   connections = {};
   hostConn = null;
   gameState = null;
   isHost = false;
   reconnectAttempts = 0;
   isReconnecting = false;
-  // Réactiver après un tick pour les prochaines connexions
-  setTimeout(() => { intentionalDisconnect = false; }, 100);
+  // Réactiver immédiatement (plus de setTimeout pour éviter le bug de timing)
+  intentionalDisconnect = false;
   showScreen('screen-menu');
 }
 
