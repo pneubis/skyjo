@@ -5,6 +5,12 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, maximum-scale=1.0">
 <title>Skyjo Multijoueur</title>
 <link rel="icon" href="https://public-frontend-cos.metadl.com/mgx/img/favicon_atoms.ico" type="image/x-icon">
+<!-- PWA / Fullscreen mobile -->
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Skyjo">
+<meta name="theme-color" content="#1a1a2e">
 <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/davidshimjs-qrcodejs@0.0.2/qrcode.min.js"></script>
 <style>
@@ -143,12 +149,35 @@ input::placeholder{color:#666}
   .pile .card{width:50px;height:70px;font-size:1.2em}
   h1{font-size:1.8em}
 }
+
+/* Fullscreen button */
+#fullscreen-btn{position:fixed;top:10px;right:10px;z-index:500;background:rgba(255,255,255,.1);border:none;color:#fff;border-radius:8px;padding:6px 10px;font-size:1.1em;cursor:pointer;backdrop-filter:blur(10px);min-height:36px;line-height:1;transition:background .2s}
+#fullscreen-btn:hover{background:rgba(255,255,255,.2)}
+
+/* Reconnect overlay */
+#reconnect-overlay{position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:1000;display:none;flex-direction:column;align-items:center;justify-content:center;gap:16px;text-align:center;padding:24px}
+#reconnect-overlay.show{display:flex}
+#reconnect-overlay h3{color:#f1c40f;font-size:1.3em}
+#reconnect-overlay p{color:#aaa;font-size:.9em}
+.reconnect-spinner{width:48px;height:48px;border:4px solid rgba(155,89,182,.3);border-top-color:#9b59b6;border-radius:50%;animation:spin 1s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
 </style>
 </head>
 <body>
 
 <!-- TOAST -->
 <div class="toast" id="toast"></div>
+
+<!-- FULLSCREEN BUTTON -->
+<button id="fullscreen-btn" onclick="toggleFullscreen()" title="Plein écran">⛶</button>
+
+<!-- RECONNECT OVERLAY -->
+<div id="reconnect-overlay">
+  <div class="reconnect-spinner"></div>
+  <h3>⚡ Reconnexion...</h3>
+  <p id="reconnect-msg">Tentative de reconnexion à la partie...</p>
+  <button class="secondary" onclick="abortReconnect()" style="margin-top:8px;padding:10px 20px;font-size:.85em">Abandonner</button>
+</div>
 
 <!-- BOOM OVERLAY -->
 <div class="boom-overlay" id="boom-overlay"></div>
@@ -273,6 +302,15 @@ let gameState = null;
 let myPlayerId = '';
 let currentScreen = 'screen-menu';
 
+// --- RECONNECTION STATE ---
+let reconnectAttempts = 0;
+let reconnectTimer = null;
+let heartbeatTimer = null;
+let isReconnecting = false;
+const MAX_RECONNECT_ATTEMPTS = 10;
+const HEARTBEAT_INTERVAL = 15000; // 15s
+const SESSION_KEY = 'skyjo_session';
+
 // --- PERSISTENT LEADERBOARD (localStorage) ---
 function getLeaderboard() {
   try {
@@ -350,6 +388,171 @@ function triggerBoom() {
   setTimeout(() => { overlay.innerHTML = ''; }, 1000);
 }
 
+// --- FULLSCREEN ---
+function toggleFullscreen() {
+  const btn = document.getElementById('fullscreen-btn');
+  const isFs = !!(document.fullscreenElement || document.webkitFullscreenElement);
+  if (!isFs) {
+    const el = document.documentElement;
+    if (el.requestFullscreen) el.requestFullscreen();
+    else if (el.webkitRequestFullscreen) el.webkitRequestFullscreen();
+    btn.textContent = '✕';
+    btn.title = 'Quitter le plein écran';
+  } else {
+    if (document.exitFullscreen) document.exitFullscreen();
+    else if (document.webkitExitFullscreen) document.webkitExitFullscreen();
+    btn.textContent = '⛶';
+    btn.title = 'Plein écran';
+  }
+}
+document.addEventListener('fullscreenchange', () => {
+  const btn = document.getElementById('fullscreen-btn');
+  if (!document.fullscreenElement) { btn.textContent = '⛶'; btn.title = 'Plein écran'; }
+});
+document.addEventListener('webkitfullscreenchange', () => {
+  const btn = document.getElementById('fullscreen-btn');
+  if (!document.webkitFullscreenElement) { btn.textContent = '⛶'; btn.title = 'Plein écran'; }
+});
+
+// --- SESSION PERSISTENCE ---
+function saveSession() {
+  if (!roomCode || !myPlayerId) return;
+  try {
+    sessionStorage.setItem(SESSION_KEY, JSON.stringify({
+      roomCode, myName, myPlayerId, myPeerId, isHost, timestamp: Date.now()
+    }));
+  } catch(e) {}
+}
+
+function loadSession() {
+  try {
+    const s = JSON.parse(sessionStorage.getItem(SESSION_KEY) || 'null');
+    if (s && (Date.now() - s.timestamp) < 300000) return s;
+    return null;
+  } catch(e) { return null; }
+}
+
+function clearSession() {
+  try { sessionStorage.removeItem(SESSION_KEY); } catch(e) {}
+}
+
+// --- HEARTBEAT ---
+function startHeartbeat() {
+  stopHeartbeat();
+  heartbeatTimer = setInterval(() => {
+    if (isHost) {
+      Object.entries(connections).forEach(([pid, conn]) => {
+        try {
+          if (conn.open) conn.send({ type: 'ping' });
+          else handleDisconnect(pid);
+        } catch(e) { handleDisconnect(pid); }
+      });
+    } else {
+      if (hostConn && hostConn.open) {
+        try { hostConn.send({ type: 'ping' }); }
+        catch(e) { startReconnect(); }
+      } else if (!isReconnecting) {
+        startReconnect();
+      }
+    }
+  }, HEARTBEAT_INTERVAL);
+}
+
+function stopHeartbeat() {
+  if (heartbeatTimer) { clearInterval(heartbeatTimer); heartbeatTimer = null; }
+}
+
+// --- RECONNECTION ---
+function showReconnectOverlay(msg) {
+  isReconnecting = true;
+  document.getElementById('reconnect-overlay').classList.add('show');
+  if (msg) document.getElementById('reconnect-msg').textContent = msg;
+}
+
+function hideReconnectOverlay() {
+  isReconnecting = false;
+  document.getElementById('reconnect-overlay').classList.remove('show');
+}
+
+function abortReconnect() {
+  stopReconnect();
+  clearSession();
+  backToMenu();
+}
+
+function stopReconnect() {
+  if (reconnectTimer) { clearTimeout(reconnectTimer); reconnectTimer = null; }
+  reconnectAttempts = 0;
+  hideReconnectOverlay();
+}
+
+function startReconnect() {
+  if (isReconnecting || isHost) return;
+  if (reconnectAttempts >= MAX_RECONNECT_ATTEMPTS) {
+    hideReconnectOverlay();
+    toast('Reconnexion impossible. Retour au menu.');
+    setTimeout(() => { clearSession(); backToMenu(); }, 2500);
+    return;
+  }
+  showReconnectOverlay('Tentative ' + (reconnectAttempts + 1) + '/' + MAX_RECONNECT_ATTEMPTS + '...');
+  reconnectAttempts++;
+  const delay = Math.min(2000 * reconnectAttempts, 15000);
+  reconnectTimer = setTimeout(attemptReconnect, delay);
+}
+
+async function attemptReconnect() {
+  const session = loadSession();
+  if (!session) { abortReconnect(); return; }
+
+  stopHeartbeat();
+  try { if (peer) peer.destroy(); } catch(e) {}
+  peer = null;
+  hostConn = null;
+
+  const tryId = session.myPeerId;
+  try {
+    await initPeer(tryId);
+  } catch(e) {
+    try { await initPeer(tryId + '-r' + reconnectAttempts); }
+    catch(e2) { startReconnect(); return; }
+  }
+
+  const hostId = 'skyjo-' + session.roomCode;
+  const conn = peer.connect(hostId, { reliable: true });
+
+  const timeout = setTimeout(() => { if (isReconnecting) startReconnect(); }, 8000);
+
+  conn.on('open', () => {
+    clearTimeout(timeout);
+    hostConn = conn;
+    conn.send({ type: 'rejoin', name: session.myName, id: session.myPlayerId, peerId: myPeerId });
+    conn.on('data', (data) => handleClientMessage(data));
+    conn.on('close', () => { if (!isReconnecting) startReconnect(); });
+    conn.on('error', () => { if (!isReconnecting) startReconnect(); });
+    stopReconnect();
+    startHeartbeat();
+    saveSession();
+    toast('✅ Reconnecté !');
+  });
+  conn.on('error', () => { clearTimeout(timeout); startReconnect(); });
+}
+
+// --- VISIBILITY CHANGE (wake from sleep) ---
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'visible') {
+    if (!isHost && gameState && gameState.phase !== 'lobby' && gameState.phase !== null) {
+      if (!hostConn || !hostConn.open) {
+        startReconnect();
+      } else {
+        try { hostConn.send({ type: 'request_state', id: myPlayerId }); } catch(e) {}
+        startHeartbeat();
+      }
+    }
+  } else {
+    stopHeartbeat();
+  }
+});
+
 // --- PEER SETUP ---
 function generateRoomCode() {
   const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
@@ -360,22 +563,34 @@ function generateRoomCode() {
 
 function initPeer(id) {
   return new Promise((resolve, reject) => {
-    peer = new Peer(id, {
+    const p = new Peer(id, {
       config: {
         iceServers: [
           { urls: 'stun:stun.l.google.com:19302' },
-          { urls: 'stun:stun1.l.google.com:19302' }
+          { urls: 'stun:stun1.l.google.com:19302' },
+          { urls: 'stun:stun2.l.google.com:19302' }
         ]
+      },
+      debug: 0
+    });
+    let resolved = false;
+    p.on('open', (pid) => {
+      peer = p; myPeerId = pid; resolved = true; resolve(pid);
+    });
+    p.on('error', (err) => {
+      console.error('Peer error:', err);
+      if (!resolved) {
+        if (err.type === 'unavailable-id') reject(new Error('Code déjà utilisé'));
+        else reject(err);
+      } else {
+        if (!isHost && err.type !== 'peer-unavailable') startReconnect();
       }
     });
-    peer.on('open', (pid) => { myPeerId = pid; resolve(pid); });
-    peer.on('error', (err) => {
-      console.error('Peer error:', err);
-      if (err.type === 'unavailable-id') {
-        reject(new Error('Code déjà utilisé'));
-      } else {
-        reject(err);
-      }
+    p.on('disconnected', () => {
+      try { p.reconnect(); } catch(e) {}
+      setTimeout(() => {
+        if (!isHost && p.disconnected && !isReconnecting) startReconnect();
+      }, 3000);
     });
   });
 }
@@ -420,6 +635,7 @@ async function createGame() {
       conn.on('data', (data) => handleHostMessage(conn, data));
     });
     conn.on('close', () => handleDisconnect(conn.peer));
+    conn.on('error', () => handleDisconnect(conn.peer));
   });
   
   gameState = {
@@ -430,6 +646,8 @@ async function createGame() {
   };
   gameState.totalScores[myPeerId] = 0;
   
+  saveSession();
+  startHeartbeat();
   showLobby();
 }
 
@@ -455,16 +673,18 @@ async function joinGame() {
   hostConn.on('open', () => {
     hostConn.send({ type: 'join', name: myName, id: myPeerId });
     hostConn.on('data', (data) => handleClientMessage(data));
+    saveSession();
+    startHeartbeat();
   });
   
   hostConn.on('close', () => {
-    toast('Déconnecté de l\'hôte');
-    backToMenu();
+    if (!isReconnecting && gameState) startReconnect();
+    else if (!gameState) { toast('Déconnecté de l\'hôte'); backToMenu(); }
   });
   
   hostConn.on('error', (err) => {
-    toast('Impossible de rejoindre');
-    console.error(err);
+    if (!isReconnecting && gameState) startReconnect();
+    else { toast('Impossible de rejoindre'); console.error(err); }
   });
   
   setTimeout(() => {
@@ -481,6 +701,10 @@ function handleHostMessage(conn, data) {
   if (!gameState) return;
   
   switch(data.type) {
+    case 'ping':
+      try { conn.send({ type: 'pong' }); } catch(e) {}
+      break;
+
     case 'join':
       if (gameState.phase !== 'lobby') {
         conn.send({ type: 'error', msg: 'Partie déjà en cours' });
@@ -495,6 +719,25 @@ function handleHostMessage(conn, data) {
       gameState.totalScores[data.id] = 0;
       broadcastState();
       toast(data.name + ' a rejoint');
+      break;
+
+    case 'rejoin': {
+      // Player reconnecting — update their connection
+      const existingPlayer = gameState.players.find(p => p.id === data.id);
+      if (existingPlayer) {
+        connections[data.id] = conn;
+        // If peerId changed, keep logical id but update connection
+        conn.send({ type: 'state', state: gameState });
+        conn.send({ type: 'toast', msg: '✅ Reconnexion réussie !' });
+        toast(existingPlayer.name + ' s\'est reconnecté');
+      } else {
+        conn.send({ type: 'error', msg: 'Session introuvable' });
+      }
+      break;
+    }
+
+    case 'request_state':
+      try { conn.send({ type: 'state', state: gameState }); } catch(e) {}
       break;
       
     case 'action':
@@ -516,6 +759,12 @@ function handleDisconnect(peerId) {
 // --- CLIENT MESSAGE HANDLING ---
 function handleClientMessage(data) {
   switch(data.type) {
+    case 'ping':
+      try { if (hostConn && hostConn.open) hostConn.send({ type: 'pong' }); } catch(e) {}
+      break;
+    case 'pong':
+      // Host is alive
+      break;
     case 'state':
       gameState = data.state;
       renderFromState();
@@ -609,6 +858,9 @@ function copyCode() {
 }
 
 function leaveLobby() {
+  stopHeartbeat();
+  stopReconnect();
+  clearSession();
   if (peer) peer.destroy();
   peer = null;
   connections = {};
@@ -618,11 +870,15 @@ function leaveLobby() {
 }
 
 function backToMenu() {
+  stopHeartbeat();
+  stopReconnect();
+  clearSession();
   if (peer) { peer.destroy(); peer = null; }
   connections = {};
   hostConn = null;
   gameState = null;
   isHost = false;
+  reconnectAttempts = 0;
   showScreen('screen-menu');
 }
 
