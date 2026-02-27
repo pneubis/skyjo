@@ -71,19 +71,7 @@ input::placeholder{color:#666}
 }
 
 .player-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;padding:0 4px}
-/* .player-name::after {font-weight:600;font-size:.9em} */
-.player-name::after {
-  content: ' 🎯 À VOUS !';
-  color: #f1c40f;
-  font-size: .75em;
-  font-weight: 700;
-  letter-spacing: 1px;
-  animation: blinkText .8s step-start infinite;
-}
-@keyframes blinkText {
-  0%, 100% { opacity: 1; }
-  50%       { opacity: 0; }
-}
+.player-name::after {font-weight:600;font-size:.9em} 
 .player-score{font-size:.85em;color:#888}
 .player-badge{font-size:.7em;padding:2px 8px;border-radius:20px;background:rgba(155,89,182,.3);color:#bb86fc}
 .turn-indicator{font-size:.7em;color:#f1c40f;font-weight:600}
