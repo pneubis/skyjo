@@ -56,9 +56,34 @@ input::placeholder{color:#666}
 .player-zone{background:rgba(255,255,255,.05);border-radius:12px;padding:10px;border:2px solid transparent;transition:border-color .3s}
 .player-zone.current-turn{border-color:#9b59b6}
 .player-zone.is-me{border-color:rgba(52,152,219,.5)}
-.player-zone.is-me.current-turn{border-color:#9b59b6;box-shadow:0 0 20px rgba(155,89,182,.3)}
+/*.player-zone.is-me.current-turn {border-color:#9b59b6;box-shadow:0 0 20px rgba(155,89,182,.3)} */
+
+/* Fond prononcé quand c'est le tour du joueur local */
+.player-zone.is-me.current-turn {
+  border-color: #9b59b6;
+  box-shadow: 0 0 20px rgba(155,89,182,.3);
+  background: rgba(155,89,182,.18);          /* ← NOUVEAU : fond violet plus marqué */
+  animation: myTurnPulse 2s ease-in-out infinite;  /* ← NOUVEAU : légère animation */
+}
+@keyframes myTurnPulse {
+  0%, 100% { background: rgba(155,89,182,.12); box-shadow: 0 0 20px rgba(155,89,182,.3); }
+  50%       { background: rgba(155,89,182,.28); box-shadow: 0 0 35px rgba(155,89,182,.6); }
+}
+
 .player-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;padding:0 4px}
-.player-name{font-weight:600;font-size:.9em}
+/* .player-name::after {font-weight:600;font-size:.9em} */
+.player-name::after {
+  content: ' 🎯 À VOUS !';
+  color: #f1c40f;
+  font-size: .75em;
+  font-weight: 700;
+  letter-spacing: 1px;
+  animation: blinkText .8s step-start infinite;
+}
+@keyframes blinkText {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0; }
+}
 .player-score{font-size:.85em;color:#888}
 .player-badge{font-size:.7em;padding:2px 8px;border-radius:20px;background:rgba(155,89,182,.3);color:#bb86fc}
 .turn-indicator{font-size:.7em;color:#f1c40f;font-weight:600}
@@ -194,8 +219,8 @@ input::placeholder{color:#666}
 
 <!-- SCREEN: MENU -->
 <div class="screen active" id="screen-menu">
-  <h1>SKYJO v1.1.1</h1>
-  <p class="subtitle">Jeu de cartes multijoueur</p>
+  <h1>SKYJO</h1>
+  <p class="subtitle">Jeu de cartes multijoueur V1.1.1</p>
   <div style="margin:12px 0;width:100%;max-width:320px">
     <input type="text" id="player-name" placeholder="Votre pseudo" maxlength="12" autocomplete="off">
   </div>
