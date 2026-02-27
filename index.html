@@ -437,7 +437,7 @@ function setupRoom(room) {
   trysteroRoom = room;
   connectedPeers = new Set();
 
-  // Créer une seule action bidirectionnelle pour tous les messages
+  // makeAction DOIT être déclaré avant onPeerJoin
   [sendMsg, getMsg] = room.makeAction('msg');
 
   getMsg((data, peerId) => {
@@ -451,8 +451,26 @@ function setupRoom(room) {
   room.onPeerJoin((peerId) => {
     connectedPeers.add(peerId);
     if (!isHost) {
-      // Client : signaler notre présence à l'hôte
-      sendMsg({ type: 'join', name: myName, id: myPlayerId }, peerId);
+      // Envoyer join avec retry en cas de canal pas encore prêt
+      const sendJoin = (attempts) => {
+        if (attempts <= 0) return;
+        setTimeout(() => {
+          if (!sendMsg) return;
+          try {
+            sendMsg({ type: 'join', name: myName, id: myPlayerId }, peerId);
+          } catch(e) {
+            sendJoin(attempts - 1); // retry
+          }
+        }, 400 * (4 - attempts));
+      };
+      sendJoin(3); // 3 tentatives : 400ms, 800ms, 1200ms
+    } else {
+      // Hôte : renvoyer l'état si partie déjà en cours
+      if (gameState && gameState.phase !== 'lobby') {
+        setTimeout(() => {
+          if (sendMsg) sendMsg({ type: 'state', state: gameState }, peerId);
+        }, 500);
+      }
     }
   });
 
@@ -462,9 +480,8 @@ function setupRoom(room) {
       const playerId = peerToPlayer[peerId] || peerId;
       handleDisconnect(playerId, peerId);
     } else {
-      // On a perdu l'hôte
       if (gameState) {
-        toast('Déconnecté de l\'hôte');
+        toast('Connexion perdue avec l\'hôte');
       }
     }
   });
@@ -530,8 +547,6 @@ async function joinGame() {
 
   if (trysteroRoom) { try { trysteroRoom.leave(); } catch(e) {} trysteroRoom = null; }
 
-  toast('Connexion à la salle...');
-
   try {
     const room = joinRoom({ appId: APP_ID }, 'skyjo-' + roomCode);
     setupRoom(room);
@@ -540,18 +555,17 @@ async function joinGame() {
     return;
   }
 
-  // Afficher le lobby immédiatement (on attend les peers)
+  // Afficher le lobby avec message d'attente
   showScreen('screen-lobby');
   document.getElementById('lobby-code').textContent = roomCode;
   generateQR();
 
-  // Si personne ne rejoint en 15s, c'est que le code est mauvais
-  setTimeout(() => {
-    if (connectedPeers.size === 0 && currentScreen === 'screen-lobby' && !isHost) {
-      toast('Aucun hôte trouvé. Vérifiez le code.');
-    }
-  }, 15000);
+  // Afficher un message d'attente dans la liste des joueurs
+  document.getElementById('lobby-players').innerHTML =
+    '<li style="color:#888;justify-content:center">⏳ Connexion à la salle en cours...<br><small style="color:#666">Cela peut prendre 10-30 secondes</small></li>';
+  document.getElementById('start-btn').style.display = 'none';
 }
+
 
 // --- HOST MESSAGE HANDLING ---
 function handleHostMessage(peerId, data) {
