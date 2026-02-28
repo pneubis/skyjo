@@ -164,6 +164,29 @@ input::placeholder{color:#666}
 .reconnect-spinner{width:48px;height:48px;border:4px solid rgba(155,89,182,.3);border-top-color:#9b59b6;border-radius:50%;animation:spin 1s linear infinite}
 @keyframes spin{to{transform:rotate(360deg)}}
 
+/* Connecting screen */
+#screen-connecting { background: #1a1a2e; }
+.connect-box { text-align:center; max-width:360px; width:100%; padding:32px 24px; }
+.connect-box h2 { margin-bottom:6px; }
+.connect-subtitle { color:#888; font-size:.9em; margin-bottom:28px; }
+.connect-progress-track { background:rgba(255,255,255,.08); border-radius:99px; height:6px; width:100%; margin:18px 0 8px; overflow:hidden; }
+.connect-progress-bar { height:6px; border-radius:99px; background:linear-gradient(90deg,#9b59b6,#3498db); width:0%; transition:width .4s ease; }
+.connect-status { font-size:.85em; color:#aaa; min-height:1.4em; margin-bottom:20px; }
+.connect-steps { list-style:none; text-align:left; margin:0 0 24px; display:flex; flex-direction:column; gap:10px; }
+.connect-steps li { display:flex; align-items:center; gap:10px; font-size:.88em; color:#666; transition:color .3s; }
+.connect-steps li.done { color:#2ecc71; }
+.connect-steps li.active { color:#fff; }
+.connect-steps li.error { color:#e74c3c; }
+.step-icon { width:22px; height:22px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:.75em; flex-shrink:0; background:rgba(255,255,255,.06); transition:background .3s; }
+.connect-steps li.done .step-icon { background:#2ecc71; }
+.connect-steps li.active .step-icon { background:#9b59b6; animation:stepPulse 1s ease-in-out infinite; }
+.connect-steps li.error .step-icon { background:#e74c3c; }
+@keyframes stepPulse { 0%,100%{box-shadow:0 0 0 0 rgba(155,89,182,.5)} 50%{box-shadow:0 0 0 6px rgba(155,89,182,0)} }
+.connect-error-box { display:none; background:rgba(231,76,60,.1); border:1px solid rgba(231,76,60,.3); border-radius:12px; padding:14px 16px; margin-bottom:16px; text-align:left; }
+.connect-error-box.show { display:block; }
+.connect-error-code { font-family:monospace; font-size:.78em; color:#e74c3c; background:rgba(0,0,0,.3); padding:6px 10px; border-radius:6px; margin-top:8px; word-break:break-all; }
+.connect-error-msg { font-size:.85em; color:#e74c3c; margin-bottom:4px; font-weight:600; }
+
 /* Fullscreen button */
 #fullscreen-btn{position:fixed;top:10px;right:10px;z-index:500;background:rgba(155,89,182,.7);border:none;color:#fff;border-radius:10px;padding:8px 12px;font-size:1.2em;cursor:pointer;backdrop-filter:blur(10px);min-height:42px;min-width:42px;line-height:1;transition:background .2s;box-shadow:0 2px 8px rgba(0,0,0,.3)}
 #fullscreen-btn:hover,#fullscreen-btn:active{background:rgba(155,89,182,1)}
@@ -237,6 +260,44 @@ input::placeholder{color:#666}
   <div class="btn-group">
     <button onclick="joinGame()">Rejoindre</button>
     <button class="secondary" onclick="showScreen('screen-menu')">Retour</button>
+  </div>
+</div>
+
+<!-- SCREEN: CONNECTING -->
+<div class="screen" id="screen-connecting">
+  <div class="connect-box">
+    <h2>🔗 Connexion</h2>
+    <p class="connect-subtitle" id="connect-room-label">Salle <strong id="connect-room-code"></strong></p>
+    <div class="connect-progress-track">
+      <div class="connect-progress-bar" id="connect-bar"></div>
+    </div>
+    <p class="connect-status" id="connect-status">Initialisation...</p>
+    <ul class="connect-steps">
+      <li id="cstep-p2p">
+        <span class="step-icon" id="cstep-p2p-icon">1</span>
+        Initialisation du réseau P2P
+      </li>
+      <li id="cstep-tracker">
+        <span class="step-icon" id="cstep-tracker-icon">2</span>
+        Connexion aux trackers BitTorrent
+      </li>
+      <li id="cstep-host">
+        <span class="step-icon" id="cstep-host-icon">3</span>
+        Recherche de l'hôte dans la salle
+      </li>
+      <li id="cstep-join">
+        <span class="step-icon" id="cstep-join-icon">4</span>
+        Rejoindre la partie
+      </li>
+    </ul>
+    <div class="connect-error-box" id="connect-error-box">
+      <p class="connect-error-msg" id="connect-error-msg">Erreur de connexion</p>
+      <div class="connect-error-code" id="connect-error-code"></div>
+    </div>
+    <div class="btn-group">
+      <button class="danger" onclick="cancelConnect()" id="connect-cancel-btn">Annuler</button>
+      <button onclick="retryConnect()" id="connect-retry-btn" style="display:none">🔄 Réessayer</button>
+    </div>
   </div>
 </div>
 
@@ -451,7 +512,11 @@ function setupRoom(room) {
   room.onPeerJoin((peerId) => {
     connectedPeers.add(peerId);
     if (!isHost) {
-      // Envoyer join avec retry en cas de canal pas encore prêt
+      // Hôte détecté → mettre à jour l'écran de connexion
+      connectStep('host','done','3');
+      connectStep('join','active','4');
+      connectProgress(75,'Hôte trouvé ! Envoi de la demande de rejoindre...');
+      // Envoyer join avec retry pour s'assurer que le canal est prêt
       const sendJoin = (attempts) => {
         if (attempts <= 0) return;
         setTimeout(() => {
@@ -459,11 +524,11 @@ function setupRoom(room) {
           try {
             sendMsg({ type: 'join', name: myName, id: myPlayerId }, peerId);
           } catch(e) {
-            sendJoin(attempts - 1); // retry
+            sendJoin(attempts - 1);
           }
         }, 400 * (4 - attempts));
       };
-      sendJoin(3); // 3 tentatives : 400ms, 800ms, 1200ms
+      sendJoin(3);
     } else {
       // Hôte : renvoyer l'état si partie déjà en cours
       if (gameState && gameState.phase !== 'lobby') {
@@ -505,6 +570,75 @@ function showJoinScreen() {
   document.getElementById('room-input').focus();
 }
 
+// --- CONNECT SCREEN LOGIC ---
+let _connectRoomCode = '';
+let _connectIsHost = false;
+let _connectCheckTimer = null;
+let _connectElapsed = 0;
+let _connectMaxWait = 40; // secondes max
+
+function connectStep(id, state, icon) {
+  const el = document.getElementById('cstep-' + id);
+  const ic = document.getElementById('cstep-' + id + '-icon');
+  if (!el) return;
+  el.className = state;
+  ic.textContent = state === 'done' ? '✓' : state === 'error' ? '✗' : icon;
+}
+function connectProgress(pct, status) {
+  document.getElementById('connect-bar').style.width = pct + '%';
+  document.getElementById('connect-status').textContent = status;
+}
+function connectError(msg, code) {
+  const box = document.getElementById('connect-error-box');
+  box.classList.add('show');
+  document.getElementById('connect-error-msg').textContent = msg;
+  document.getElementById('connect-error-code').textContent = code;
+  document.getElementById('connect-retry-btn').style.display = '';
+  document.getElementById('connect-cancel-btn').textContent = 'Retour au menu';
+  connectProgress(100, '');
+}
+function cancelConnect() {
+  clearInterval(_connectCheckTimer);
+  if (trysteroRoom) { try { trysteroRoom.leave(); } catch(e) {} trysteroRoom = null; }
+  gameState = null; isHost = false; connectedPeers = new Set(); peerToPlayer = {};
+  sendMsg = null; getMsg = null;
+  showScreen('screen-menu');
+}
+function retryConnect() {
+  document.getElementById('connect-error-box').classList.remove('show');
+  document.getElementById('connect-retry-btn').style.display = 'none';
+  document.getElementById('connect-cancel-btn').textContent = 'Annuler';
+  if (_connectIsHost) createGame(); else { document.getElementById('room-input').value = _connectRoomCode; joinGame(); }
+}
+function showConnectScreen(code, asHost) {
+  _connectRoomCode = code;
+  _connectIsHost = asHost;
+  _connectElapsed = 0;
+  document.getElementById('connect-room-code').textContent = code;
+  document.getElementById('connect-bar').style.width = '0%';
+  document.getElementById('connect-status').textContent = 'Initialisation...';
+  document.getElementById('connect-error-box').classList.remove('show');
+  document.getElementById('connect-retry-btn').style.display = 'none';
+  document.getElementById('connect-cancel-btn').textContent = 'Annuler';
+  ['p2p','tracker','host','join'].forEach(s => connectStep(s, '', ['1','2','3','4'][['p2p','tracker','host','join'].indexOf(s)]));
+  showScreen('screen-connecting');
+  // Animation des étapes
+  setTimeout(() => { connectStep('p2p','active','1'); connectProgress(8,'Initialisation réseau P2P...'); }, 100);
+  setTimeout(() => { connectStep('p2p','done','1'); connectStep('tracker','active','2'); connectProgress(25,'Connexion aux trackers BitTorrent...'); }, 1200);
+  setTimeout(() => { connectStep('tracker','done','2'); connectStep('host','active','3'); connectProgress(45, asHost ? 'Création de la salle...' : 'Recherche de l\'hôte...'); }, 3000);
+}
+function connectSuccess() {
+  clearInterval(_connectCheckTimer);
+  connectStep('host','done','3');
+  connectStep('join','active','4');
+  connectProgress(85,'Synchronisation...');
+  setTimeout(() => { connectStep('join','done','4'); connectProgress(100,'Connecté !'); }, 400);
+  setTimeout(() => {
+    if (gameState) renderFromState();
+    else showLobby();
+  }, 800);
+}
+
 // --- CREATE GAME (HOST) ---
 async function createGame() {
   myName = getName();
@@ -512,16 +646,15 @@ async function createGame() {
   isHost = true;
   peerToPlayer = {};
 
-  // Quitter la room précédente si elle existe
   if (trysteroRoom) { try { trysteroRoom.leave(); } catch(e) {} trysteroRoom = null; }
 
-  toast('Création de la salle...');
+  showConnectScreen(roomCode, true);
 
   try {
     const room = joinRoom({ appId: APP_ID }, 'skyjo-' + roomCode);
     setupRoom(room);
   } catch(e) {
-    toast('Erreur lors de la création : ' + e.message);
+    connectError('Impossible de créer la salle', 'ERR_CREATE | ' + (e.message || e));
     isHost = false;
     return;
   }
@@ -533,8 +666,8 @@ async function createGame() {
     totalScores: { [myPlayerId]: 0 }
   };
 
-  showLobby();
-  toast('Salle créée ! En attente de joueurs...');
+  // L'hôte n'a pas besoin de trouver d'autres peers pour passer au lobby
+  connectSuccess();
 }
 
 // --- JOIN GAME (CLIENT) ---
@@ -547,23 +680,40 @@ async function joinGame() {
 
   if (trysteroRoom) { try { trysteroRoom.leave(); } catch(e) {} trysteroRoom = null; }
 
+  showConnectScreen(code, false);
+
   try {
     const room = joinRoom({ appId: APP_ID }, 'skyjo-' + roomCode);
     setupRoom(room);
   } catch(e) {
-    toast('Erreur de connexion : ' + e.message);
+    connectError('Impossible de rejoindre la salle', 'ERR_JOIN_INIT | ' + (e.message || e));
     return;
   }
 
-  // Afficher le lobby avec message d'attente
-  showScreen('screen-lobby');
-  document.getElementById('lobby-code').textContent = roomCode;
-  generateQR();
-
-  // Afficher un message d'attente dans la liste des joueurs
-  document.getElementById('lobby-players').innerHTML =
-    '<li style="color:#888;justify-content:center">⏳ Connexion à la salle en cours...<br><small style="color:#666">Cela peut prendre 10-30 secondes</small></li>';
-  document.getElementById('start-btn').style.display = 'none';
+  // Surveiller la progression : checker toutes les secondes
+  _connectElapsed = 0;
+  clearInterval(_connectCheckTimer);
+  _connectCheckTimer = setInterval(() => {
+    _connectElapsed++;
+    // Mise à jour progression
+    const pct = Math.min(45 + (_connectElapsed / _connectMaxWait) * 45, 90);
+    const remaining = _connectMaxWait - _connectElapsed;
+    if (connectedPeers.size > 0) {
+      connectProgress(pct, 'Hôte détecté, envoi de la demande...');
+    } else {
+      connectProgress(pct, 'Recherche de l\'hôte... (' + remaining + 's)');
+    }
+    // Timeout
+    if (_connectElapsed >= _connectMaxWait) {
+      clearInterval(_connectCheckTimer);
+      connectStep('host','error','3');
+      connectStep('join','','4');
+      connectError(
+        'Aucun hôte trouvé dans la salle',
+        'ERR_HOST_NOT_FOUND | room=skyjo-' + code + ' | waited=' + _connectMaxWait + 's | trackers=BitTorrent'
+      );
+    }
+  }, 1000);
 }
 
 
@@ -618,7 +768,13 @@ function handleClientMessage(data) {
   switch(data.type) {
     case 'state':
       gameState = data.state;
-      renderFromState();
+      // Si on était sur l'écran de connexion → succès !
+      if (currentScreen === 'screen-connecting') {
+        clearInterval(_connectCheckTimer);
+        connectSuccess();
+      } else {
+        renderFromState();
+      }
       break;
     case 'error':
       toast(data.msg);
@@ -1246,6 +1402,7 @@ Object.assign(window, {
   toggleFullscreen, closeFsTip,
   showRules, showModal, closeModal,
   copyCode, showRoundScoreTable,
+  cancelConnect, retryConnect,
 });
 
 // --- URL PARAMS (auto-join) ---
