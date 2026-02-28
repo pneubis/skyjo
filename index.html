@@ -150,16 +150,9 @@ input::placeholder{color:#666}
 .lb-wins{color:#2ecc71;font-weight:700}
 .lb-games{color:#888;font-size:.85em;margin-left:8px}
 
-/* Last card preview screen */
-.last-card-preview{text-align:center;display:flex;flex-direction:column;align-items:center;gap:20px}
-.last-card-big{width:120px;height:168px;border-radius:16px;display:flex;align-items:center;justify-content:center;font-size:3.5em;font-weight:900;border:3px solid rgba(255,255,255,.2);box-shadow:0 0 40px rgba(155,89,182,.5);animation:lastCardAppear .5s ease-out}
-@keyframes lastCardAppear{0%{transform:scale(0) rotate(-10deg);opacity:0}100%{transform:scale(1) rotate(0deg);opacity:1}}
-.countdown-ring{position:relative;width:80px;height:80px}
-.countdown-ring svg{transform:rotate(-90deg)}
-.countdown-ring .ring-bg{fill:none;stroke:rgba(255,255,255,.1);stroke-width:6}
-.countdown-ring .ring-progress{fill:none;stroke:#9b59b6;stroke-width:6;stroke-linecap:round;transition:stroke-dashoffset 1s linear}
-.countdown-number{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-size:1.6em;font-weight:700;color:#fff}
-.skip-btn{font-size:.8em;padding:8px 20px;background:rgba(255,255,255,.1)}
+/* Game duration */
+.game-duration{display:flex;align-items:center;justify-content:center;gap:8px;margin-top:12px;padding:10px 20px;background:rgba(255,255,255,.05);border-radius:12px;color:#888;font-size:.9em}
+.game-duration span{color:#bb86fc;font-weight:700;font-size:1.1em}
 
 /* Responsive */
 @media(max-width:400px){
@@ -274,24 +267,6 @@ input::placeholder{color:#666}
   <div class="action-bar" id="action-bar" style="display:none"></div>
 </div>
 
-<!-- SCREEN: LAST CARD PREVIEW -->
-<div class="screen" id="screen-last-card">
-  <h2 id="last-card-title">Dernière carte révélée</h2>
-  <div class="last-card-preview">
-    <p class="subtitle" id="last-card-player"></p>
-    <div class="last-card-big" id="last-card-display"></div>
-    <div class="countdown-ring" id="countdown-ring">
-      <svg width="80" height="80" viewBox="0 0 80 80">
-        <circle class="ring-bg" cx="40" cy="40" r="34"/>
-        <circle class="ring-progress" id="ring-progress" cx="40" cy="40" r="34"
-          stroke-dasharray="213.6" stroke-dashoffset="0"/>
-      </svg>
-      <span class="countdown-number" id="countdown-number">30</span>
-    </div>
-    <button class="skip-btn secondary" onclick="skipLastCardPreview()">Passer →</button>
-  </div>
-</div>
-
 <!-- SCREEN: ROUND REVEAL (show all grids + scores before table) -->
 <div class="screen" id="screen-round-reveal">
   <h2>📊 Fin de la manche</h2>
@@ -306,6 +281,7 @@ input::placeholder{color:#666}
 <div class="screen" id="screen-round-scores">
   <h2>Tableau des scores</h2>
   <table class="scores-table" id="round-scores-table"></table>
+  <div class="game-duration" id="round-duration" style="display:none">⏱ Durée de la partie : <span id="round-duration-value"></span></div>
   <div class="btn-group">
     <button id="next-round-btn" onclick="nextRound()">Manche suivante</button>
   </div>
@@ -316,6 +292,7 @@ input::placeholder{color:#666}
   <h1>🏆 Fin de partie</h1>
   <div id="final-winner-banner" style="margin:16px 0"></div>
   <table class="scores-table" id="final-scores-table"></table>
+  <div class="game-duration" id="final-duration" style="display:none">⏱ Durée de la partie : <span id="final-duration-value"></span></div>
   <div class="leaderboard-box" id="final-leaderboard" style="margin-top:16px"></div>
   <div class="btn-group">
     <button onclick="backToMenu()">Menu principal</button>
@@ -787,6 +764,7 @@ function shuffle(arr) {
 // --- START GAME (HOST ONLY) ---
 function startGame() {
   if (!isHost || gameState.players.length < 2) return;
+  gameState.gameStartTime = Date.now();
   initRound();
 }
 
@@ -932,7 +910,6 @@ function handlePlayingAction(playerId, action) {
       gameState.hands[playerId][row][col] = gameState.drawnCard;
       gameState.revealed[playerId][row][col] = true;
       gameState.discard.push(oldCard);
-      gameState.lastRevealedCard = { value: gameState.drawnCard, playerId };
       gameState.drawnCard = null;
       gameState.drawnByPlayerId = null;
       
@@ -955,7 +932,6 @@ function handlePlayingAction(playerId, action) {
       if (gameState.revealed[playerId][rr][rc]) return;
       if (gameState.eliminated[playerId][rc]) return;
       gameState.revealed[playerId][rr][rc] = true;
-      gameState.lastRevealedCard = { value: gameState.hands[playerId][rr][rc], playerId };
       
       checkColumnElimination(playerId);
       endTurn();
@@ -1087,11 +1063,8 @@ function endRound() {
   
   const gameOver = gameState.players.some(p => gameState.totalScores[p.id] >= END_SCORE);
   
-  // Store which reveal screen to go to after last card preview
-  gameState.nextPhaseAfterPreview = gameOver ? 'game_over_reveal' : 'round_reveal';
-  
-  // Show last card preview first, then reveal screen
-  gameState.phase = 'last_card_preview';
+  // Show reveal screen first (grids + points), then score table
+  gameState.phase = gameOver ? 'game_over_reveal' : 'round_reveal';
   gameState.drawnCard = null;
   gameState.drawnByPlayerId = null;
   
@@ -1118,10 +1091,6 @@ function renderFromState() {
       showScreen('screen-game');
       renderGame();
       break;
-    case 'last_card_preview':
-      showScreen('screen-last-card');
-      renderLastCardPreview();
-      break;
     case 'round_reveal':
       showScreen('screen-round-reveal');
       renderRoundReveal(false);
@@ -1139,64 +1108,6 @@ function renderFromState() {
       renderFinalScores();
       break;
   }
-}
-
-// --- LAST CARD PREVIEW ---
-let _lastCardCountdownTimer = null;
-
-function renderLastCardPreview() {
-  // Clear any existing timer
-  if (_lastCardCountdownTimer) {
-    clearInterval(_lastCardCountdownTimer);
-    _lastCardCountdownTimer = null;
-  }
-  
-  const card = gameState.lastRevealedCard;
-  const playerName = card ? getPlayerName(card.playerId) : '';
-  const cardValue = card ? card.value : '?';
-  
-  document.getElementById('last-card-player').textContent = 
-    card ? `Dernière carte de ${playerName}${card.playerId === myPlayerId ? ' (vous)' : ''}` : 'Fin de manche';
-  
-  const cardEl = document.getElementById('last-card-display');
-  cardEl.textContent = cardValue;
-  cardEl.className = 'last-card-big ' + getCardClass(cardValue);
-  
-  // Countdown
-  const DURATION = 30;
-  let remaining = DURATION;
-  const circumference = 213.6;
-  const progressEl = document.getElementById('ring-progress');
-  const numberEl = document.getElementById('countdown-number');
-  
-  function updateCountdown() {
-    numberEl.textContent = remaining;
-    const offset = circumference * (1 - remaining / DURATION);
-    progressEl.style.strokeDashoffset = offset;
-  }
-  
-  updateCountdown();
-  
-  _lastCardCountdownTimer = setInterval(() => {
-    remaining--;
-    updateCountdown();
-    if (remaining <= 0) {
-      clearInterval(_lastCardCountdownTimer);
-      _lastCardCountdownTimer = null;
-      skipLastCardPreview();
-    }
-  }, 1000);
-}
-
-function skipLastCardPreview() {
-  if (_lastCardCountdownTimer) {
-    clearInterval(_lastCardCountdownTimer);
-    _lastCardCountdownTimer = null;
-  }
-  if (!gameState) return;
-  gameState.phase = gameState.nextPhaseAfterPreview || 'round_reveal';
-  if (isHost) broadcastState();
-  else renderFromState();
 }
 
 // --- ROUND REVEAL SCREEN (show grids + announce points) ---
@@ -1524,6 +1435,17 @@ function discardDrawn() {
 }
 
 // --- SCORES ---
+function formatDuration(ms) {
+  if (!ms || ms <= 0) return null;
+  const totalSec = Math.floor(ms / 1000);
+  const h = Math.floor(totalSec / 3600);
+  const m = Math.floor((totalSec % 3600) / 60);
+  const s = totalSec % 60;
+  if (h > 0) return `${h}h ${m}min ${s}s`;
+  if (m > 0) return `${m}min ${s}s`;
+  return `${s}s`;
+}
+
 function renderRoundScores() {
   const table = document.getElementById('round-scores-table');
   let html = '<thead><tr><th>Joueur</th><th>Manche</th><th>Total</th></tr></thead><tbody>';
@@ -1545,6 +1467,13 @@ function renderRoundScores() {
   html += '</tbody>';
   table.innerHTML = html;
   
+  // Show game duration
+  const durEl = document.getElementById('round-duration');
+  const durVal = document.getElementById('round-duration-value');
+  const dur = gameState.gameStartTime ? formatDuration(Date.now() - gameState.gameStartTime) : null;
+  if (dur) { durVal.textContent = dur; durEl.style.display = ''; }
+  else { durEl.style.display = 'none'; }
+
   document.getElementById('next-round-btn').style.display = isHost ? '' : 'none';
 }
 
@@ -1573,6 +1502,13 @@ function renderFinalScores() {
   html += '</tbody>';
   table.innerHTML = html;
   
+  // Show game duration
+  const durEl = document.getElementById('final-duration');
+  const durVal = document.getElementById('final-duration-value');
+  const dur = gameState.gameStartTime ? formatDuration(Date.now() - gameState.gameStartTime) : null;
+  if (dur) { durVal.textContent = dur; durEl.style.display = ''; }
+  else { durEl.style.display = 'none'; }
+
   // Render leaderboard on final screen
   renderLeaderboard('final-leaderboard');
 }
