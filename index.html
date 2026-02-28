@@ -96,15 +96,59 @@ input::placeholder{color:#666}
 .action-bar button{padding:10px 20px;font-size:.85em}
 
 /* Scores screen */
-.scores-table{width:100%;max-width:500px;border-collapse:collapse;margin:16px 0}
-.scores-table th,.scores-table td{padding:12px 16px;text-align:center;border-bottom:1px solid rgba(255,255,255,.1)}
-.scores-table th{color:#888;font-weight:600;font-size:.85em;text-transform:uppercase}
-.scores-table tr.winner{background:rgba(46,204,113,.15)}
-.scores-table td.total{font-weight:700;color:#bb86fc}
+.scores-table{width:100%;max-width:420px;border-collapse:collapse;margin:12px 0}
+.scores-table th{color:#888;font-weight:600;font-size:.75em;text-transform:uppercase;letter-spacing:.8px;padding:8px 10px;border-bottom:1px solid rgba(255,255,255,.08)}
+.scores-table td{padding:11px 10px;text-align:center;border-bottom:1px solid rgba(255,255,255,.06);font-size:.95em}
+.scores-table td:first-child{text-align:left;padding-left:14px}
+.scores-table tr.winner td{background:rgba(46,204,113,.1)}
+.scores-table tr.winner td:first-child{border-left:3px solid #2ecc71}
+.scores-table td.total{font-weight:700;color:#bb86fc;font-size:1.05em}
+.scores-table td.round-score-pos{color:#e74c3c}
+.scores-table td.round-score-neg{color:#2ecc71}
 
-/* Winner zoom animation */
-.winner-name{display:inline-block;animation:winnerZoom 1.5s ease-in-out infinite alternate;font-size:1.3em;font-weight:800;color:#f1c40f}
-@keyframes winnerZoom{0%{transform:scale(1);text-shadow:0 0 5px rgba(241,196,15,.3)}100%{transform:scale(1.15);text-shadow:0 0 20px rgba(241,196,15,.6)}}
+/* Score cards layout (replaces table on final screen) */
+.score-cards{width:100%;max-width:420px;display:flex;flex-direction:column;gap:8px;margin:12px 0}
+.score-card{display:flex;align-items:center;gap:12px;padding:12px 14px;border-radius:14px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.07)}
+.score-card.rank-1{background:rgba(241,196,15,.08);border-color:rgba(241,196,15,.25)}
+.score-card.rank-2{background:rgba(192,192,192,.06);border-color:rgba(192,192,192,.18)}
+.score-card.rank-3{background:rgba(205,127,50,.06);border-color:rgba(205,127,50,.18)}
+.score-card-medal{font-size:1.6em;width:36px;text-align:center;flex-shrink:0}
+.score-card-name{flex:1;font-weight:600;font-size:.95em;line-height:1.2}
+.score-card-name small{display:block;color:#888;font-size:.75em;font-weight:400;margin-top:2px}
+.score-card-pts{font-weight:800;font-size:1.2em;color:#bb86fc;text-align:right;flex-shrink:0}
+
+/* Winner banner */
+.winner-banner{text-align:center;margin:8px 0 4px;padding:14px 16px;background:rgba(241,196,15,.08);border-radius:16px;border:1px solid rgba(241,196,15,.2)}
+.winner-name{display:inline-block;animation:winnerZoom 1.5s ease-in-out infinite alternate;font-size:1.2em;font-weight:800;color:#f1c40f}
+@keyframes winnerZoom{0%{transform:scale(1);text-shadow:0 0 5px rgba(241,196,15,.3)}100%{transform:scale(1.12);text-shadow:0 0 18px rgba(241,196,15,.6)}}
+
+/* Round reveal screen — compact pour mobile */
+.reveal-summary{width:100%;max-width:420px;display:flex;flex-direction:column;gap:7px}
+.reveal-summary .player-result{background:rgba(255,255,255,.05);border-radius:12px;padding:10px 14px;display:flex;align-items:center;gap:10px;border:1px solid rgba(255,255,255,.07)}
+.reveal-summary .player-result.best{border-color:#2ecc71;background:rgba(46,204,113,.08)}
+.reveal-summary .player-result .pr-name{flex:1;font-weight:600;font-size:.9em}
+.reveal-summary .player-result .pr-name small{display:block;color:#888;font-size:.75em;font-weight:400}
+.reveal-summary .player-result .pr-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:2px;flex-shrink:0}
+.reveal-summary .player-result .pr-grid .mini-card{width:22px;height:30px;border-radius:3px;display:flex;align-items:center;justify-content:center;font-size:.52em;font-weight:700;border:1px solid rgba(255,255,255,.1);cursor:default}
+.reveal-summary .player-result .pr-grid .mini-card.empty{opacity:0;pointer-events:none}
+.reveal-summary .player-result .score-val{font-size:1.1em;font-weight:800;color:#bb86fc;min-width:52px;text-align:right;flex-shrink:0}
+
+/* Duration badge */
+.duration-badge{display:inline-flex;align-items:center;gap:6px;margin:10px auto 4px;padding:7px 16px;background:rgba(255,255,255,.05);border-radius:20px;color:#888;font-size:.82em;border:1px solid rgba(255,255,255,.08)}
+.duration-badge strong{color:#bb86fc;font-size:1em}
+
+/* Leaderboard */
+.leaderboard-box{background:rgba(255,255,255,.04);border-radius:14px;padding:14px 16px;max-width:420px;width:100%;margin-top:12px;border:1px solid rgba(255,255,255,.07)}
+.leaderboard-box h3{font-size:.75em;color:#666;margin-bottom:10px;text-transform:uppercase;letter-spacing:1px;text-align:center}
+.lb-row{display:flex;align-items:center;padding:7px 4px;border-bottom:1px solid rgba(255,255,255,.05);gap:8px}
+.lb-row:last-child{border-bottom:none}
+.lb-rank{width:26px;font-weight:700;color:#f1c40f;font-size:.95em;flex-shrink:0}
+.lb-name{flex:1;font-weight:500;font-size:.9em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.lb-wins{color:#2ecc71;font-weight:700;font-size:.9em;flex-shrink:0}
+.lb-games{color:#666;font-size:.78em;margin-left:4px;flex-shrink:0}
+
+/* Scrollable score screens */
+.score-screen-content{width:100%;max-width:420px;display:flex;flex-direction:column;align-items:center;overflow-y:auto;padding:0 4px 24px}
 
 /* Toast */
 .toast{position:fixed;top:20px;left:50%;transform:translateX(-50%);background:rgba(155,89,182,.9);color:#fff;padding:12px 24px;border-radius:12px;font-size:.9em;z-index:200;opacity:0;transition:opacity .3s;pointer-events:none}
@@ -149,10 +193,6 @@ input::placeholder{color:#666}
 .lb-name{flex:1;font-weight:500}
 .lb-wins{color:#2ecc71;font-weight:700}
 .lb-games{color:#888;font-size:.85em;margin-left:8px}
-
-/* Game duration */
-.game-duration{display:flex;align-items:center;justify-content:center;gap:8px;margin-top:12px;padding:10px 20px;background:rgba(255,255,255,.05);border-radius:12px;color:#888;font-size:.9em}
-.game-duration span{color:#bb86fc;font-weight:700;font-size:1.1em}
 
 /* Responsive */
 @media(max-width:400px){
@@ -268,34 +308,39 @@ input::placeholder{color:#666}
 </div>
 
 <!-- SCREEN: ROUND REVEAL (show all grids + scores before table) -->
-<div class="screen" id="screen-round-reveal">
-  <h2>📊 Fin de la manche</h2>
-  <p class="subtitle" id="reveal-subtitle"></p>
+<div class="screen" id="screen-round-reveal" style="justify-content:flex-start;padding-top:20px">
+  <h2 style="margin-bottom:4px">📊 Fin de la manche</h2>
+  <p class="subtitle" style="margin-bottom:12px" id="reveal-subtitle"></p>
   <div class="reveal-summary" id="reveal-summary"></div>
-  <div class="btn-group" style="margin-top:20px">
-    <button onclick="showRoundScoreTable()">Voir le tableau des scores</button>
+  <div class="btn-group" style="margin-top:18px">
+    <button onclick="showRoundScoreTable()">Voir les scores →</button>
   </div>
 </div>
 
 <!-- SCREEN: ROUND SCORES -->
-<div class="screen" id="screen-round-scores">
-  <h2>Tableau des scores</h2>
-  <table class="scores-table" id="round-scores-table"></table>
-  <div class="game-duration" id="round-duration" style="display:none">⏱ Durée de la partie : <span id="round-duration-value"></span></div>
-  <div class="btn-group">
-    <button id="next-round-btn" onclick="nextRound()">Manche suivante</button>
+<div class="screen" id="screen-round-scores" style="justify-content:flex-start;padding-top:24px">
+  <div class="score-screen-content">
+    <h2 style="margin-bottom:2px;align-self:flex-start">Scores — Manche</h2>
+    <p class="subtitle" style="margin-bottom:4px;align-self:flex-start" id="round-scores-subtitle"></p>
+    <table class="scores-table" id="round-scores-table"></table>
+    <div class="duration-badge" id="round-duration" style="display:none">⏱ <strong id="round-duration-value"></strong></div>
+    <div class="btn-group" style="margin-top:16px;width:100%;justify-content:center">
+      <button id="next-round-btn" onclick="nextRound()">Manche suivante →</button>
+    </div>
   </div>
 </div>
 
 <!-- SCREEN: FINAL SCORES -->
-<div class="screen" id="screen-final-scores">
-  <h1>🏆 Fin de partie</h1>
-  <div id="final-winner-banner" style="margin:16px 0"></div>
-  <table class="scores-table" id="final-scores-table"></table>
-  <div class="game-duration" id="final-duration" style="display:none">⏱ Durée de la partie : <span id="final-duration-value"></span></div>
-  <div class="leaderboard-box" id="final-leaderboard" style="margin-top:16px"></div>
-  <div class="btn-group">
-    <button onclick="backToMenu()">Menu principal</button>
+<div class="screen" id="screen-final-scores" style="justify-content:flex-start;padding-top:24px">
+  <div class="score-screen-content">
+    <h1 style="margin-bottom:6px">🏆 Fin de partie</h1>
+    <div id="final-winner-banner" class="winner-banner" style="width:100%"></div>
+    <div id="final-score-cards" class="score-cards"></div>
+    <div class="duration-badge" id="final-duration" style="display:none">⏱ Partie terminée en <strong id="final-duration-value"></strong></div>
+    <div class="leaderboard-box" id="final-leaderboard"></div>
+    <div class="btn-group" style="margin-top:16px;width:100%;justify-content:center">
+      <button onclick="backToMenu()">Menu principal</button>
+    </div>
   </div>
 </div>
 
@@ -1113,45 +1158,51 @@ function renderFromState() {
 // --- ROUND REVEAL SCREEN (show grids + announce points) ---
 function renderRoundReveal(isGameOver) {
   const subtitle = document.getElementById('reveal-subtitle');
-  subtitle.textContent = isGameOver ? 'Partie terminée ! Voici les grilles finales :' : 'Manche ' + gameState.round + ' terminée !';
-  
+  subtitle.textContent = isGameOver
+    ? 'Grilles finales de la partie'
+    : 'Manche ' + gameState.round + ' terminée !';
+
   const summary = document.getElementById('reveal-summary');
   let html = '';
-  
-  // Show each player's grid revealed + their score
-  const sorted = [...gameState.players].sort((a, b) => 
+
+  const sorted = [...gameState.players].sort((a, b) =>
     (gameState.roundScores[a.id] || 0) - (gameState.roundScores[b.id] || 0)
   );
   const bestScore = gameState.roundScores[sorted[0].id] || 0;
-  
+
   sorted.forEach(p => {
     const rs = gameState.roundScores[p.id] || 0;
     const isBest = rs === bestScore;
     const isTriggerer = p.id === gameState.lastRoundTriggeredBy;
-    
-    html += `<div class="player-result ${isBest ? 'best' : ''}">`;
-    html += `<div>`;
-    html += `<strong>${p.name}</strong>${isTriggerer ? ' 🔔' : ''}${p.id === myPlayerId ? ' (vous)' : ''}`;
-    
-    // Mini grid display
-    html += '<div style="display:flex;gap:2px;margin-top:4px">';
+    const isMe = p.id === myPlayerId;
+
+    // Build mini grid (row-major → display as 3 rows × 4 cols)
+    let gridHtml = '<div class="pr-grid">';
     for (let r = 0; r < ROWS; r++) {
       for (let c = 0; c < COLS; c++) {
         if (gameState.eliminated[p.id][c]) {
-          html += '<div style="width:20px;height:28px;opacity:0"></div>';
+          gridHtml += '<div class="mini-card empty"></div>';
         } else {
           const val = gameState.hands[p.id][r][c];
-          html += `<div class="card ${getCardClass(val)}" style="width:20px;height:28px;font-size:.55em;border:1px solid rgba(255,255,255,.1);border-radius:3px;cursor:default">${val}</div>`;
+          gridHtml += `<div class="mini-card ${getCardClass(val)}">${val}</div>`;
         }
       }
     }
-    html += '</div>';
-    
-    html += `</div>`;
-    html += `<span class="score-val">${rs > 0 ? '+' : ''}${rs} pts</span>`;
-    html += `</div>`;
+    gridHtml += '</div>';
+
+    const badge = isTriggerer ? ' 🔔' : (isBest ? ' ✨' : '');
+    const sign = rs > 0 ? '+' : '';
+
+    html += `<div class="player-result ${isBest ? 'best' : ''}">
+      <div class="pr-name">
+        ${p.name}${badge}
+        ${isMe ? '<small>vous</small>' : ''}
+      </div>
+      ${gridHtml}
+      <span class="score-val">${sign}${rs}</span>
+    </div>`;
   });
-  
+
   summary.innerHTML = html;
 }
 
@@ -1448,68 +1499,88 @@ function formatDuration(ms) {
 
 function renderRoundScores() {
   const table = document.getElementById('round-scores-table');
+
+  // Subtitle
+  const sub = document.getElementById('round-scores-subtitle');
+  if (sub) sub.textContent = 'Manche ' + gameState.round + ' sur ' + gameState.round;
+
   let html = '<thead><tr><th>Joueur</th><th>Manche</th><th>Total</th></tr></thead><tbody>';
-  
-  const sorted = [...gameState.players].sort((a, b) => 
+
+  const sorted = [...gameState.players].sort((a, b) =>
     (gameState.totalScores[a.id] || 0) - (gameState.totalScores[b.id] || 0)
   );
-  
+
   sorted.forEach((p, i) => {
     const rs = gameState.roundScores[p.id] || 0;
     const ts = gameState.totalScores[p.id] || 0;
     const isTriggerer = p.id === gameState.lastRoundTriggeredBy;
+    const isMe = p.id === myPlayerId;
+    const scoreClass = rs > 0 ? 'round-score-pos' : (rs < 0 ? 'round-score-neg' : '');
+    const sign = rs > 0 ? '+' : '';
+
     html += `<tr${i === 0 ? ' class="winner"' : ''}>`;
-    html += `<td>${i === 0 ? '<span class="winner-name">' : ''}${p.name}${isTriggerer ? ' 🔔' : ''}${p.id === myPlayerId ? ' (vous)' : ''}${i === 0 ? '</span>' : ''}</td>`;
-    html += `<td>${rs > 0 ? '+' : ''}${rs}</td>`;
+    html += `<td>${i === 0 ? '<span class="winner-name">' : ''}${p.name}${isTriggerer ? ' 🔔' : ''}${isMe ? '<br><small style="color:#888;font-size:.72em;font-weight:400">vous</small>' : ''}${i === 0 ? '</span>' : ''}</td>`;
+    html += `<td class="${scoreClass}">${sign}${rs}</td>`;
     html += `<td class="total">${ts}</td></tr>`;
   });
-  
+
   html += '</tbody>';
   table.innerHTML = html;
-  
-  // Show game duration
+
+  // Duration
   const durEl = document.getElementById('round-duration');
   const durVal = document.getElementById('round-duration-value');
-  const dur = gameState.gameStartTime ? formatDuration(Date.now() - gameState.gameStartTime) : null;
-  if (dur) { durVal.textContent = dur; durEl.style.display = ''; }
-  else { durEl.style.display = 'none'; }
+  if (durEl && durVal) {
+    const dur = gameState.gameStartTime ? formatDuration(Date.now() - gameState.gameStartTime) : null;
+    if (dur) { durVal.textContent = dur; durEl.style.display = ''; }
+    else { durEl.style.display = 'none'; }
+  }
 
   document.getElementById('next-round-btn').style.display = isHost ? '' : 'none';
 }
 
 function renderFinalScores() {
-  const table = document.getElementById('final-scores-table');
-  let html = '<thead><tr><th>🏆</th><th>Joueur</th><th>Score</th></tr></thead><tbody>';
-  
-  const sorted = [...gameState.players].sort((a, b) => 
+  const sorted = [...gameState.players].sort((a, b) =>
     (gameState.totalScores[a.id] || 0) - (gameState.totalScores[b.id] || 0)
   );
-  
-  // Winner banner with zoom animation
+
+  // Winner banner
   const winner = sorted[0];
   const winnerBanner = document.getElementById('final-winner-banner');
-  winnerBanner.innerHTML = `<div class="winner-name" style="font-size:1.8em">🎉 ${winner.name} remporte la partie ! 🎉</div>`;
-  
-  sorted.forEach((p, i) => {
-    const ts = gameState.totalScores[p.id] || 0;
-    const medal = i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : (i + 1);
-    html += `<tr${i === 0 ? ' class="winner"' : ''}>`;
-    html += `<td>${medal}</td>`;
-    html += `<td>${i === 0 ? '<span class="winner-name">' : ''}${p.name}${p.id === myPlayerId ? ' (vous)' : ''}${i === 0 ? '</span>' : ''}</td>`;
-    html += `<td class="total">${ts}</td></tr>`;
-  });
-  
-  html += '</tbody>';
-  table.innerHTML = html;
-  
-  // Show game duration
+  winnerBanner.innerHTML = `<div class="winner-name">🎉 ${winner.name} remporte la partie ! 🎉</div>`;
+
+  // Score cards (replace table)
+  const cardsEl = document.getElementById('final-score-cards');
+  if (cardsEl) {
+    const medals = ['🥇', '🥈', '🥉'];
+    let cardsHtml = '';
+    sorted.forEach((p, i) => {
+      const ts = gameState.totalScores[p.id] || 0;
+      const medal = medals[i] || (i + 1);
+      const rankClass = i < 3 ? `rank-${i + 1}` : '';
+      const isMe = p.id === myPlayerId;
+      cardsHtml += `<div class="score-card ${rankClass}">
+        <div class="score-card-medal">${medal}</div>
+        <div class="score-card-name">
+          ${i === 0 ? `<span class="winner-name" style="font-size:.95em">${p.name}</span>` : p.name}
+          ${isMe ? '<small>vous</small>' : ''}
+        </div>
+        <div class="score-card-pts">${ts} pts</div>
+      </div>`;
+    });
+    cardsEl.innerHTML = cardsHtml;
+  }
+
+  // Duration
   const durEl = document.getElementById('final-duration');
   const durVal = document.getElementById('final-duration-value');
-  const dur = gameState.gameStartTime ? formatDuration(Date.now() - gameState.gameStartTime) : null;
-  if (dur) { durVal.textContent = dur; durEl.style.display = ''; }
-  else { durEl.style.display = 'none'; }
+  if (durEl && durVal) {
+    const dur = gameState.gameStartTime ? formatDuration(Date.now() - gameState.gameStartTime) : null;
+    if (dur) { durVal.textContent = dur; durEl.style.display = ''; }
+    else { durEl.style.display = 'none'; }
+  }
 
-  // Render leaderboard on final screen
+  // Leaderboard
   renderLeaderboard('final-leaderboard');
 }
 
