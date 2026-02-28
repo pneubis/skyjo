@@ -275,15 +275,15 @@ input::placeholder{color:#666}
     <ul class="connect-steps">
       <li id="cstep-p2p">
         <span class="step-icon" id="cstep-p2p-icon">1</span>
-        Initialisation du réseau P2P
+        Connexion serveur
       </li>
       <li id="cstep-tracker">
         <span class="step-icon" id="cstep-tracker-icon">2</span>
-        Connexion aux trackers BitTorrent
+        Connexion à Firebase
       </li>
       <li id="cstep-host">
         <span class="step-icon" id="cstep-host-icon">3</span>
-        Recherche de l'hôte dans la salle
+        Recherche de la salle
       </li>
       <li id="cstep-join">
         <span class="step-icon" id="cstep-join-icon">4</span>
@@ -361,1058 +361,577 @@ input::placeholder{color:#666}
   </div>
 </div>
 
-<script type="module">
-// ============================================================
-// SKYJO MULTIPLAYER - Trystero (BitTorrent P2P, zéro serveur)
-// ============================================================
-import { joinRoom, selfId } from 'https://esm.run/trystero/torrent';
 
-// --- CONSTANTS ---
+
+
+<script>
+// ============================================================
+// SKYJO MULTIPLAYER — Client WebSocket
+// ============================================================
+
+// ⚙️ Remplacez par l'URL de votre serveur Render après déploiement
+const WS_URL = 'https://skyjo-vpxh.onrender.com';
+
+// ─── Constants ────────────────────────────────────────────────
 const CARD_COUNTS = {'-2':5,'-1':10,'0':15,'1':10,'2':10,'3':10,'4':10,'5':10,'6':10,'7':10,'8':10,'9':10,'10':10,'11':10,'12':10};
-const ROWS = 3, COLS = 4;
-const MAX_PLAYERS = 8;
-const END_SCORE = 100;
-const APP_ID = 'skyjo-multiplayer-v2';
+const ROWS=3, COLS=4, MAX_PLAYERS=8, END_SCORE=100;
 
-// --- STATE ---
-let trysteroRoom = null;
-let isHost = false;
-let myName = '';
-let roomCode = '';
-let gameState = null;
-let myPlayerId = selfId; // ID unique stable (généré par Trystero)
+// ─── State ────────────────────────────────────────────────────
+let ws            = null;
+let wsReady       = false;
+let isHost        = false;
+let myName        = '';
+let roomCode      = '';
+let gameState     = null;
+let myPlayerId    = 'p_' + Math.random().toString(36).substr(2,9);
 let currentScreen = 'screen-menu';
+let pingInterval  = null;
+let reconnectTimer= null;
+let reconnectCount= 0;
 
-// Actions Trystero (initialisées à la connexion)
-let sendMsg = null;
-let getMsg = null;
-
-// Peers connectés (pour l'hôte : peerId → true)
-let connectedPeers = new Set();
-
-// Mapping peerId → playerId pour l'hôte
-let peerToPlayer = {};
-
-// --- PERSISTENT LEADERBOARD ---
-function getLeaderboard() {
-  try { return JSON.parse(localStorage.getItem('skyjo_leaderboard') || '{}'); } catch(e) { return {}; }
-}
-function saveLeaderboard(lb) {
-  try { localStorage.setItem('skyjo_leaderboard', JSON.stringify(lb)); } catch(e) {}
-}
-function updateLeaderboard(playerName, won) {
-  const lb = getLeaderboard();
-  if (!lb[playerName]) lb[playerName] = { wins: 0, games: 0 };
-  lb[playerName].games++;
-  if (won) lb[playerName].wins++;
-  saveLeaderboard(lb);
-}
-function renderLeaderboard(containerId) {
-  const lb = getLeaderboard();
-  const container = document.getElementById(containerId);
-  if (!container) return;
-  const entries = Object.entries(lb).sort((a, b) => b[1].wins - a[1].wins || a[1].games - b[1].games);
-  if (entries.length === 0) {
-    container.innerHTML = '<h3>🏆 Classement</h3><p style="color:#666;font-size:.85em">Aucune partie terminée</p>';
-    return;
-  }
-  let html = '<h3>🏆 Classement persistant</h3>';
-  entries.slice(0, 10).forEach(([name, data], i) => {
-    const rank = i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : (i + 1);
-    html += `<div class="lb-row"><span class="lb-rank">${rank}</span><span class="lb-name">${name}</span><span class="lb-wins">${data.wins}W</span><span class="lb-games">${data.games}G</span></div>`;
-  });
-  container.innerHTML = html;
-}
-
-// --- BOOM ANIMATION ---
-function triggerBoom() {
-  const overlay = document.getElementById('boom-overlay');
-  overlay.innerHTML = '';
-  const colors = ['#f1c40f','#e74c3c','#e67e22','#9b59b6','#2ecc71','#3498db'];
-  for (let i = 0; i < 30; i++) {
-    const p = document.createElement('div');
-    p.className = 'boom-particle';
-    const size = 6 + Math.random() * 12;
-    const angle = Math.random() * Math.PI * 2;
-    const dist = 80 + Math.random() * 200;
-    p.style.cssText = `width:${size}px;height:${size}px;background:${colors[Math.floor(Math.random()*colors.length)]};left:50%;top:50%;--dx:${Math.cos(angle)*dist}px;--dy:${Math.sin(angle)*dist}px;`;
-    overlay.appendChild(p);
-  }
-  const txt = document.createElement('div');
-  txt.className = 'boom-text';
-  txt.textContent = '💥 BOOM!';
-  overlay.appendChild(txt);
-  setTimeout(() => { overlay.innerHTML = ''; }, 1000);
-}
-
-// --- FULLSCREEN ---
-const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
-const isAndroid = /Android/.test(navigator.userAgent);
-
-function toggleFullscreen() {
-  const btn = document.getElementById('fullscreen-btn');
-  if (isIOS) {
-    const tip = document.getElementById('fs-tip');
-    tip.style.display = tip.style.display === 'block' ? 'none' : 'block';
-    return;
-  }
-  const isFs = !!(document.fullscreenElement || document.webkitFullscreenElement);
-  if (!isFs) {
-    const el = document.documentElement;
-    const req = el.requestFullscreen || el.webkitRequestFullscreen;
-    if (req) req.call(el).then(() => { btn.textContent = '✕'; }).catch(() => toast('Plein écran non disponible'));
-  } else {
-    const exit = document.exitFullscreen || document.webkitExitFullscreen;
-    if (exit) exit.call(document);
-    btn.textContent = '⛶';
-  }
-}
-function closeFsTip() { document.getElementById('fs-tip').style.display = 'none'; }
-
-['fullscreenchange','webkitfullscreenchange'].forEach(ev => {
-  document.addEventListener(ev, () => {
-    const btn = document.getElementById('fullscreen-btn');
-    const isFs = !!(document.fullscreenElement || document.webkitFullscreenElement);
-    btn.textContent = isFs ? '✕' : '⛶';
-  });
-});
-window.addEventListener('load', () => {
-  if (isIOS) {
-    const btn = document.getElementById('fullscreen-btn');
-    btn.textContent = '📱';
-    if (!localStorage.getItem('skyjo_fs_tip_shown')) {
-      setTimeout(() => { document.getElementById('fs-tip').style.display = 'block'; localStorage.setItem('skyjo_fs_tip_shown','1'); }, 1500);
-    }
-  }
-});
-
-// --- TRYSTERO SETUP ---
-function generateRoomCode() {
-  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
-  let code = '';
-  for (let i = 0; i < 5; i++) code += chars[Math.floor(Math.random() * chars.length)];
-  return code;
-}
-
-function setupRoom(room) {
-  trysteroRoom = room;
-  connectedPeers = new Set();
-
-  // makeAction DOIT être déclaré avant onPeerJoin
-  [sendMsg, getMsg] = room.makeAction('msg');
-
-  getMsg((data, peerId) => {
-    if (isHost) {
-      handleHostMessage(peerId, data);
-    } else {
-      handleClientMessage(data);
-    }
-  });
-
-  room.onPeerJoin((peerId) => {
-    connectedPeers.add(peerId);
-    if (!isHost) {
-      // Hôte détecté → mettre à jour l'écran de connexion
-      connectStep('host','done','3');
-      connectStep('join','active','4');
-      connectProgress(75,'Hôte trouvé ! Envoi de la demande de rejoindre...');
-      // Envoyer join avec retry pour s'assurer que le canal est prêt
-      const sendJoin = (attempts) => {
-        if (attempts <= 0) return;
-        setTimeout(() => {
-          if (!sendMsg) return;
-          try {
-            sendMsg({ type: 'join', name: myName, id: myPlayerId }, peerId);
-          } catch(e) {
-            sendJoin(attempts - 1);
-          }
-        }, 400 * (4 - attempts));
-      };
-      sendJoin(3);
-    } else {
-      // Hôte : renvoyer l'état si partie déjà en cours
-      if (gameState && gameState.phase !== 'lobby') {
-        setTimeout(() => {
-          if (sendMsg) sendMsg({ type: 'state', state: gameState }, peerId);
-        }, 500);
-      }
-    }
-  });
-
-  room.onPeerLeave((peerId) => {
-    connectedPeers.delete(peerId);
-    if (isHost) {
-      const playerId = peerToPlayer[peerId] || peerId;
-      handleDisconnect(playerId, peerId);
-    } else {
-      if (gameState) {
-        toast('Connexion perdue avec l\'hôte');
-      }
-    }
-  });
-}
-
-// --- MENU ---
-function getName() {
-  let name = document.getElementById('player-name').value.trim();
-  if (!name) name = 'Joueur' + Math.floor(Math.random() * 999);
-  return name;
-}
-function showScreen(id) {
-  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
-  document.getElementById(id).classList.add('active');
-  currentScreen = id;
-  if (id === 'screen-menu') renderLeaderboard('menu-leaderboard');
-}
-function showJoinScreen() {
-  myName = getName();
-  showScreen('screen-join');
-  document.getElementById('room-input').focus();
-}
-
-// --- CONNECT SCREEN LOGIC ---
+// Connect screen
+let _connectTimer    = null;
+let _connectElapsed  = 0;
 let _connectRoomCode = '';
-let _connectIsHost = false;
-let _connectCheckTimer = null;
-let _connectElapsed = 0;
-let _connectMaxWait = 40; // secondes max
+let _connectIsHost   = false;
+let _pendingAction   = null; // action à rejouer après reconnexion WS
 
-function connectStep(id, state, icon) {
-  const el = document.getElementById('cstep-' + id);
-  const ic = document.getElementById('cstep-' + id + '-icon');
-  if (!el) return;
-  el.className = state;
-  ic.textContent = state === 'done' ? '✓' : state === 'error' ? '✗' : icon;
+// ─── WebSocket ────────────────────────────────────────────────
+function connectWS() {
+  return new Promise((resolve, reject) => {
+    if (ws && ws.readyState === WebSocket.OPEN) { resolve(); return; }
+    if (ws) { try { ws.close(); } catch {} ws = null; }
+
+    const url = WS_URL !== 'wss://VOTRE-SERVEUR.onrender.com'
+      ? WS_URL
+      : null;
+
+    if (!url) {
+      reject(new Error('WS_URL non configurée'));
+      return;
+    }
+
+    ws = new WebSocket(url);
+
+    const timeout = setTimeout(() => {
+      reject(new Error('Timeout connexion WebSocket (30s)\nVérifiez que le serveur Render est démarré.'));
+    }, 30000);
+
+    ws.onopen = () => {
+      clearTimeout(timeout);
+      wsReady = true;
+      reconnectCount = 0;
+      startPing();
+      resolve();
+    };
+
+    ws.onerror = (e) => {
+      clearTimeout(timeout);
+      reject(new Error('WebSocket error — serveur inaccessible'));
+    };
+
+    ws.onclose = () => {
+      wsReady = false;
+      stopPing();
+      // Reconnexion automatique si on était en jeu
+      if (gameState && roomCode && !isHost) {
+        scheduleReconnect();
+      }
+    };
+
+    ws.onmessage = (e) => {
+      let msg;
+      try { msg = JSON.parse(e.data); } catch { return; }
+      handleServerMessage(msg);
+    };
+  });
 }
-function connectProgress(pct, status) {
-  document.getElementById('connect-bar').style.width = pct + '%';
-  document.getElementById('connect-status').textContent = status;
+
+function send(data) {
+  if (ws && ws.readyState === WebSocket.OPEN) {
+    ws.send(JSON.stringify(data));
+  }
 }
-function connectError(msg, code) {
-  const box = document.getElementById('connect-error-box');
-  box.classList.add('show');
-  document.getElementById('connect-error-msg').textContent = msg;
-  document.getElementById('connect-error-code').textContent = code;
-  document.getElementById('connect-retry-btn').style.display = '';
-  document.getElementById('connect-cancel-btn').textContent = 'Retour au menu';
-  connectProgress(100, '');
+
+function startPing() {
+  stopPing();
+  pingInterval = setInterval(() => {
+    if (ws && ws.readyState === WebSocket.OPEN) send({ type: 'ping' });
+  }, 25000);
 }
-function cancelConnect() {
-  clearInterval(_connectCheckTimer);
-  if (trysteroRoom) { try { trysteroRoom.leave(); } catch(e) {} trysteroRoom = null; }
-  gameState = null; isHost = false; connectedPeers = new Set(); peerToPlayer = {};
-  sendMsg = null; getMsg = null;
-  showScreen('screen-menu');
+function stopPing() {
+  if (pingInterval) { clearInterval(pingInterval); pingInterval = null; }
 }
-function retryConnect() {
+
+function scheduleReconnect() {
+  if (reconnectTimer) return;
+  if (reconnectCount >= 5) {
+    toast('Connexion perdue. Retour au menu.');
+    leaveRoom(); showScreen('screen-menu'); return;
+  }
+  reconnectCount++;
+  const delay = Math.min(1000 * reconnectCount, 5000);
+  toast(`Reconnexion dans ${Math.round(delay/1000)}s... (${reconnectCount}/5)`);
+  reconnectTimer = setTimeout(async () => {
+    reconnectTimer = null;
+    try {
+      await connectWS();
+      // Rejoindre à nouveau
+      send({ type: 'join', code: roomCode, playerId: myPlayerId, name: myName });
+    } catch { scheduleReconnect(); }
+  }, delay);
+}
+
+function disconnectWS() {
+  stopPing();
+  if (reconnectTimer) { clearTimeout(reconnectTimer); reconnectTimer = null; }
+  if (ws) { try { ws.close(); } catch {} ws = null; }
+  wsReady = false;
+}
+
+function leaveRoom() {
+  disconnectWS();
+  if (_connectTimer) { clearInterval(_connectTimer); _connectTimer = null; }
+  gameState  = null;
+  isHost     = false;
+  roomCode   = '';
+}
+
+// ─── Messages serveur → client ────────────────────────────────
+function handleServerMessage(msg) {
+  switch (msg.type) {
+
+    case 'created':
+      connectStep('tracker','done','2');
+      connectStep('host','done','3');
+      connectSuccess();
+      break;
+
+    case 'joined':
+      connectStep('tracker','done','2');
+      connectStep('host','active','3');
+      connectProgress(60, 'En attente de l\'hôte...');
+      // Timeout si l'hôte ne répond pas avec un state
+      _connectElapsed = 0;
+      if (_connectTimer) clearInterval(_connectTimer);
+      _connectTimer = setInterval(() => {
+        _connectElapsed++;
+        const left = 20 - _connectElapsed;
+        connectProgress(60 + _connectElapsed, 'En attente de l\'hôte... (' + left + 's)');
+        if (_connectElapsed >= 20) {
+          clearInterval(_connectTimer); _connectTimer = null;
+          connectStep('host','error','3');
+          connectError('L\'hôte ne répond pas',
+            'ERR_HOST_TIMEOUT | room=' + msg.code + '\nL\'hôte est peut-être déconnecté.');
+        }
+      }, 1000);
+      break;
+
+    case 'state':
+      if (_connectTimer) { clearInterval(_connectTimer); _connectTimer = null; }
+      gameState = msg.state;
+      if (currentScreen === 'screen-connecting') {
+        connectSuccess();
+      } else {
+        renderFromState();
+      }
+      break;
+
+    case 'player_join':
+      // L'hôte reçoit la demande d'un nouveau joueur
+      if (!isHost || !gameState) return;
+      if (gameState.phase !== 'lobby') { broadcastState(); return; }
+      if (gameState.players.length >= MAX_PLAYERS) return;
+      if (!gameState.players.find(p => p.id === msg.playerId)) {
+        gameState.players.push({ id: msg.playerId, name: msg.name, isHost: false });
+        gameState.totalScores[msg.playerId] = 0;
+        toast(msg.name + ' a rejoint !');
+      }
+      broadcastState();
+      break;
+
+    case 'player_left':
+      if (!isHost || !gameState) return;
+      handlePlayerLeave(msg.playerId);
+      break;
+
+    case 'host_left':
+      toast('L\'hôte a quitté la partie.');
+      leaveRoom(); showScreen('screen-menu');
+      break;
+
+    case 'action':
+      if (isHost) handleAction(msg.playerId, msg.data);
+      break;
+
+    case 'toast':
+      if (!isHost) toast(msg.msg);
+      break;
+
+    case 'boom':
+      if (!isHost) triggerBoom();
+      break;
+
+    case 'error':
+      if (currentScreen === 'screen-connecting') {
+        connectStep('host','error','3');
+        connectError(msg.msg, msg.code + '\n' + (msg.detail || ''));
+      } else {
+        toast(msg.msg);
+      }
+      break;
+
+    case 'pong':
+      break;
+  }
+}
+
+// ─── Leaderboard ──────────────────────────────────────────────
+function getLeaderboard(){try{return JSON.parse(localStorage.getItem('skyjo_lb')||'{}');}catch{return {};}}
+function saveLeaderboard(lb){try{localStorage.setItem('skyjo_lb',JSON.stringify(lb));}catch{}}
+function updateLeaderboard(name,won){const lb=getLeaderboard();if(!lb[name])lb[name]={wins:0,games:0};lb[name].games++;if(won)lb[name].wins++;saveLeaderboard(lb);}
+function renderLeaderboard(id){
+  const lb=getLeaderboard(),el=document.getElementById(id); if(!el)return;
+  const rows=Object.entries(lb).sort((a,b)=>b[1].wins-a[1].wins).slice(0,10);
+  if(!rows.length){el.innerHTML='<h3>🏆 Classement</h3><p style="color:#666;font-size:.85em">Aucune partie terminée</p>';return;}
+  el.innerHTML='<h3>🏆 Classement</h3>'+rows.map(([n,d],i)=>`<div class="lb-row"><span class="lb-rank">${['🥇','🥈','🥉'][i]||i+1}</span><span class="lb-name">${n}</span><span class="lb-wins">${d.wins}W</span><span class="lb-games">${d.games}G</span></div>`).join('');
+}
+
+// ─── Boom ─────────────────────────────────────────────────────
+function triggerBoom(){
+  const o=document.getElementById('boom-overlay');o.innerHTML='';
+  const colors=['#f1c40f','#e74c3c','#e67e22','#9b59b6','#2ecc71','#3498db'];
+  for(let i=0;i<30;i++){const p=document.createElement('div');p.className='boom-particle';const s=6+Math.random()*12,a=Math.random()*Math.PI*2,d=80+Math.random()*200;p.style.cssText=`width:${s}px;height:${s}px;background:${colors[i%6]};left:50%;top:50%;--dx:${Math.cos(a)*d}px;--dy:${Math.sin(a)*d}px;`;o.appendChild(p);}
+  const t=document.createElement('div');t.className='boom-text';t.textContent='💥 BOOM!';o.appendChild(t);
+  setTimeout(()=>o.innerHTML='',1000);
+}
+
+// ─── Fullscreen ───────────────────────────────────────────────
+const isIOS=/iPad|iPhone|iPod/.test(navigator.userAgent)&&!window.MSStream;
+function toggleFullscreen(){
+  const btn=document.getElementById('fullscreen-btn');
+  if(isIOS){const t=document.getElementById('fs-tip');t.style.display=t.style.display==='block'?'none':'block';return;}
+  const isFs=!!(document.fullscreenElement||document.webkitFullscreenElement);
+  if(!isFs){const r=document.documentElement.requestFullscreen||document.documentElement.webkitRequestFullscreen;if(r)r.call(document.documentElement).then(()=>btn.textContent='✕').catch(()=>toast('Plein écran non disponible'));}
+  else{(document.exitFullscreen||document.webkitExitFullscreen).call(document);btn.textContent='⛶';}
+}
+function closeFsTip(){document.getElementById('fs-tip').style.display='none';}
+['fullscreenchange','webkitfullscreenchange'].forEach(ev=>document.addEventListener(ev,()=>{document.getElementById('fullscreen-btn').textContent=!!(document.fullscreenElement||document.webkitFullscreenElement)?'✕':'⛶';}));
+window.addEventListener('load',()=>{if(isIOS){document.getElementById('fullscreen-btn').textContent='📱';if(!localStorage.getItem('skyjo_fs_shown')){setTimeout(()=>{document.getElementById('fs-tip').style.display='block';localStorage.setItem('skyjo_fs_shown','1');},1500);}}});
+
+// ─── Connect screen ───────────────────────────────────────────
+function connectStep(id,state,icon){
+  const el=document.getElementById('cstep-'+id),ic=document.getElementById('cstep-'+id+'-icon');
+  if(!el)return;el.className=state;ic.textContent=state==='done'?'✓':state==='error'?'✗':icon;
+}
+function connectProgress(pct,status){
+  document.getElementById('connect-bar').style.width=pct+'%';
+  if(status!==undefined)document.getElementById('connect-status').textContent=status;
+}
+function connectError(msg,code){
+  document.getElementById('connect-error-box').classList.add('show');
+  document.getElementById('connect-error-msg').textContent=msg;
+  document.getElementById('connect-error-code').textContent=code;
+  document.getElementById('connect-retry-btn').style.display='';
+  document.getElementById('connect-cancel-btn').textContent='Retour au menu';
+  if(_connectTimer){clearInterval(_connectTimer);_connectTimer=null;}
+}
+function cancelConnect(){
+  if(_connectTimer){clearInterval(_connectTimer);_connectTimer=null;}
+  leaveRoom(); showScreen('screen-menu');
+}
+function retryConnect(){
   document.getElementById('connect-error-box').classList.remove('show');
-  document.getElementById('connect-retry-btn').style.display = 'none';
-  document.getElementById('connect-cancel-btn').textContent = 'Annuler';
-  if (_connectIsHost) createGame(); else { document.getElementById('room-input').value = _connectRoomCode; joinGame(); }
+  document.getElementById('connect-retry-btn').style.display='none';
+  document.getElementById('connect-cancel-btn').textContent='Annuler';
+  if(_connectIsHost) createGame();
+  else{document.getElementById('room-input').value=_connectRoomCode;joinGame();}
 }
-function showConnectScreen(code, asHost) {
-  _connectRoomCode = code;
-  _connectIsHost = asHost;
-  _connectElapsed = 0;
-  document.getElementById('connect-room-code').textContent = code;
-  document.getElementById('connect-bar').style.width = '0%';
-  document.getElementById('connect-status').textContent = 'Initialisation...';
+function showConnectScreen(code,asHost){
+  _connectRoomCode=code;_connectIsHost=asHost;_connectElapsed=0;
+  document.getElementById('connect-room-code').textContent=code;
+  document.getElementById('connect-bar').style.width='0%';
+  document.getElementById('connect-status').textContent='Connexion au serveur...';
   document.getElementById('connect-error-box').classList.remove('show');
-  document.getElementById('connect-retry-btn').style.display = 'none';
-  document.getElementById('connect-cancel-btn').textContent = 'Annuler';
-  ['p2p','tracker','host','join'].forEach(s => connectStep(s, '', ['1','2','3','4'][['p2p','tracker','host','join'].indexOf(s)]));
+  document.getElementById('connect-retry-btn').style.display='none';
+  document.getElementById('connect-cancel-btn').textContent='Annuler';
+  ['p2p','tracker','host','join'].forEach((s,i)=>connectStep(s,'',String(i+1)));
   showScreen('screen-connecting');
-  // Animation des étapes
-  setTimeout(() => { connectStep('p2p','active','1'); connectProgress(8,'Initialisation réseau P2P...'); }, 100);
-  setTimeout(() => { connectStep('p2p','done','1'); connectStep('tracker','active','2'); connectProgress(25,'Connexion aux trackers BitTorrent...'); }, 1200);
-  setTimeout(() => { connectStep('tracker','done','2'); connectStep('host','active','3'); connectProgress(45, asHost ? 'Création de la salle...' : 'Recherche de l\'hôte...'); }, 3000);
+  setTimeout(()=>{connectStep('p2p','active','1');connectProgress(8,'Connexion WebSocket...');},100);
 }
-function connectSuccess() {
-  clearInterval(_connectCheckTimer);
-  connectStep('host','done','3');
-  connectStep('join','active','4');
-  connectProgress(85,'Synchronisation...');
-  setTimeout(() => { connectStep('join','done','4'); connectProgress(100,'Connecté !'); }, 400);
-  setTimeout(() => {
-    if (gameState) renderFromState();
-    else showLobby();
-  }, 800);
+function connectSuccess(){
+  if(_connectTimer){clearInterval(_connectTimer);_connectTimer=null;}
+  connectStep('host','done','3');connectStep('join','active','4');connectProgress(85,'Synchronisation...');
+  setTimeout(()=>{connectStep('join','done','4');connectProgress(100,'Connecté !');},400);
+  setTimeout(()=>{if(gameState)renderFromState();else showLobby();},800);
 }
 
-// --- CREATE GAME (HOST) ---
+// ─── Menu ─────────────────────────────────────────────────────
+function getName(){let n=document.getElementById('player-name').value.trim();if(!n)n='Joueur'+Math.floor(Math.random()*999);return n;}
+function showScreen(id){document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));document.getElementById(id).classList.add('active');currentScreen=id;if(id==='screen-menu')renderLeaderboard('menu-leaderboard');}
+function showJoinScreen(){myName=getName();showScreen('screen-join');document.getElementById('room-input').focus();}
+
+// ─── Create game ──────────────────────────────────────────────
 async function createGame() {
   myName = getName();
-  roomCode = generateRoomCode();
+  roomCode = Math.random().toString(36).substr(2,5).toUpperCase();
   isHost = true;
-  peerToPlayer = {};
-
-  if (trysteroRoom) { try { trysteroRoom.leave(); } catch(e) {} trysteroRoom = null; }
+  leaveRoom(); isHost = true; // leaveRoom reset isHost
 
   showConnectScreen(roomCode, true);
 
   try {
-    const room = joinRoom({ appId: APP_ID }, 'skyjo-' + roomCode);
-    setupRoom(room);
+    connectStep('p2p','active','1');
+    connectProgress(15,'Connexion au serveur...');
+    await connectWS();
+
+    connectStep('p2p','done','1');
+    connectStep('tracker','active','2');
+    connectProgress(35,'Création de la salle...');
+
+    gameState = {
+      phase:'lobby',
+      players:[{id:myPlayerId,name:myName,isHost:true}],
+      round:0,
+      totalScores:{[myPlayerId]:0}
+    };
+
+    send({ type:'create', code:roomCode, playerId:myPlayerId, name:myName });
+
   } catch(e) {
-    connectError('Impossible de créer la salle', 'ERR_CREATE | ' + (e.message || e));
+    console.error(e);
+    connectStep('p2p','error','1');
+    connectError('Impossible de joindre le serveur', 'ERR_WS_CONNECT | ' + e.message + '\n\nVérifiez que le serveur Render est bien démarré.\nURL configurée : ' + WS_URL);
     isHost = false;
-    return;
   }
-
-  gameState = {
-    phase: 'lobby',
-    players: [{ id: myPlayerId, name: myName, isHost: true }],
-    round: 0,
-    totalScores: { [myPlayerId]: 0 }
-  };
-
-  // L'hôte n'a pas besoin de trouver d'autres peers pour passer au lobby
-  connectSuccess();
 }
 
-// --- JOIN GAME (CLIENT) ---
+// ─── Join game ────────────────────────────────────────────────
 async function joinGame() {
   myName = getName();
   const code = document.getElementById('room-input').value.trim().toUpperCase();
   if (!code) { toast('Entrez un code'); return; }
   roomCode = code;
   isHost = false;
-
-  if (trysteroRoom) { try { trysteroRoom.leave(); } catch(e) {} trysteroRoom = null; }
+  leaveRoom(); isHost = false; roomCode = code;
 
   showConnectScreen(code, false);
 
   try {
-    const room = joinRoom({ appId: APP_ID }, 'skyjo-' + roomCode);
-    setupRoom(room);
+    connectStep('p2p','active','1');
+    connectProgress(15,'Connexion au serveur...');
+    await connectWS();
+
+    connectStep('p2p','done','1');
+    connectStep('tracker','active','2');
+    connectProgress(40,'Recherche de la salle...');
+
+    send({ type:'join', code, playerId:myPlayerId, name:myName });
+
   } catch(e) {
-    connectError('Impossible de rejoindre la salle', 'ERR_JOIN_INIT | ' + (e.message || e));
-    return;
-  }
-
-  // Surveiller la progression : checker toutes les secondes
-  _connectElapsed = 0;
-  clearInterval(_connectCheckTimer);
-  _connectCheckTimer = setInterval(() => {
-    _connectElapsed++;
-    // Mise à jour progression
-    const pct = Math.min(45 + (_connectElapsed / _connectMaxWait) * 45, 90);
-    const remaining = _connectMaxWait - _connectElapsed;
-    if (connectedPeers.size > 0) {
-      connectProgress(pct, 'Hôte détecté, envoi de la demande...');
-    } else {
-      connectProgress(pct, 'Recherche de l\'hôte... (' + remaining + 's)');
-    }
-    // Timeout
-    if (_connectElapsed >= _connectMaxWait) {
-      clearInterval(_connectCheckTimer);
-      connectStep('host','error','3');
-      connectStep('join','','4');
-      connectError(
-        'Aucun hôte trouvé dans la salle',
-        'ERR_HOST_NOT_FOUND | room=skyjo-' + code + ' | waited=' + _connectMaxWait + 's | trackers=BitTorrent'
-      );
-    }
-  }, 1000);
-}
-
-
-// --- HOST MESSAGE HANDLING ---
-function handleHostMessage(peerId, data) {
-  if (!gameState) return;
-
-  switch(data.type) {
-    case 'join':
-      if (gameState.phase !== 'lobby') {
-        sendMsg({ type: 'error', msg: 'Partie déjà en cours' }, peerId);
-        return;
-      }
-      if (gameState.players.length >= MAX_PLAYERS) {
-        sendMsg({ type: 'error', msg: 'Salle pleine' }, peerId);
-        return;
-      }
-      // Associer peerId → playerId
-      peerToPlayer[peerId] = data.id;
-      // Ajouter le joueur
-      if (!gameState.players.find(p => p.id === data.id)) {
-        gameState.players.push({ id: data.id, name: data.name, isHost: false });
-        gameState.totalScores[data.id] = 0;
-      }
-      broadcastState();
-      toast(data.name + ' a rejoint');
-      break;
-
-    case 'action':
-      handlePlayerAction(data.playerId, data.action);
-      break;
-
-    case 'ping':
-      sendMsg({ type: 'pong' }, peerId);
-      break;
+    console.error(e);
+    connectStep('p2p','error','1');
+    connectError('Impossible de joindre le serveur', 'ERR_WS_CONNECT | ' + e.message + '\n\nVérifiez que le serveur Render est bien démarré.\nURL configurée : ' + WS_URL);
   }
 }
 
-function handleDisconnect(playerId, peerId) {
-  if (!gameState) return;
-  delete peerToPlayer[peerId];
-  if (gameState.phase === 'lobby') {
-    gameState.players = gameState.players.filter(p => p.id !== playerId);
+// ─── Host actions ─────────────────────────────────────────────
+function handlePlayerLeave(playerId){
+  if(!gameState)return;
+  if(gameState.phase==='lobby'){
+    gameState.players=gameState.players.filter(p=>p.id!==playerId);
     delete gameState.totalScores[playerId];
-    broadcastState();
-    toast('Un joueur a quitté');
+    broadcastState(); toast('Un joueur a quitté');
   }
 }
-
-// --- CLIENT MESSAGE HANDLING ---
-function handleClientMessage(data) {
-  switch(data.type) {
-    case 'state':
-      gameState = data.state;
-      // Si on était sur l'écran de connexion → succès !
-      if (currentScreen === 'screen-connecting') {
-        clearInterval(_connectCheckTimer);
-        connectSuccess();
-      } else {
-        renderFromState();
-      }
-      break;
-    case 'error':
-      toast(data.msg);
-      break;
-    case 'toast':
-      toast(data.msg);
-      break;
-    case 'boom':
-      triggerBoom();
-      break;
-    case 'pong':
-      break;
-  }
+function handleAction(playerId, data){
+  if(!isHost||!gameState)return;
+  handlePlayerAction(playerId, data);
 }
 
-// --- BROADCAST (hôte → tous les clients) ---
-function broadcastState() {
-  if (sendMsg) sendMsg({ type: 'state', state: gameState });
-  renderFromState();
-}
-function broadcastToast(msg) {
-  if (sendMsg) sendMsg({ type: 'toast', msg });
-  toast(msg);
-}
-function broadcastBoom() {
-  if (sendMsg) sendMsg({ type: 'boom' });
-  triggerBoom();
-}
-function sendToHost(data) {
-  // Client → hôte : envoyer à tous (l'hôte recevra)
-  // Trystero envoie à tous les peers dans la room
-  if (sendMsg) sendMsg(data);
-}
+// ─── Broadcast ────────────────────────────────────────────────
+function broadcastState(){send({type:'state',state:gameState});renderFromState();}
+function broadcastToast(msg){send({type:'toast',msg});toast(msg);}
+function broadcastBoom(){send({type:'boom'});triggerBoom();}
+function sendAction(data){send({type:'action',playerId:myPlayerId,data});}
 
-// --- LOBBY ---
-function showLobby() {
-  showScreen('screen-lobby');
-  document.getElementById('lobby-code').textContent = roomCode;
-  generateQR();
-  renderLobby();
+// ─── Lobby ────────────────────────────────────────────────────
+function showLobby(){showScreen('screen-lobby');document.getElementById('lobby-code').textContent=roomCode;generateQR();renderLobby();}
+function generateQR(){
+  const url=window.location.href.split('?')[0]+'?room='+roomCode;
+  const c=document.getElementById('qr-container');c.innerHTML='';
+  try{new QRCode(c,{text:url,width:180,height:180,colorDark:'#1a1a2e',colorLight:'#ffffff',correctLevel:QRCode.CorrectLevel.M});}
+  catch(e){c.innerHTML='<p style="color:#333;font-size:.75em;padding:8px;word-break:break-all">'+url+'</p>';}
 }
-function generateQR() {
-  const url = window.location.href.split('?')[0] + '?room=' + roomCode;
-  const container = document.getElementById('qr-container');
-  container.innerHTML = '';
-  try {
-    new QRCode(container, { text: url, width: 180, height: 180, colorDark: '#1a1a2e', colorLight: '#ffffff', correctLevel: QRCode.CorrectLevel.M });
-  } catch(e) {
-    container.innerHTML = '<p style="color:#333;font-size:.75em;padding:8px;word-break:break-all">' + url + '</p>';
-  }
+function renderLobby(){
+  if(!gameState)return;
+  document.getElementById('lobby-players').innerHTML=gameState.players.map(p=>`<li>${p.name}${p.isHost?' <span class="host-badge">HÔTE</span>':''}${p.id===myPlayerId?' (vous)':''}</li>`).join('');
+  document.getElementById('start-btn').style.display=(isHost&&gameState.players.length>=2)?'':'none';
 }
-function renderLobby() {
-  if (!gameState) return;
-  const list = document.getElementById('lobby-players');
-  list.innerHTML = gameState.players.map(p =>
-    `<li>${p.name} ${p.isHost ? '<span class="host-badge">HÔTE</span>' : ''}${p.id === myPlayerId ? ' (vous)' : ''}</li>`
-  ).join('');
-  const startBtn = document.getElementById('start-btn');
-  startBtn.style.display = (isHost && gameState.players.length >= 2) ? '' : 'none';
-}
-function copyCode() {
-  const url = window.location.href.split('?')[0] + '?room=' + roomCode;
-  navigator.clipboard.writeText(url).then(() => toast('Lien copié !')).catch(() => toast(roomCode));
-}
-function leaveLobby() {
-  if (trysteroRoom) { try { trysteroRoom.leave(); } catch(e) {} trysteroRoom = null; }
-  gameState = null;
-  isHost = false;
-  connectedPeers = new Set();
-  peerToPlayer = {};
-  sendMsg = null;
-  getMsg = null;
-  showScreen('screen-menu');
-}
-function backToMenu() {
-  if (trysteroRoom) { try { trysteroRoom.leave(); } catch(e) {} trysteroRoom = null; }
-  gameState = null;
-  isHost = false;
-  connectedPeers = new Set();
-  peerToPlayer = {};
-  sendMsg = null;
-  getMsg = null;
-  showScreen('screen-menu');
-}
+function copyCode(){const url=window.location.href.split('?')[0]+'?room='+roomCode;navigator.clipboard.writeText(url).then(()=>toast('Lien copié !')).catch(()=>toast(roomCode));}
+function leaveLobby(){leaveRoom();showScreen('screen-menu');}
+function backToMenu(){leaveRoom();showScreen('screen-menu');}
 
-// --- DECK CREATION ---
-function createDeck() {
-  const deck = [];
-  for (const [val, count] of Object.entries(CARD_COUNTS)) {
-    for (let i = 0; i < count; i++) deck.push(parseInt(val));
-  }
-  return shuffle(deck);
-}
-function shuffle(arr) {
-  const a = [...arr];
-  for (let i = a.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [a[i], a[j]] = [a[j], a[i]];
-  }
-  return a;
-}
+// ─── Deck ─────────────────────────────────────────────────────
+function createDeck(){const d=[];for(const[v,c]of Object.entries(CARD_COUNTS))for(let i=0;i<c;i++)d.push(parseInt(v));return shuffle(d);}
+function shuffle(a){const b=[...a];for(let i=b.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[b[i],b[j]]=[b[j],b[i]];}return b;}
 
-// --- START GAME (HOST ONLY) ---
-function startGame() {
-  if (!isHost || gameState.players.length < 2) return;
-  initRound();
-}
-function initRound() {
-  const deck = createDeck();
-  const hands = {}, revealed = {};
-  gameState.players.forEach(p => {
-    const cards = [];
-    for (let r = 0; r < ROWS; r++) {
-      const row = [];
-      for (let c = 0; c < COLS; c++) row.push(deck.pop());
-      cards.push(row);
-    }
-    hands[p.id] = cards;
-    revealed[p.id] = Array.from({length: ROWS}, () => [false,false,false,false]);
-  });
-  const discardTop = deck.pop();
-  gameState.round++;
-  gameState.phase = 'reveal_initial';
-  gameState.deck = deck;
-  gameState.discard = [discardTop];
-  gameState.hands = hands;
-  gameState.revealed = revealed;
-  gameState.eliminated = {};
-  gameState.players.forEach(p => { gameState.eliminated[p.id] = [false,false,false,false]; });
-  gameState.currentPlayerIndex = -1;
-  gameState.initialReveals = {};
-  gameState.players.forEach(p => gameState.initialReveals[p.id] = 0);
-  gameState.turnPhase = null;
-  gameState.drawnCard = null;
-  gameState.drawnFrom = null;
-  gameState.drawnByPlayerId = null;
-  gameState.lastRoundTriggeredBy = null;
-  gameState.lastRoundTurnsLeft = -1;
-  gameState.roundScores = {};
-  broadcastToast('Manche ' + gameState.round + ' - Retournez 2 cartes !');
+// ─── Game logic ───────────────────────────────────────────────
+function startGame(){if(!isHost||gameState.players.length<2)return;initRound();}
+function initRound(){
+  const deck=createDeck(),hands={},revealed={};
+  gameState.players.forEach(p=>{const cards=[];for(let r=0;r<ROWS;r++){const row=[];for(let c=0;c<COLS;c++)row.push(deck.pop());cards.push(row);}hands[p.id]=cards;revealed[p.id]=Array.from({length:ROWS},()=>[false,false,false,false]);});
+  Object.assign(gameState,{round:gameState.round+1,phase:'reveal_initial',deck,discard:[deck.pop()],hands,revealed,
+    eliminated:Object.fromEntries(gameState.players.map(p=>[p.id,[false,false,false,false]])),
+    currentPlayerIndex:-1,initialReveals:Object.fromEntries(gameState.players.map(p=>[p.id,0])),
+    turnPhase:null,drawnCard:null,drawnFrom:null,drawnByPlayerId:null,
+    lastRoundTriggeredBy:null,lastRoundTurnsLeft:-1,roundScores:{}});
+  broadcastToast('Manche '+gameState.round+' — Retournez 2 cartes !');
   broadcastState();
 }
-
-// --- PLAYER ACTIONS ---
-function performAction(action) {
-  if (isHost) {
-    handlePlayerAction(myPlayerId, action);
-  } else {
-    sendToHost({ type: 'action', playerId: myPlayerId, action });
-  }
-}
-function handlePlayerAction(playerId, action) {
-  if (!isHost || !gameState) return;
-  switch(gameState.phase) {
-    case 'reveal_initial': handleRevealInitial(playerId, action); break;
-    case 'playing': handlePlayingAction(playerId, action); break;
-  }
-}
-function handleRevealInitial(playerId, action) {
-  if (action.type !== 'reveal') return;
-  const { row, col } = action;
-  if (gameState.revealed[playerId][row][col]) return;
-  if (gameState.eliminated[playerId][col]) return;
-  if (gameState.initialReveals[playerId] >= 2) return;
-  gameState.revealed[playerId][row][col] = true;
-  gameState.initialReveals[playerId]++;
-  const allDone = gameState.players.every(p => gameState.initialReveals[p.id] >= 2);
-  if (allDone) {
-    let maxSum = -Infinity, startIdx = 0;
-    gameState.players.forEach((p, idx) => {
-      let sum = 0;
-      for (let r = 0; r < ROWS; r++) for (let c = 0; c < COLS; c++) {
-        if (gameState.revealed[p.id][r][c]) sum += gameState.hands[p.id][r][c];
-      }
-      if (sum > maxSum) { maxSum = sum; startIdx = idx; }
-    });
-    gameState.currentPlayerIndex = startIdx;
-    gameState.phase = 'playing';
-    gameState.turnPhase = 'draw';
-    broadcastToast(gameState.players[startIdx].name + ' commence !');
+function performAction(action){if(isHost)handlePlayerAction(myPlayerId,action);else sendAction(action);}
+function handlePlayerAction(pid,action){if(!isHost||!gameState)return;switch(gameState.phase){case 'reveal_initial':handleRevealInitial(pid,action);break;case 'playing':handlePlayingAction(pid,action);break;}}
+function handleRevealInitial(pid,action){
+  if(action.type!=='reveal')return;
+  const{row,col}=action;
+  if(gameState.revealed[pid][row][col]||gameState.eliminated[pid][col]||gameState.initialReveals[pid]>=2)return;
+  gameState.revealed[pid][row][col]=true;gameState.initialReveals[pid]++;
+  if(gameState.players.every(p=>gameState.initialReveals[p.id]>=2)){
+    let max=-Infinity,si=0;
+    gameState.players.forEach((p,i)=>{let s=0;for(let r=0;r<ROWS;r++)for(let c=0;c<COLS;c++)if(gameState.revealed[p.id][r][c])s+=gameState.hands[p.id][r][c];if(s>max){max=s;si=i;}});
+    gameState.currentPlayerIndex=si;gameState.phase='playing';gameState.turnPhase='draw';
+    broadcastToast(gameState.players[si].name+' commence !');
   }
   broadcastState();
 }
-function handlePlayingAction(playerId, action) {
-  const currentPlayer = gameState.players[gameState.currentPlayerIndex];
-  if (playerId !== currentPlayer.id) return;
-  switch(action.type) {
-    case 'draw_deck':
-      if (gameState.turnPhase !== 'draw') return;
-      if (gameState.deck.length === 0) reshuffleDeck();
-      gameState.drawnCard = gameState.deck.pop();
-      gameState.drawnFrom = 'deck';
-      gameState.drawnByPlayerId = playerId;
-      gameState.turnPhase = 'drawn_from_pile';
-      broadcastState();
-      break;
-    case 'draw_discard':
-      if (gameState.turnPhase !== 'draw') return;
-      if (gameState.discard.length === 0) return;
-      gameState.drawnCard = gameState.discard.pop();
-      gameState.drawnFrom = 'discard';
-      gameState.drawnByPlayerId = playerId;
-      gameState.turnPhase = 'place_mandatory';
-      broadcastState();
-      break;
-    case 'place_card': {
-      if (gameState.turnPhase !== 'drawn_from_pile' && gameState.turnPhase !== 'place_mandatory') return;
-      const { row, col } = action;
-      if (gameState.eliminated[playerId][col]) return;
-      const oldCard = gameState.hands[playerId][row][col];
-      gameState.hands[playerId][row][col] = gameState.drawnCard;
-      gameState.revealed[playerId][row][col] = true;
-      gameState.discard.push(oldCard);
-      gameState.drawnCard = null;
-      gameState.drawnByPlayerId = null;
-      checkColumnElimination(playerId);
-      endTurn();
-      break;
-    }
-    case 'discard_drawn':
-      if (gameState.turnPhase !== 'drawn_from_pile') return;
-      gameState.discard.push(gameState.drawnCard);
-      gameState.drawnCard = null;
-      gameState.drawnByPlayerId = null;
-      gameState.turnPhase = 'must_reveal';
-      broadcastState();
-      break;
-    case 'reveal_card': {
-      if (gameState.turnPhase !== 'must_reveal') return;
-      const rr = action.row, rc = action.col;
-      if (gameState.revealed[playerId][rr][rc]) return;
-      if (gameState.eliminated[playerId][rc]) return;
-      gameState.revealed[playerId][rr][rc] = true;
-      checkColumnElimination(playerId);
-      endTurn();
-      break;
-    }
+function handlePlayingAction(pid,action){
+  const cur=gameState.players[gameState.currentPlayerIndex];if(pid!==cur.id)return;
+  switch(action.type){
+    case 'draw_deck': if(gameState.turnPhase!=='draw')return;if(!gameState.deck.length)reshuffleDeck();gameState.drawnCard=gameState.deck.pop();gameState.drawnFrom='deck';gameState.drawnByPlayerId=pid;gameState.turnPhase='drawn_from_pile';broadcastState();break;
+    case 'draw_discard': if(gameState.turnPhase!=='draw'||!gameState.discard.length)return;gameState.drawnCard=gameState.discard.pop();gameState.drawnFrom='discard';gameState.drawnByPlayerId=pid;gameState.turnPhase='place_mandatory';broadcastState();break;
+    case 'place_card':{if(gameState.turnPhase!=='drawn_from_pile'&&gameState.turnPhase!=='place_mandatory')return;const{row,col}=action;if(gameState.eliminated[pid][col])return;const old=gameState.hands[pid][row][col];gameState.hands[pid][row][col]=gameState.drawnCard;gameState.revealed[pid][row][col]=true;gameState.discard.push(old);gameState.drawnCard=null;gameState.drawnByPlayerId=null;checkColElim(pid);endTurn();break;}
+    case 'discard_drawn': if(gameState.turnPhase!=='drawn_from_pile')return;gameState.discard.push(gameState.drawnCard);gameState.drawnCard=null;gameState.drawnByPlayerId=null;gameState.turnPhase='must_reveal';broadcastState();break;
+    case 'reveal_card':{if(gameState.turnPhase!=='must_reveal')return;const{row:rr,col:rc}=action;if(gameState.revealed[pid][rr][rc]||gameState.eliminated[pid][rc])return;gameState.revealed[pid][rr][rc]=true;checkColElim(pid);endTurn();break;}
   }
 }
-function checkColumnElimination(playerId) {
-  for (let c = 0; c < COLS; c++) {
-    if (gameState.eliminated[playerId][c]) continue;
-    let allRevealed = true, allSame = true, val = null;
-    for (let r = 0; r < ROWS; r++) {
-      if (!gameState.revealed[playerId][r][c]) { allRevealed = false; break; }
-      if (val === null) val = gameState.hands[playerId][r][c];
-      else if (gameState.hands[playerId][r][c] !== val) allSame = false;
-    }
-    if (allRevealed && allSame) {
-      gameState.eliminated[playerId][c] = true;
-      for (let r = 0; r < ROWS; r++) gameState.discard.push(gameState.hands[playerId][r][c]);
-      broadcastToast(getPlayerName(playerId) + ' élimine une colonne de ' + val + ' !');
-      broadcastBoom();
-    }
-  }
-}
-function reshuffleDeck() {
-  if (gameState.discard.length <= 1) return;
-  const top = gameState.discard.pop();
-  gameState.deck = shuffle(gameState.discard);
-  gameState.discard = [top];
-}
-function endTurn() {
-  const playerId = gameState.players[gameState.currentPlayerIndex].id;
-  if (gameState.lastRoundTriggeredBy === null && isAllRevealed(playerId)) {
-    gameState.lastRoundTriggeredBy = playerId;
-    gameState.lastRoundTurnsLeft = gameState.players.length - 1;
-    broadcastToast(getPlayerName(playerId) + ' a tout révélé ! Dernier tour !');
-  }
-  if (gameState.lastRoundTriggeredBy !== null) {
-    gameState.lastRoundTurnsLeft--;
-    if (gameState.lastRoundTurnsLeft <= 0) { endRound(); return; }
-  }
-  advancePlayer();
-  gameState.turnPhase = 'draw';
-  gameState.drawnCard = null;
-  gameState.drawnFrom = null;
-  gameState.drawnByPlayerId = null;
+function checkColElim(pid){for(let c=0;c<COLS;c++){if(gameState.eliminated[pid][c])continue;let aR=true,aS=true,val=null;for(let r=0;r<ROWS;r++){if(!gameState.revealed[pid][r][c]){aR=false;break;}if(val===null)val=gameState.hands[pid][r][c];else if(gameState.hands[pid][r][c]!==val)aS=false;}if(aR&&aS){gameState.eliminated[pid][c]=true;for(let r=0;r<ROWS;r++)gameState.discard.push(gameState.hands[pid][r][c]);broadcastToast(gpn(pid)+' élimine une colonne de '+val+' !');broadcastBoom();}}}
+function reshuffleDeck(){if(gameState.discard.length<=1)return;const t=gameState.discard.pop();gameState.deck=shuffle(gameState.discard);gameState.discard=[t];}
+function endTurn(){
+  const pid=gameState.players[gameState.currentPlayerIndex].id;
+  if(gameState.lastRoundTriggeredBy===null&&isAllRev(pid)){gameState.lastRoundTriggeredBy=pid;gameState.lastRoundTurnsLeft=gameState.players.length-1;broadcastToast(gpn(pid)+' a tout révélé ! Dernier tour !');}
+  if(gameState.lastRoundTriggeredBy!==null){gameState.lastRoundTurnsLeft--;if(gameState.lastRoundTurnsLeft<=0){endRound();return;}}
+  gameState.currentPlayerIndex=(gameState.currentPlayerIndex+1)%gameState.players.length;
+  gameState.turnPhase='draw';gameState.drawnCard=null;gameState.drawnFrom=null;gameState.drawnByPlayerId=null;
   broadcastState();
 }
-function advancePlayer() {
-  gameState.currentPlayerIndex = (gameState.currentPlayerIndex + 1) % gameState.players.length;
-}
-function isAllRevealed(playerId) {
-  for (let r = 0; r < ROWS; r++) for (let c = 0; c < COLS; c++) {
-    if (gameState.eliminated[playerId][c]) continue;
-    if (!gameState.revealed[playerId][r][c]) return false;
-  }
-  return true;
-}
-function getPlayerName(id) {
-  const p = gameState.players.find(pl => pl.id === id);
-  return p ? p.name : '?';
-}
-
-// --- END ROUND ---
-function endRound() {
-  gameState.players.forEach(p => {
-    for (let r = 0; r < ROWS; r++) for (let c = 0; c < COLS; c++) gameState.revealed[p.id][r][c] = true;
-  });
-  const scores = {};
-  gameState.players.forEach(p => {
-    let sum = 0;
-    for (let r = 0; r < ROWS; r++) for (let c = 0; c < COLS; c++) {
-      if (!gameState.eliminated[p.id][c]) sum += gameState.hands[p.id][r][c];
-    }
-    scores[p.id] = sum;
-  });
-  const trigId = gameState.lastRoundTriggeredBy;
-  if (trigId) {
-    const trigScore = scores[trigId];
-    const minOther = Math.min(...gameState.players.filter(p => p.id !== trigId).map(p => scores[p.id]));
-    if (trigScore >= minOther) {
-      scores[trigId] *= 2;
-      broadcastToast(getPlayerName(trigId) + ' n\'a pas le score le plus bas ! Score doublé !');
-    }
-  }
-  gameState.roundScores = scores;
-  gameState.players.forEach(p => { gameState.totalScores[p.id] = (gameState.totalScores[p.id] || 0) + scores[p.id]; });
-  const gameOver = gameState.players.some(p => gameState.totalScores[p.id] >= END_SCORE);
-  gameState.phase = gameOver ? 'game_over_reveal' : 'round_reveal';
-  gameState.drawnCard = null;
-  gameState.drawnByPlayerId = null;
+function isAllRev(pid){for(let r=0;r<ROWS;r++)for(let c=0;c<COLS;c++){if(gameState.eliminated[pid][c])continue;if(!gameState.revealed[pid][r][c])return false;}return true;}
+function gpn(id){const p=gameState.players.find(x=>x.id===id);return p?p.name:'?';}
+function endRound(){
+  gameState.players.forEach(p=>{for(let r=0;r<ROWS;r++)for(let c=0;c<COLS;c++)gameState.revealed[p.id][r][c]=true;});
+  const scores={};
+  gameState.players.forEach(p=>{let s=0;for(let r=0;r<ROWS;r++)for(let c=0;c<COLS;c++)if(!gameState.eliminated[p.id][c])s+=gameState.hands[p.id][r][c];scores[p.id]=s;});
+  const tid=gameState.lastRoundTriggeredBy;
+  if(tid){const mo=Math.min(...gameState.players.filter(p=>p.id!==tid).map(p=>scores[p.id]));if(scores[tid]>=mo){scores[tid]*=2;broadcastToast(gpn(tid)+' n\'a pas le score le plus bas ! Score doublé !');}}
+  gameState.roundScores=scores;
+  gameState.players.forEach(p=>{gameState.totalScores[p.id]=(gameState.totalScores[p.id]||0)+scores[p.id];});
+  gameState.phase=gameState.players.some(p=>gameState.totalScores[p.id]>=END_SCORE)?'game_over_reveal':'round_reveal';
+  gameState.drawnCard=null;gameState.drawnByPlayerId=null;
   broadcastState();
 }
-function nextRound() {
-  if (!isHost) return;
-  initRound();
-}
+function nextRound(){if(isHost)initRound();}
 
-// --- RENDER ---
-function renderFromState() {
-  if (!gameState) return;
-  switch(gameState.phase) {
-    case 'lobby':
-      showScreen('screen-lobby');
-      document.getElementById('lobby-code').textContent = roomCode;
-      renderLobby();
-      break;
-    case 'reveal_initial':
-    case 'playing':
-      showScreen('screen-game');
-      renderGame();
-      break;
-    case 'round_reveal':
-      showScreen('screen-round-reveal');
-      renderRoundReveal(false);
-      break;
-    case 'game_over_reveal':
-      showScreen('screen-round-reveal');
-      renderRoundReveal(true);
-      break;
-    case 'round_end':
-      showScreen('screen-round-scores');
-      renderRoundScores();
-      break;
-    case 'game_over':
-      showScreen('screen-final-scores');
-      renderFinalScores();
-      break;
+// ─── Render ───────────────────────────────────────────────────
+function renderFromState(){
+  if(!gameState)return;
+  const S={lobby:'screen-lobby',reveal_initial:'screen-game',playing:'screen-game',round_reveal:'screen-round-reveal',game_over_reveal:'screen-round-reveal',round_end:'screen-round-scores',game_over:'screen-final-scores'};
+  showScreen(S[gameState.phase]||'screen-menu');
+  switch(gameState.phase){
+    case 'lobby': document.getElementById('lobby-code').textContent=roomCode;renderLobby();break;
+    case 'reveal_initial':case 'playing': renderGame();break;
+    case 'round_reveal':case 'game_over_reveal': renderRoundReveal(gameState.phase==='game_over_reveal');break;
+    case 'round_end': renderRoundScores();break;
+    case 'game_over': renderFinalScores();break;
   }
 }
-
-function renderRoundReveal(isGameOver) {
-  document.getElementById('reveal-subtitle').textContent = isGameOver ? 'Partie terminée ! Voici les grilles finales :' : 'Manche ' + gameState.round + ' terminée !';
-  const summary = document.getElementById('reveal-summary');
-  const sorted = [...gameState.players].sort((a,b) => (gameState.roundScores[a.id]||0) - (gameState.roundScores[b.id]||0));
-  const bestScore = gameState.roundScores[sorted[0].id] || 0;
-  let html = '';
-  sorted.forEach(p => {
-    const rs = gameState.roundScores[p.id] || 0;
-    const isBest = rs === bestScore;
-    const isTriggerer = p.id === gameState.lastRoundTriggeredBy;
-    html += `<div class="player-result ${isBest?'best':''}"><div><strong>${p.name}</strong>${isTriggerer?' 🔔':''}${p.id===myPlayerId?' (vous)':''}<div style="display:flex;gap:2px;margin-top:4px">`;
-    for (let r = 0; r < ROWS; r++) for (let c = 0; c < COLS; c++) {
-      if (gameState.eliminated[p.id][c]) html += '<div style="width:20px;height:28px;opacity:0"></div>';
-      else { const val = gameState.hands[p.id][r][c]; html += `<div class="card ${getCardClass(val)}" style="width:20px;height:28px;font-size:.55em;border:1px solid rgba(255,255,255,.1);border-radius:3px;cursor:default">${val}</div>`; }
-    }
-    html += `</div></div><span class="score-val">${rs>0?'+':''}${rs} pts</span></div>`;
-  });
-  summary.innerHTML = html;
+function renderRoundReveal(isGO){
+  document.getElementById('reveal-subtitle').textContent=isGO?'Partie terminée !':'Manche '+gameState.round+' terminée !';
+  const sorted=[...gameState.players].sort((a,b)=>(gameState.roundScores[a.id]||0)-(gameState.roundScores[b.id]||0));
+  const best=gameState.roundScores[sorted[0].id]||0;
+  document.getElementById('reveal-summary').innerHTML=sorted.map(p=>{
+    const rs=gameState.roundScores[p.id]||0;let cards='';
+    for(let r=0;r<ROWS;r++)for(let c=0;c<COLS;c++){if(gameState.eliminated[p.id][c])cards+='<div style="width:20px;height:28px;opacity:0"></div>';else{const v=gameState.hands[p.id][r][c];cards+=`<div class="card ${gcc(v)}" style="width:20px;height:28px;font-size:.55em;border-radius:3px;cursor:default">${v}</div>`;}}
+    return `<div class="player-result ${rs===best?'best':''}"><div><strong>${p.name}</strong>${p.id===gameState.lastRoundTriggeredBy?' 🔔':''}${p.id===myPlayerId?' (vous)':''}<div style="display:flex;gap:2px;margin-top:4px">${cards}</div></div><span class="score-val">${rs>0?'+':''}${rs} pts</span></div>`;
+  }).join('');
 }
-
-function showRoundScoreTable() {
-  if (!gameState) return;
-  if (gameState.phase === 'game_over_reveal') {
-    const sorted = [...gameState.players].sort((a,b) => (gameState.totalScores[a.id]||0) - (gameState.totalScores[b.id]||0));
-    gameState.players.forEach(p => updateLeaderboard(p.name, p.id === sorted[0].id));
-    gameState.phase = 'game_over';
-    if (isHost) broadcastState(); else renderFromState();
-  } else {
-    gameState.phase = 'round_end';
-    if (isHost) broadcastState(); else renderFromState();
+function showRoundScoreTable(){
+  if(!gameState)return;
+  if(gameState.phase==='game_over_reveal'){const s=[...gameState.players].sort((a,b)=>(gameState.totalScores[a.id]||0)-(gameState.totalScores[b.id]||0));gameState.players.forEach(p=>updateLeaderboard(p.name,p.id===s[0].id));gameState.phase='game_over';}
+  else gameState.phase='round_end';
+  if(isHost)broadcastState();else renderFromState();
+}
+function renderGame(){
+  const isMT=gameState.phase==='playing'&&gameState.players[gameState.currentPlayerIndex]?.id===myPlayerId;
+  document.getElementById('round-info').textContent='Manche '+gameState.round;
+  const st=document.getElementById('game-status');
+  if(gameState.phase==='reveal_initial'){const rv=gameState.initialReveals[myPlayerId]||0;st.textContent=rv<2?'Retournez '+(2-rv)+' carte(s)':'En attente des autres...';}
+  else if(gameState.phase==='playing'){
+    const cp=gameState.players[gameState.currentPlayerIndex];
+    if(isMT){const M={draw:'Piochez une carte',drawn_from_pile:'📌 Placez le '+gameState.drawnCard+' OU défaussez',place_mandatory:'📌 Vous DEVEZ placer le '+gameState.drawnCard,must_reveal:'👆 Retournez une carte'};st.textContent=M[gameState.turnPhase]||'À vous';}
+    else{const extra={drawn_from_pile:' — a pioché '+gameState.drawnCard,place_mandatory:' — doit placer '+gameState.drawnCard,must_reveal:' — doit retourner une carte'};st.textContent='Tour de '+cp.name+(gameState.drawnCard!==null?extra[gameState.turnPhase]||'':'');}
+    if(gameState.lastRoundTriggeredBy)st.textContent+=' 🔔 Dernier tour !';
   }
+  const dt=gameState.discard?.length?gameState.discard[gameState.discard.length-1]:null,dc=gameState.deck?.length||0;
+  let ph=`<div class="pile"><div class="pile-label">Pioche (${dc})</div><div class="card face-down" onclick="clickDeck()"></div></div>`;
+  ph+=`<div class="pile"><div class="pile-label">Défausse</div>${dt!==null?`<div class="card ${gcc(dt)}" onclick="clickDiscard()">${dt}</div>`:'<div class="card face-down" style="opacity:.3"></div>'}</div>`;
+  if(gameState.drawnCard!==null&&gameState.drawnByPlayerId){const bm=gameState.drawnByPlayerId===myPlayerId;ph+=`<div class="pile"><div class="pile-label">${bm?'En main':gpn(gameState.drawnByPlayerId)}</div>`;if(isMT&&gameState.turnPhase==='drawn_from_pile')ph+=`<div class="card ${gcc(gameState.drawnCard)} highlight" onclick="discardDrawn()">${gameState.drawnCard}</div><div style="font-size:.65em;color:#e74c3c;margin-top:2px">Tap=défausser</div>`;else ph+=`<div class="card ${gcc(gameState.drawnCard)} highlight">${gameState.drawnCard}</div>${isMT&&gameState.turnPhase==='place_mandatory'?'<div style="font-size:.65em;color:#f1c40f;margin-top:2px">Placez sur grille</div>':''}`;ph+='</div>';}
+  document.getElementById('piles-area').innerHTML=ph;
+  const ordered=[...gameState.players].sort((a,b)=>a.id===myPlayerId?-1:b.id===myPlayerId?1:0);
+  document.getElementById('players-area').innerHTML=ordered.map(p=>{
+    const isMe=p.id===myPlayerId,isCur=gameState.phase==='playing'&&gameState.players[gameState.currentPlayerIndex]?.id===p.id;
+    const vis=cvs(p.id),tot=gameState.totalScores[p.id]||0;let cards='';
+    for(let r=0;r<ROWS;r++){cards+='<div class="card-row">';for(let c=0;c<COLS;c++){if(gameState.eliminated[p.id][c])cards+='<div class="card eliminated"></div>';else if(gameState.revealed[p.id][r][c]){const v=gameState.hands[p.id][r][c];cards+=`<div class="card ${gcc(v)}">${v}</div>`;}else{const sel=ics(p.id,r,c);cards+=`<div class="card face-down ${sel?'selectable':''}" onclick="clickCard('${p.id}',${r},${c})"></div>`;}}cards+='</div>';}
+    return `<div class="player-zone ${isCur?'current-turn':''} ${isMe?'is-me':''}"><div class="player-header"><span class="player-name">${p.name}${isMe?' (vous)':''}</span><span>${isCur?'<span class="turn-indicator">▶ </span>':''}<span class="player-score">Visible:${vis} | Total:${tot}</span></span></div><div class="card-container">${cards}</div></div>`;
+  }).join('');
+  const ab=document.getElementById('action-bar');
+  if(isMT&&gameState.turnPhase==='drawn_from_pile'){ab.style.display='';ab.innerHTML=`<button class="danger" onclick="discardDrawn()">🗑️ Défausser le ${gameState.drawnCard}</button>`;}
+  else if(isMT&&gameState.turnPhase==='must_reveal'){ab.style.display='';ab.innerHTML='<div style="color:#f1c40f;font-weight:600;padding:8px">👆 Cliquez sur une carte face cachée</div>';}
+  else{ab.style.display='none';ab.innerHTML='';}
 }
+function ics(pid,r,c){if(gameState.eliminated[pid][c])return false;const isMe=pid===myPlayerId;if(gameState.phase==='reveal_initial')return isMe&&!gameState.revealed[pid][r][c]&&(gameState.initialReveals[pid]||0)<2;if(gameState.phase==='playing'){const isMT=gameState.players[gameState.currentPlayerIndex]?.id===myPlayerId;if(!isMe||!isMT)return false;if(gameState.turnPhase==='must_reveal')return!gameState.revealed[pid][r][c];if(gameState.turnPhase==='drawn_from_pile'||gameState.turnPhase==='place_mandatory')return true;}return false;}
+function gcc(v){if(v<=-2)return 'val-neg2';if(v===-1)return 'val-neg1';if(v===0)return 'val-0';return 'val-'+v;}
+function cvs(pid){let s=0;for(let r=0;r<ROWS;r++)for(let c=0;c<COLS;c++){if(gameState.eliminated[pid][c])continue;if(gameState.revealed[pid][r][c])s+=gameState.hands[pid][r][c];}return s;}
 
-function renderGame() {
-  const pilesArea = document.getElementById('piles-area');
-  const playersArea = document.getElementById('players-area');
-  const actionBar = document.getElementById('action-bar');
-  const statusEl = document.getElementById('game-status');
-  const roundEl = document.getElementById('round-info');
-  roundEl.textContent = 'Manche ' + gameState.round;
-  const isMyTurn = gameState.phase === 'playing' && gameState.players[gameState.currentPlayerIndex]?.id === myPlayerId;
+function clickDeck(){const isMT=gameState.phase==='playing'&&gameState.players[gameState.currentPlayerIndex]?.id===myPlayerId;if(!isMT||gameState.turnPhase!=='draw')return;performAction({type:'draw_deck'});}
+function clickDiscard(){const isMT=gameState.phase==='playing'&&gameState.players[gameState.currentPlayerIndex]?.id===myPlayerId;if(!isMT||gameState.turnPhase!=='draw')return;performAction({type:'draw_discard'});}
+function clickCard(pid,row,col){if(gameState.phase==='reveal_initial'){if(pid!==myPlayerId)return;performAction({type:'reveal',row,col});return;}if(gameState.phase==='playing'){const isMT=gameState.players[gameState.currentPlayerIndex]?.id===myPlayerId;if(!isMT||pid!==myPlayerId)return;if(gameState.turnPhase==='must_reveal'){if(!gameState.revealed[pid][row][col])performAction({type:'reveal_card',row,col});return;}if(gameState.turnPhase==='drawn_from_pile'||gameState.turnPhase==='place_mandatory'){if(!gameState.eliminated[pid][col])performAction({type:'place_card',row,col});return;}}}
+function discardDrawn(){performAction({type:'discard_drawn'});}
 
-  if (gameState.phase === 'reveal_initial') {
-    const myReveals = gameState.initialReveals[myPlayerId] || 0;
-    statusEl.textContent = myReveals < 2 ? 'Retournez ' + (2-myReveals) + ' carte(s)' : 'En attente des autres joueurs...';
-  } else if (gameState.phase === 'playing') {
-    const cp = gameState.players[gameState.currentPlayerIndex];
-    if (isMyTurn) {
-      switch(gameState.turnPhase) {
-        case 'draw': statusEl.textContent = 'Piochez une carte'; break;
-        case 'drawn_from_pile': statusEl.textContent = '📌 Placez le ' + gameState.drawnCard + ' OU défaussez-le'; break;
-        case 'place_mandatory': statusEl.textContent = '📌 Vous DEVEZ placer le ' + gameState.drawnCard; break;
-        case 'must_reveal': statusEl.textContent = '👆 Retournez une carte face cachée'; break;
-        default: statusEl.textContent = 'À vous de jouer';
-      }
-    } else {
-      statusEl.textContent = 'Tour de ' + cp.name;
-      if (gameState.drawnCard !== null && gameState.drawnByPlayerId) {
-        if (gameState.turnPhase === 'drawn_from_pile') statusEl.textContent += ' — a pioché un ' + gameState.drawnCard;
-        else if (gameState.turnPhase === 'place_mandatory') statusEl.textContent += ' — doit placer le ' + gameState.drawnCard;
-        else if (gameState.turnPhase === 'must_reveal') statusEl.textContent += ' — doit retourner une carte';
-      }
-    }
-    if (gameState.lastRoundTriggeredBy) statusEl.textContent += ' 🔔 Dernier tour !';
-  }
-
-  const discardTop = gameState.discard.length > 0 ? gameState.discard[gameState.discard.length-1] : null;
-  const deckCount = gameState.deck ? gameState.deck.length : 0;
-  let pilesHtml = `<div class="pile"><div class="pile-label">Pioche (${deckCount})</div><div class="card face-down" id="pile-deck" onclick="clickDeck()"></div></div>`;
-  pilesHtml += '<div class="pile"><div class="pile-label">Défausse</div>';
-  if (discardTop !== null) pilesHtml += `<div class="card ${getCardClass(discardTop)}" id="pile-discard" onclick="clickDiscard()">${discardTop}</div>`;
-  else pilesHtml += '<div class="card face-down" style="opacity:.3"></div>';
-  pilesHtml += '</div>';
-  if (gameState.drawnCard !== null && gameState.drawnByPlayerId) {
-    const isDrawnByMe = gameState.drawnByPlayerId === myPlayerId;
-    pilesHtml += `<div class="pile"><div class="pile-label">${isDrawnByMe ? 'En main' : getPlayerName(gameState.drawnByPlayerId)}</div>`;
-    if (isMyTurn && gameState.turnPhase === 'drawn_from_pile') pilesHtml += `<div class="card ${getCardClass(gameState.drawnCard)} highlight" onclick="discardDrawn()" title="Cliquer pour défausser">${gameState.drawnCard}</div><div style="font-size:.65em;color:#e74c3c;margin-top:2px">Tap = défausser</div>`;
-    else if (isMyTurn && gameState.turnPhase === 'place_mandatory') pilesHtml += `<div class="card ${getCardClass(gameState.drawnCard)} highlight">${gameState.drawnCard}</div><div style="font-size:.65em;color:#f1c40f;margin-top:2px">Placez sur votre grille</div>`;
-    else pilesHtml += `<div class="card ${getCardClass(gameState.drawnCard)} highlight">${gameState.drawnCard}</div>`;
-    pilesHtml += '</div>';
-  }
-  pilesArea.innerHTML = pilesHtml;
-
-  const orderedPlayers = [...gameState.players].sort((a,b) => a.id===myPlayerId?-1:b.id===myPlayerId?1:0);
-  let playersHtml = '';
-  orderedPlayers.forEach(p => {
-    const isMe = p.id === myPlayerId;
-    const isCurrent = gameState.phase === 'playing' && gameState.players[gameState.currentPlayerIndex]?.id === p.id;
-    const visibleScore = calcVisibleScore(p.id);
-    const totalScore = gameState.totalScores[p.id] || 0;
-    playersHtml += `<div class="player-zone ${isCurrent?'current-turn':''} ${isMe?'is-me':''}">`;
-    playersHtml += `<div class="player-header"><span class="player-name">${p.name}${isMe?' (vous)':''}</span><span>${isCurrent?'<span class="turn-indicator">▶ </span>':''}<span class="player-score">Visible: ${visibleScore} | Total: ${totalScore}</span></span></div>`;
-    playersHtml += '<div class="card-container">';
-    for (let r = 0; r < ROWS; r++) {
-      playersHtml += '<div class="card-row">';
-      for (let c = 0; c < COLS; c++) {
-        if (gameState.eliminated[p.id][c]) playersHtml += '<div class="card eliminated"></div>';
-        else if (gameState.revealed[p.id][r][c]) { const val = gameState.hands[p.id][r][c]; playersHtml += `<div class="card ${getCardClass(val)}">${val}</div>`; }
-        else { const sel = isCardSelectable(p.id,r,c); playersHtml += `<div class="card face-down ${sel?'selectable':''}" onclick="clickCard('${p.id}',${r},${c})"></div>`; }
-      }
-      playersHtml += '</div>';
-    }
-    playersHtml += '</div></div>';
-  });
-  playersArea.innerHTML = playersHtml;
-
-  if (isMyTurn && (gameState.turnPhase === 'drawn_from_pile' || gameState.turnPhase === 'place_mandatory')) {
-    playersArea.querySelectorAll('.player-zone.is-me .card:not(.eliminated)').forEach(cardEl => {
-      if (!cardEl.classList.contains('face-down')) {
-        const row = cardEl.closest('.card-row');
-        const container = cardEl.closest('.card-container');
-        if (row && container) {
-          const rows = Array.from(container.children);
-          const r = rows.indexOf(row);
-          const cols = Array.from(row.children);
-          const c = cols.indexOf(cardEl);
-          if (r >= 0 && c >= 0 && !gameState.eliminated[myPlayerId][c]) {
-            cardEl.style.cursor = 'pointer';
-            cardEl.classList.add('selectable');
-            cardEl.onclick = () => clickCard(myPlayerId, r, c);
-          }
-        }
-      }
-    });
-  }
-
-  if (isMyTurn && gameState.turnPhase === 'drawn_from_pile') {
-    actionBar.style.display = '';
-    actionBar.innerHTML = `<button class="danger" onclick="discardDrawn()" style="font-size:1em;padding:14px 28px">🗑️ Défausser le ${gameState.drawnCard} et retourner une carte</button>`;
-  } else if (isMyTurn && gameState.turnPhase === 'must_reveal') {
-    actionBar.style.display = '';
-    actionBar.innerHTML = '<div style="color:#f1c40f;font-weight:600;padding:8px">👆 Cliquez sur une carte face cachée pour la retourner</div>';
-  } else {
-    actionBar.style.display = 'none';
-    actionBar.innerHTML = '';
-  }
+function renderRoundScores(){
+  const sorted=[...gameState.players].sort((a,b)=>(gameState.totalScores[a.id]||0)-(gameState.totalScores[b.id]||0));
+  let h='<thead><tr><th>Joueur</th><th>Manche</th><th>Total</th></tr></thead><tbody>';
+  sorted.forEach((p,i)=>{const rs=gameState.roundScores[p.id]||0,ts=gameState.totalScores[p.id]||0;h+=`<tr${i===0?' class="winner"':''}><td>${i===0?'<span class="winner-name">':''}${p.name}${p.id===gameState.lastRoundTriggeredBy?' 🔔':''}${p.id===myPlayerId?' (vous)':''}${i===0?'</span>':''}</td><td>${rs>0?'+':''}${rs}</td><td class="total">${ts}</td></tr>`;});
+  document.getElementById('round-scores-table').innerHTML=h+'</tbody>';
+  document.getElementById('next-round-btn').style.display=isHost?'':'none';
 }
-
-function isCardSelectable(playerId, row, col) {
-  if (gameState.eliminated[playerId][col]) return false;
-  const isMe = playerId === myPlayerId;
-  if (gameState.phase === 'reveal_initial') return isMe && !gameState.revealed[playerId][row][col] && (gameState.initialReveals[playerId]||0) < 2;
-  if (gameState.phase === 'playing') {
-    const isMyTurn = gameState.players[gameState.currentPlayerIndex]?.id === myPlayerId;
-    if (!isMe || !isMyTurn) return false;
-    if (gameState.turnPhase === 'must_reveal') return !gameState.revealed[playerId][row][col];
-    if (gameState.turnPhase === 'drawn_from_pile' || gameState.turnPhase === 'place_mandatory') return true;
-  }
-  return false;
-}
-function getCardClass(val) {
-  if (val <= -2) return 'val-neg2';
-  if (val === -1) return 'val-neg1';
-  if (val === 0) return 'val-0';
-  return 'val-' + val;
-}
-function calcVisibleScore(playerId) {
-  let sum = 0;
-  for (let r = 0; r < ROWS; r++) for (let c = 0; c < COLS; c++) {
-    if (gameState.eliminated[playerId][c]) continue;
-    if (gameState.revealed[playerId][r][c]) sum += gameState.hands[playerId][r][c];
-  }
-  return sum;
-}
-
-// --- CLICK HANDLERS ---
-function clickDeck() {
-  const isMyTurn = gameState.phase === 'playing' && gameState.players[gameState.currentPlayerIndex]?.id === myPlayerId;
-  if (!isMyTurn || gameState.turnPhase !== 'draw') return;
-  performAction({ type: 'draw_deck' });
-}
-function clickDiscard() {
-  const isMyTurn = gameState.phase === 'playing' && gameState.players[gameState.currentPlayerIndex]?.id === myPlayerId;
-  if (!isMyTurn || gameState.turnPhase !== 'draw') return;
-  performAction({ type: 'draw_discard' });
-}
-function clickCard(playerId, row, col) {
-  if (gameState.phase === 'reveal_initial') {
-    if (playerId !== myPlayerId) return;
-    performAction({ type: 'reveal', row, col });
-    return;
-  }
-  if (gameState.phase === 'playing') {
-    const isMyTurn = gameState.players[gameState.currentPlayerIndex]?.id === myPlayerId;
-    if (!isMyTurn || playerId !== myPlayerId) return;
-    if (gameState.turnPhase === 'must_reveal') { if (!gameState.revealed[playerId][row][col]) performAction({ type: 'reveal_card', row, col }); return; }
-    if (gameState.turnPhase === 'drawn_from_pile' || gameState.turnPhase === 'place_mandatory') { if (!gameState.eliminated[playerId][col]) performAction({ type: 'place_card', row, col }); return; }
-  }
-}
-function discardDrawn() { performAction({ type: 'discard_drawn' }); }
-
-// --- SCORES ---
-function renderRoundScores() {
-  const table = document.getElementById('round-scores-table');
-  let html = '<thead><tr><th>Joueur</th><th>Manche</th><th>Total</th></tr></thead><tbody>';
-  const sorted = [...gameState.players].sort((a,b) => (gameState.totalScores[a.id]||0) - (gameState.totalScores[b.id]||0));
-  sorted.forEach((p,i) => {
-    const rs = gameState.roundScores[p.id]||0, ts = gameState.totalScores[p.id]||0;
-    const isTriggerer = p.id === gameState.lastRoundTriggeredBy;
-    html += `<tr${i===0?' class="winner"':''}><td>${i===0?'<span class="winner-name">':''}${p.name}${isTriggerer?' 🔔':''}${p.id===myPlayerId?' (vous)':''}${i===0?'</span>':''}</td><td>${rs>0?'+':''}${rs}</td><td class="total">${ts}</td></tr>`;
-  });
-  html += '</tbody>';
-  table.innerHTML = html;
-  document.getElementById('next-round-btn').style.display = isHost ? '' : 'none';
-}
-function renderFinalScores() {
-  const table = document.getElementById('final-scores-table');
-  let html = '<thead><tr><th>🏆</th><th>Joueur</th><th>Score</th></tr></thead><tbody>';
-  const sorted = [...gameState.players].sort((a,b) => (gameState.totalScores[a.id]||0) - (gameState.totalScores[b.id]||0));
-  const winner = sorted[0];
-  document.getElementById('final-winner-banner').innerHTML = `<div class="winner-name" style="font-size:1.8em">🎉 ${winner.name} remporte la partie ! 🎉</div>`;
-  sorted.forEach((p,i) => {
-    const ts = gameState.totalScores[p.id]||0;
-    const medal = i===0?'🥇':i===1?'🥈':i===2?'🥉':(i+1);
-    html += `<tr${i===0?' class="winner"':''}><td>${medal}</td><td>${i===0?'<span class="winner-name">':''}${p.name}${p.id===myPlayerId?' (vous)':''}${i===0?'</span>':''}</td><td class="total">${ts}</td></tr>`;
-  });
-  html += '</tbody>';
-  table.innerHTML = html;
+function renderFinalScores(){
+  const sorted=[...gameState.players].sort((a,b)=>(gameState.totalScores[a.id]||0)-(gameState.totalScores[b.id]||0));
+  document.getElementById('final-winner-banner').innerHTML=`<div class="winner-name" style="font-size:1.8em">🎉 ${sorted[0].name} remporte la partie ! 🎉</div>`;
+  let h='<thead><tr><th>🏆</th><th>Joueur</th><th>Score</th></tr></thead><tbody>';
+  sorted.forEach((p,i)=>{h+=`<tr${i===0?' class="winner"':''}><td>${['🥇','🥈','🥉'][i]||i+1}</td><td>${i===0?'<span class="winner-name">':''}${p.name}${p.id===myPlayerId?' (vous)':''}${i===0?'</span>':''}</td><td class="total">${gameState.totalScores[p.id]||0}</td></tr>`;});
+  document.getElementById('final-scores-table').innerHTML=h+'</tbody>';
   renderLeaderboard('final-leaderboard');
 }
 
-// --- RULES MODAL ---
-function showRules() {
-  showModal('Règles Skyjo', `
-    <div style="text-align:left;font-size:.85em;max-height:60vh;overflow-y:auto;line-height:1.6">
-    <b>But :</b> Avoir le score le plus bas à la fin de la partie.<br><br>
-    <b>Début :</b> Chaque joueur retourne 2 cartes. Le joueur avec la plus haute somme commence.<br><br>
-    <b>Tour :</b><br>
-    • Piochez depuis la <b>pioche</b> ou la <b>défausse</b><br>
-    • Si pioche : placez la carte sur votre grille OU défaussez-la et retournez une carte face cachée<br>
-    • Si défausse : vous DEVEZ placer la carte sur votre grille<br><br>
-    <b>Colonnes :</b> 3 cartes identiques dans une colonne → éliminées !<br><br>
-    <b>Fin de manche :</b> Quand un joueur a toutes ses cartes visibles, chaque autre joueur joue un dernier tour.<br><br>
-    <b>Score doublé :</b> Si le joueur qui termine n'a pas le score le plus bas, son score est doublé !<br><br>
-    <b>Fin de partie :</b> Quand un joueur atteint 100 points. Le joueur avec le score le plus bas gagne !
-    </div>
-  `, [{ text: 'Compris !', action: 'closeModal()' }]);
-}
-function showModal(title, text, buttons) {
-  document.getElementById('modal-title').textContent = title;
-  document.getElementById('modal-text').innerHTML = text;
-  const btnContainer = document.getElementById('modal-buttons');
-  btnContainer.innerHTML = buttons.map(b => `<button onclick="${b.action}">${b.text}</button>`).join('');
-  document.getElementById('modal').classList.add('active');
-}
-function closeModal() { document.getElementById('modal').classList.remove('active'); }
+function showRules(){showModal('Règles Skyjo',`<div style="text-align:left;font-size:.85em;max-height:60vh;overflow-y:auto;line-height:1.6"><b>But :</b> Avoir le score le plus bas.<br><br><b>Début :</b> Retournez 2 cartes. Celui avec la plus haute somme commence.<br><br><b>Tour :</b><br>• Pioche : placez OU défaussez et retournez une carte<br>• Défausse : vous DEVEZ placer la carte<br><br><b>Colonnes identiques :</b> éliminées !<br><br><b>Score doublé</b> si le déclencheur n'a pas le score le plus bas.<br><br><b>Fin :</b> Quand un joueur atteint 100 points.</div>`,[{text:'Compris !',action:'closeModal()'}]);}
+function showModal(title,text,buttons){document.getElementById('modal-title').textContent=title;document.getElementById('modal-text').innerHTML=text;document.getElementById('modal-buttons').innerHTML=buttons.map(b=>`<button onclick="${b.action}">${b.text}</button>`).join('');document.getElementById('modal').classList.add('active');}
+function closeModal(){document.getElementById('modal').classList.remove('active');}
+function toast(msg){const el=document.getElementById('toast');el.textContent=msg;el.classList.add('show');setTimeout(()=>el.classList.remove('show'),2500);}
 
-// --- TOAST ---
-function toast(msg) {
-  const el = document.getElementById('toast');
-  el.textContent = msg;
-  el.classList.add('show');
-  setTimeout(() => el.classList.remove('show'), 2500);
-}
+Object.assign(window,{createGame,joinGame,showJoinScreen,showScreen,leaveLobby,backToMenu,startGame,nextRound,clickDeck,clickDiscard,clickCard,discardDrawn,toggleFullscreen,closeFsTip,showRules,showModal,closeModal,copyCode,showRoundScoreTable,cancelConnect,retryConnect});
 
-// --- EXPOSE FUNCTIONS TO HTML onclick ---
-// Nécessaire car on est en type="module"
-Object.assign(window, {
-  createGame, joinGame, showJoinScreen, showScreen,
-  leaveLobby, backToMenu, startGame, nextRound,
-  clickDeck, clickDiscard, clickCard, discardDrawn,
-  toggleFullscreen, closeFsTip,
-  showRules, showModal, closeModal,
-  copyCode, showRoundScoreTable,
-  cancelConnect, retryConnect,
-});
-
-// --- URL PARAMS (auto-join) ---
-window.addEventListener('load', () => {
-  const params = new URLSearchParams(window.location.search);
-  const room = params.get('room');
-  if (room) {
-    document.getElementById('room-input').value = room;
-    showJoinScreen();
-  }
+window.addEventListener('load',()=>{
+  const room=new URLSearchParams(window.location.search).get('room');
+  if(room){document.getElementById('room-input').value=room;showJoinScreen();}
   renderLeaderboard('menu-leaderboard');
 });
 </script>
