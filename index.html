@@ -34,19 +34,26 @@ input::placeholder{color:#666}
 /* --- Cards --- */
 .card{width:52px;height:72px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:1.2em;font-weight:700;cursor:pointer;transition:all .2s;position:relative;border:2px solid rgba(255,255,255,.1)}
 .card:active{transform:scale(.95)}
-.card.face-down{background-image:url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 52 72'><defs><linearGradient id='bg' x1='0%' y1='0%' x2='100%' y2='100%'><stop offset='0%' style='stop-color:%231a237e'/><stop offset='100%' style='stop-color:%230d1642'/></linearGradient><pattern id='d' x='0' y='0' width='10' height='10' patternUnits='userSpaceOnUse'><polygon points='5,1 9,5 5,9 1,5' fill='none' stroke='rgba(255,255,255,0.08)' stroke-width='0.6'/></pattern><linearGradient id='br' x1='0%' y1='0%' x2='100%' y2='100%'><stop offset='0%' style='stop-color:%235c6bc0'/><stop offset='100%' style='stop-color:%233949ab'/></linearGradient></defs><rect width='52' height='72' rx='6' ry='6' fill='url(%23bg)'/><rect width='52' height='72' rx='6' ry='6' fill='url(%23d)'/><rect x='3' y='3' width='46' height='66' rx='4' ry='4' fill='none' stroke='url(%23br)' stroke-width='1'/><rect x='5' y='5' width='42' height='62' rx='3' ry='3' fill='none' stroke='rgba(255,255,255,0.12)' stroke-width='0.5'/><line x1='18' y1='28' x2='34' y2='44' stroke='rgba(255,255,255,0.15)' stroke-width='1'/><line x1='34' y1='28' x2='18' y2='44' stroke='rgba(255,255,255,0.15)' stroke-width='1'/><line x1='26' y1='24' x2='26' y2='48' stroke='rgba(255,255,255,0.15)' stroke-width='1'/><line x1='14' y1='36' x2='38' y2='36' stroke='rgba(255,255,255,0.15)' stroke-width='1'/><polygon points='26,22 36,36 26,50 16,36' fill='none' stroke='rgba(255,255,255,0.25)' stroke-width='1'/><circle cx='26' cy='36' r='9' fill='rgba(255,255,255,0.07)' stroke='rgba(255,255,255,0.3)' stroke-width='0.8'/><text x='26' y='38.5' font-family='Arial,sans-serif' font-size='5.5' font-weight='900' fill='white' text-anchor='middle' letter-spacing='0.3' opacity='0.9'>SKYJO</text><polygon points='9,10 12,13 9,16 6,13' fill='rgba(255,255,255,0.2)'/><polygon points='43,10 46,13 43,16 40,13' fill='rgba(255,255,255,0.2)'/><polygon points='9,62 12,59 9,56 6,59' fill='rgba(255,255,255,0.2)'/><polygon points='43,62 46,59 43,56 40,59' fill='rgba(255,255,255,0.2)'/><circle cx='10' cy='10' r='1' fill='rgba(255,255,255,0.3)'/><circle cx='42' cy='10' r='1' fill='rgba(255,255,255,0.3)'/><circle cx='10' cy='62' r='1' fill='rgba(255,255,255,0.3)'/><circle cx='42' cy='62' r='1' fill='rgba(255,255,255,0.3)'/></svg>");background-size:cover;background-position:center;color:transparent;cursor:pointer;border-color:rgba(92,107,192,0.4)}
+.card.face-down{background-image:url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 52 72'><defs><linearGradient id='bg' x1='0%' y1='0%' x2='100%' y2='100%'><stop offset='0%' style='stop-color:%231565c0'/><stop offset='100%' style='stop-color:%230a3d8f'/></linearGradient><pattern id='d' x='0' y='0' width='8' height='8' patternUnits='userSpaceOnUse'><polygon points='4,0.5 7.5,4 4,7.5 0.5,4' fill='none' stroke='rgba(255,255,255,0.07)' stroke-width='0.5'/></pattern></defs><rect width='52' height='72' rx='5' ry='5' fill='url(%23bg)'/><rect width='52' height='72' rx='5' ry='5' fill='url(%23d)'/><rect x='2.5' y='2.5' width='47' height='67' rx='4' ry='4' fill='none' stroke='rgba(255,255,255,0.25)' stroke-width='1'/><rect x='4' y='4' width='44' height='64' rx='3' ry='3' fill='none' stroke='rgba(255,255,255,0.1)' stroke-width='0.5'/><g transform='translate(26,36) rotate(-35)'><text font-family='Arial Black,Arial,sans-serif' font-size='13' font-weight='900' fill='rgba(255,255,255,0.18)' text-anchor='middle' dominant-baseline='middle' letter-spacing='1'>SKYJO</text></g><g transform='translate(26,36) rotate(-35)'><text font-family='Arial Black,Arial,sans-serif' font-size='12' font-weight='900' fill='rgba(255,255,255,0.9)' text-anchor='middle' dominant-baseline='middle' letter-spacing='1' stroke='rgba(0,50,150,0.4)' stroke-width='0.3'>SKYJO</text></g><circle cx='26' cy='36' r='14' fill='none' stroke='rgba(255,255,255,0.15)' stroke-width='1'/><circle cx='7' cy='7' r='1.5' fill='rgba(255,255,255,0.25)'/><circle cx='45' cy='7' r='1.5' fill='rgba(255,255,255,0.25)'/><circle cx='7' cy='65' r='1.5' fill='rgba(255,255,255,0.25)'/><circle cx='45' cy='65' r='1.5' fill='rgba(255,255,255,0.25)'/></svg>");background-size:cover;background-position:center;color:transparent;cursor:pointer;border-color:rgba(30,100,200,0.5)}
 .card.face-down::after{content:none}
 .card.eliminated{opacity:0;pointer-events:none;transform:scale(0)}
 .card.selectable{animation:pulse 1s infinite;box-shadow:0 0 12px rgba(155,89,182,.6)}
 .card.highlight{box-shadow:0 0 15px rgba(255,255,255,.5)}
 @keyframes pulse{0%,100%{box-shadow:0 0 8px rgba(155,89,182,.4)}50%{box-shadow:0 0 18px rgba(155,89,182,.8)}}
 
-.card.val-neg2{background:linear-gradient(135deg,#27ae60,#2ecc71);color:#fff}
-.card.val-neg1{background:linear-gradient(135deg,#2ecc71,#58d68d);color:#fff}
-.card.val-0{background:linear-gradient(135deg,#2980b9,#3498db);color:#fff}
-.card.val-1,.card.val-2,.card.val-3,.card.val-4{background:linear-gradient(135deg,#f39c12,#f1c40f);color:#333}
-.card.val-5,.card.val-6,.card.val-7,.card.val-8{background:linear-gradient(135deg,#d35400,#e67e22);color:#fff}
-.card.val-9,.card.val-10,.card.val-11,.card.val-12{background:linear-gradient(135deg,#c0392b,#e74c3c);color:#fff}
+/* --- Couleurs des cartes fidèles à l'original Skyjo --- */
+/* Valeur -2 : violet */
+.card.val-neg2{background:#7b2d8b;color:#fff;text-shadow:0 1px 2px rgba(0,0,0,.4);border-color:rgba(255,255,255,.2)}
+/* Valeur -1 : rose/magenta */
+.card.val-neg1{background:#c0116a;color:#fff;text-shadow:0 1px 2px rgba(0,0,0,.4);border-color:rgba(255,255,255,.2)}
+/* Valeur 0 : bleu ciel */
+.card.val-0{background:#0098d4;color:#fff;text-shadow:0 1px 2px rgba(0,0,0,.3);border-color:rgba(255,255,255,.2)}
+/* Valeurs 1-4 : jaune vif */
+.card.val-1,.card.val-2,.card.val-3,.card.val-4{background:#f5c800;color:#333;text-shadow:0 1px 1px rgba(255,255,255,.3);border-color:rgba(0,0,0,.1)}
+/* Valeurs 5-8 : orange */
+.card.val-5,.card.val-6,.card.val-7,.card.val-8{background:#f07800;color:#fff;text-shadow:0 1px 2px rgba(0,0,0,.4);border-color:rgba(255,255,255,.15)}
+/* Valeurs 9-12 : rouge */
+.card.val-9,.card.val-10,.card.val-11,.card.val-12{background:#e02020;color:#fff;text-shadow:0 1px 2px rgba(0,0,0,.4);border-color:rgba(255,255,255,.15)}
 
 /* --- Piles --- */
 .piles{display:flex;gap:20px;align-items:center;justify-content:center;margin:12px 0}
@@ -56,18 +63,31 @@ input::placeholder{color:#666}
 
 /* --- Player areas --- */
 .players-area{width:100%;max-width:700px;display:flex;flex-direction:column;gap:12px;padding:8px}
+/* Fond neutre par défaut */
 .player-zone{background:rgba(255,255,255,.05);border-radius:12px;padding:10px;border:2px solid transparent;transition:border-color .3s}
-.player-zone.current-turn{border-color:#9b59b6}
-.player-zone.is-me{border-color:rgba(52,152,219,.5)}
-.player-zone.is-me.current-turn{
-  border-color:#9b59b6;
-  box-shadow:0 0 20px rgba(155,89,182,.3);
-  background:rgba(155,89,182,.18);
-  animation:myTurnPulse 2s ease-in-out infinite;
-}
+/* Palette de couleurs par joueur — fond doux pour ne pas écraser les cartes */
+.player-zone.pcolor-0{background:rgba(52,152,219,.10);border-color:rgba(52,152,219,.25)}   /* bleu   */
+.player-zone.pcolor-1{background:rgba(46,204,113,.10);border-color:rgba(46,204,113,.25)}   /* vert   */
+.player-zone.pcolor-2{background:rgba(230,126,34,.10);border-color:rgba(230,126,34,.25)}   /* orange */
+.player-zone.pcolor-3{background:rgba(155,89,182,.10);border-color:rgba(155,89,182,.25)}   /* violet */
+.player-zone.pcolor-4{background:rgba(231,76,60,.10);border-color:rgba(231,76,60,.25)}    /* rouge  */
+.player-zone.pcolor-5{background:rgba(241,196,15,.10);border-color:rgba(241,196,15,.25)}   /* jaune  */
+.player-zone.pcolor-6{background:rgba(26,188,156,.10);border-color:rgba(26,188,156,.25)}   /* cyan   */
+.player-zone.pcolor-7{background:rgba(236,112,99,.10);border-color:rgba(236,112,99,.25)}   /* rose   */
+/* Surbrillance du tour courant — renforce la couleur du joueur */
+.player-zone.pcolor-0.current-turn{background:rgba(52,152,219,.22);border-color:rgba(52,152,219,.7);box-shadow:0 0 16px rgba(52,152,219,.3)}
+.player-zone.pcolor-1.current-turn{background:rgba(46,204,113,.22);border-color:rgba(46,204,113,.7);box-shadow:0 0 16px rgba(46,204,113,.3)}
+.player-zone.pcolor-2.current-turn{background:rgba(230,126,34,.22);border-color:rgba(230,126,34,.7);box-shadow:0 0 16px rgba(230,126,34,.3)}
+.player-zone.pcolor-3.current-turn{background:rgba(155,89,182,.22);border-color:rgba(155,89,182,.7);box-shadow:0 0 16px rgba(155,89,182,.3)}
+.player-zone.pcolor-4.current-turn{background:rgba(231,76,60,.22);border-color:rgba(231,76,60,.7);box-shadow:0 0 16px rgba(231,76,60,.3)}
+.player-zone.pcolor-5.current-turn{background:rgba(241,196,15,.22);border-color:rgba(241,196,15,.7);box-shadow:0 0 16px rgba(241,196,15,.3)}
+.player-zone.pcolor-6.current-turn{background:rgba(26,188,156,.22);border-color:rgba(26,188,156,.7);box-shadow:0 0 16px rgba(26,188,156,.3)}
+.player-zone.pcolor-7.current-turn{background:rgba(236,112,99,.22);border-color:rgba(236,112,99,.7);box-shadow:0 0 16px rgba(236,112,99,.3)}
+/* Animation pulse "mon tour" adaptée à la couleur du joueur local (pcolor-0 par défaut) */
+.player-zone.is-me.current-turn{animation:myTurnPulse 2s ease-in-out infinite}
 @keyframes myTurnPulse{
-  0%,100%{background:rgba(155,89,182,.12);box-shadow:0 0 20px rgba(155,89,182,.3)}
-  50%{background:rgba(155,89,182,.28);box-shadow:0 0 35px rgba(155,89,182,.6)}
+  0%,100%{filter:brightness(1)}
+  50%{filter:brightness(1.18)}
 }
 
 .player-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;padding:0 4px}
@@ -1579,8 +1599,10 @@ const Render = (() => {
       const visibleScore = calcVisibleScore(p.id);
       const totalScore = gameState.totalScores[p.id] || 0;
       const discoTag = p.disconnected ? '<span class="reconnecting-badge">⚠️ déconnecté</span>' : '';
+      // Index de couleur stable basé sur la position initiale du joueur
+      const colorIdx = gameState.players.findIndex(pl => pl.id === p.id) % 8;
 
-      playersHtml += `<div class="player-zone ${isCurrent ? 'current-turn' : ''} ${isMe ? 'is-me' : ''}">
+      playersHtml += `<div class="player-zone pcolor-${colorIdx} ${isCurrent ? 'current-turn' : ''} ${isMe ? 'is-me' : ''}">
         <div class="player-header">
           <span class="player-name">${p.name}${isMe ? ' (vous)' : ''} ${discoTag}</span>
           <span>
