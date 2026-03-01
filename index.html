@@ -826,6 +826,7 @@ const Network = (() => {
         gameState.players.push({ id: conn.peer, name: data.name, isHost: false });
         gameState.totalScores[conn.peer] = 0;
         broadcast({ type: 'state', state: gameState });
+        Render.fromState(); // Mettre à jour l'affichage de l'hôte (bouton "Lancer")
         UI.toast(data.name + ' a rejoint');
         ActionLog.add('👋 ' + data.name + ' a rejoint');
         break;
