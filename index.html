@@ -300,10 +300,18 @@ input::placeholder{color:#666}
     <h2 id="lobby-title">Salle d'attente</h2>
     <p class="subtitle" id="lobby-subtitle">Partagez le code ou le QR code</p>
     <div id="lobby-solo-info" style="display:none;margin-bottom:12px">
-      <div style="background:rgba(39,174,96,.1);border:1px solid rgba(39,174,96,.3);border-radius:10px;padding:10px 14px;font-size:.85em;color:#2ecc71;text-align:center">
+      <div style="background:rgba(39,174,96,.1);border:1px solid rgba(39,174,96,.3);border-radius:10px;padding:12px 14px;font-size:.85em;color:#2ecc71;text-align:center;margin-bottom:10px">
         🤖 Mode Solo — 1 bot adverse
       </div>
-      <button class="secondary" style="width:100%;margin-top:8px;font-size:.85em" onclick="App.switchToMulti()">🔀 Passer en multijoueur</button>
+      <div style="margin-bottom:10px">
+        <p style="font-size:.78em;color:#888;text-align:center;margin-bottom:8px;text-transform:uppercase;letter-spacing:.8px">Difficulté du bot</p>
+        <div style="display:flex;gap:8px;justify-content:center">
+          <button id="diff-facile"  onclick="App.setBotDifficulty('facile')"  style="flex:1;padding:10px 6px;font-size:.82em;background:rgba(39,174,96,.2);border:2px solid rgba(39,174,96,.5);color:#2ecc71">😊 Facile</button>
+          <button id="diff-moyen"   onclick="App.setBotDifficulty('moyen')"   style="flex:1;padding:10px 6px;font-size:.82em;background:rgba(241,196,15,.15);border:2px solid rgba(241,196,15,.4);color:#f1c40f">🎯 Moyen</button>
+          <button id="diff-fort"    onclick="App.setBotDifficulty('fort')"    style="flex:1;padding:10px 6px;font-size:.82em;background:rgba(231,76,60,.15);border:2px solid rgba(231,76,60,.4);color:#e74c3c">💀 Fort</button>
+        </div>
+      </div>
+      <button class="secondary" style="width:100%;font-size:.85em" onclick="App.switchToMulti()">🔀 Passer en multijoueur</button>
     </div>
     <div id="lobby-multi-info">
       <div class="room-code" id="lobby-code"></div>
@@ -1916,6 +1924,20 @@ const App = (() => {
       totalScores: { [myPeerId]: 0, [botId]: 0 }
     };
     showLobby();
+    setTimeout(() => setBotDifficulty('moyen'), 50); // init visuel des boutons
+  }
+
+  // --- Choisir la difficulté du bot ---
+  function setBotDifficulty(level) {
+    if (!gameState) return;
+    gameState.botDifficulty = level;
+    // Mettre à jour l'apparence des boutons
+    ['facile', 'moyen', 'fort'].forEach(l => {
+      const btn = document.getElementById('diff-' + l);
+      if (!btn) return;
+      btn.style.opacity = l === level ? '1' : '0.4';
+      btn.style.transform = l === level ? 'scale(1.05)' : 'scale(1)';
+    });
   }
 
   // --- Passer du mode solo au mode multi (dans le lobby) ---
@@ -2061,7 +2083,7 @@ const App = (() => {
     initRound();
   }
 
-  return { showJoinScreen, createSoloGame, createGame, switchToMulti, joinGame, showLobby, copyCode, leaveLobby, backToMenu, startGame, nextRound };
+  return { showJoinScreen, createSoloGame, createGame, switchToMulti, setBotDifficulty, joinGame, showLobby, copyCode, leaveLobby, backToMenu, startGame, nextRound };
 })();
 
 
