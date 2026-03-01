@@ -32,28 +32,33 @@ input::placeholder{color:#666}
 .card-row{display:flex;gap:4px;justify-content:center}
 
 /* --- Cards --- */
-.card{width:52px;height:72px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:1.55em;font-weight:900;cursor:pointer;transition:all .2s;position:relative;border:2px solid rgba(255,255,255,.1);letter-spacing:-0.5px}
+.card{width:52px;height:72px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:1.9em;font-weight:900;cursor:pointer;transition:all .2s;position:relative;border:2px solid rgba(255,255,255,.15);letter-spacing:-1px}
 .card:active{transform:scale(.95)}
+/* Pastille derrière le chiffre — contraste garanti sur toutes les couleurs */
+.card:not(.face-down):not(.eliminated)::before{content:'';position:absolute;width:36px;height:36px;border-radius:50%;background:rgba(0,0,0,.18);top:50%;left:50%;transform:translate(-50%,-50%);pointer-events:none}
 .card.face-down{background-image:url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 52 72'><defs><linearGradient id='bg' x1='0%' y1='0%' x2='100%' y2='100%'><stop offset='0%' style='stop-color:%231565c0'/><stop offset='100%' style='stop-color:%230a3d8f'/></linearGradient><pattern id='d' x='0' y='0' width='8' height='8' patternUnits='userSpaceOnUse'><polygon points='4,0.5 7.5,4 4,7.5 0.5,4' fill='none' stroke='rgba(255,255,255,0.07)' stroke-width='0.5'/></pattern></defs><rect width='52' height='72' rx='5' ry='5' fill='url(%23bg)'/><rect width='52' height='72' rx='5' ry='5' fill='url(%23d)'/><rect x='2.5' y='2.5' width='47' height='67' rx='4' ry='4' fill='none' stroke='rgba(255,255,255,0.25)' stroke-width='1'/><rect x='4' y='4' width='44' height='64' rx='3' ry='3' fill='none' stroke='rgba(255,255,255,0.1)' stroke-width='0.5'/><g transform='translate(26,36) rotate(-35)'><text font-family='Arial Black,Arial,sans-serif' font-size='13' font-weight='900' fill='rgba(255,255,255,0.18)' text-anchor='middle' dominant-baseline='middle' letter-spacing='1'>SKYJO</text></g><g transform='translate(26,36) rotate(-35)'><text font-family='Arial Black,Arial,sans-serif' font-size='12' font-weight='900' fill='rgba(255,255,255,0.9)' text-anchor='middle' dominant-baseline='middle' letter-spacing='1' stroke='rgba(0,50,150,0.4)' stroke-width='0.3'>SKYJO</text></g><circle cx='26' cy='36' r='14' fill='none' stroke='rgba(255,255,255,0.15)' stroke-width='1'/><circle cx='7' cy='7' r='1.5' fill='rgba(255,255,255,0.25)'/><circle cx='45' cy='7' r='1.5' fill='rgba(255,255,255,0.25)'/><circle cx='7' cy='65' r='1.5' fill='rgba(255,255,255,0.25)'/><circle cx='45' cy='65' r='1.5' fill='rgba(255,255,255,0.25)'/></svg>");background-size:cover;background-position:center;color:transparent;cursor:pointer;border-color:rgba(30,100,200,0.5)}
-.card.face-down::after{content:none}
+.card.face-down::before,.card.face-down::after{content:none}
 .card.eliminated{opacity:0;pointer-events:none;transform:scale(0)}
 .card.selectable{animation:pulse 1s infinite;box-shadow:0 0 12px rgba(155,89,182,.6)}
 .card.highlight{box-shadow:0 0 15px rgba(255,255,255,.5)}
 @keyframes pulse{0%,100%{box-shadow:0 0 8px rgba(155,89,182,.4)}50%{box-shadow:0 0 18px rgba(155,89,182,.8)}}
 
-/* --- Couleurs des cartes fidèles à l'original Skyjo --- */
-/* Valeur -2 : violet */
-.card.val-neg2{background:#7b2d8b;color:#fff;text-shadow:0 1px 3px rgba(0,0,0,.5);border-color:rgba(255,255,255,.2)}
-/* Valeur -1 : rose/magenta */
-.card.val-neg1{background:#c0116a;color:#fff;text-shadow:0 1px 3px rgba(0,0,0,.5);border-color:rgba(255,255,255,.2)}
+/* --- Couleurs des cartes --- */
+/* Valeur -2 : vert foncé */
+.card.val-neg2{background:#27ae60;color:#fff;text-shadow:0 2px 4px rgba(0,0,0,.5);border-color:rgba(255,255,255,.25)}
+.card.val-neg2::before{background:rgba(0,0,0,.2)}
+/* Valeur -1 : vert clair */
+.card.val-neg1{background:#2ecc71;color:#fff;text-shadow:0 2px 4px rgba(0,0,0,.45);border-color:rgba(255,255,255,.25)}
+.card.val-neg1::before{background:rgba(0,0,0,.15)}
 /* Valeur 0 : bleu ciel */
-.card.val-0{background:#0098d4;color:#fff;text-shadow:0 1px 3px rgba(0,0,0,.4);border-color:rgba(255,255,255,.2)}
-/* Valeurs 1-4 : jaune vif — texte sombre avec stroke pour contraste maximal */
-.card.val-1,.card.val-2,.card.val-3,.card.val-4{background:#f5c800;color:#1a1000;text-shadow:-1px -1px 0 rgba(255,220,0,.6),1px 1px 0 rgba(120,80,0,.35);border-color:rgba(0,0,0,.2);-webkit-text-stroke:0.4px rgba(80,50,0,.4)}
+.card.val-0{background:#0098d4;color:#fff;text-shadow:0 2px 4px rgba(0,0,0,.45);border-color:rgba(255,255,255,.2)}
+/* Valeurs 1-4 : jaune vif — pastille sombre pour lisibilité maximale */
+.card.val-1,.card.val-2,.card.val-3,.card.val-4{background:#f5c800;color:#fff;text-shadow:0 1px 0 rgba(0,0,0,.9),0 2px 6px rgba(0,0,0,.7);border-color:rgba(0,0,0,.2);-webkit-text-stroke:0.5px rgba(0,0,0,.3)}
+.card.val-1::before,.card.val-2::before,.card.val-3::before,.card.val-4::before{background:rgba(0,0,0,.32)}
 /* Valeurs 5-8 : orange */
-.card.val-5,.card.val-6,.card.val-7,.card.val-8{background:#f07800;color:#fff;text-shadow:0 1px 2px rgba(0,0,0,.4);border-color:rgba(255,255,255,.15)}
+.card.val-5,.card.val-6,.card.val-7,.card.val-8{background:#f07800;color:#fff;text-shadow:0 2px 4px rgba(0,0,0,.5);border-color:rgba(255,255,255,.15)}
 /* Valeurs 9-12 : rouge */
-.card.val-9,.card.val-10,.card.val-11,.card.val-12{background:#e02020;color:#fff;text-shadow:0 1px 2px rgba(0,0,0,.4);border-color:rgba(255,255,255,.15)}
+.card.val-9,.card.val-10,.card.val-11,.card.val-12{background:#e02020;color:#fff;text-shadow:0 2px 4px rgba(0,0,0,.5);border-color:rgba(255,255,255,.15)}
 
 /* --- Piles --- */
 .piles{display:flex;gap:20px;align-items:center;justify-content:center;margin:12px 0}
