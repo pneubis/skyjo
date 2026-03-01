@@ -346,9 +346,7 @@ input::placeholder{color:#666}
   <h2 style="margin-bottom:4px">📊 Fin de la manche</h2>
   <p class="subtitle" style="margin-bottom:12px" id="reveal-subtitle"></p>
   <div class="reveal-summary" id="reveal-summary"></div>
-  <div class="btn-group" style="margin-top:18px">
-    <button onclick="Render.showRoundScoreTable()">Voir les scores →</button>
-  </div>
+  <div class="btn-group" style="margin-top:18px" id="reveal-actions"></div>
 </div>
 
 <!-- SCREEN: ROUND SCORES -->
@@ -1460,6 +1458,13 @@ const Render = (() => {
         renderRoundScores();
         break;
       case 'game_over':
+        // Mettre à jour le leaderboard local (pour le client aussi)
+        if (!isHost) {
+          const sorted = [...gameState.players].sort((a, b) =>
+            (gameState.totalScores[a.id] || 0) - (gameState.totalScores[b.id] || 0)
+          );
+          gameState.players.forEach(p => Leaderboard.update(p.name, p.id === sorted[0].id));
+        }
         UI.showScreen('screen-final-scores');
         renderFinalScores();
         Sound.play('win');
@@ -1643,6 +1648,13 @@ const Render = (() => {
       ? 'Grilles finales de la partie'
       : 'Manche ' + gameState.round + ' terminée !';
 
+    // Bouton "Voir les scores" uniquement pour l'hôte — le client attend
+    const actionsEl = document.getElementById('reveal-actions');
+    if (actionsEl) {
+      actionsEl.innerHTML = isHost
+        ? '<button onclick="Render.showRoundScoreTable()">Voir les scores →</button>'
+        : '<div style="color:#888;font-size:.85em;padding:8px">⏳ En attente de l\'hôte...</div>';
+    }
     const summary = document.getElementById('reveal-summary');
     const sorted = [...gameState.players].sort((a, b) =>
       (gameState.roundScores[a.id] || 0) - (gameState.roundScores[b.id] || 0)
@@ -1679,6 +1691,10 @@ const Render = (() => {
 
   function showRoundScoreTable() {
     if (!gameState) return;
+    // Seul l'hôte pilote les transitions de phase et broadcaste
+    // Le client ne fait rien — il recevra le broadcast de l'hôte
+    if (!isHost) return;
+
     if (gameState.phase === 'game_over_reveal') {
       const sorted = [...gameState.players].sort((a, b) =>
         (gameState.totalScores[a.id] || 0) - (gameState.totalScores[b.id] || 0)
@@ -1690,8 +1706,7 @@ const Render = (() => {
     } else {
       gameState.phase = 'round_end';
     }
-    if (isHost) Network.broadcastState();
-    else fromState();
+    Network.broadcastState();
   }
 
   function renderRoundScores() {
