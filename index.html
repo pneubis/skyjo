@@ -988,6 +988,8 @@ function initRound() {
   ActionLog.clear();
   Network.broadcastToast('Manche ' + gameState.round + ' — Retournez 2 cartes !');
   Network.broadcastState();
+  // Déclencher immédiatement le bot pour la phase reveal_initial
+  setTimeout(() => Bot.maybePlay(), 100);
 }
 
 // --- Action dispatch ---
@@ -1247,29 +1249,37 @@ const Bot = (() => {
   // Point d'entrée : jouer le tour d'un bot si c'est son tour
   async function maybePlay() {
     if (!gameState || !isHost) return;
-    const cp = gameState.players[gameState.currentPlayerIndex];
-    if (!cp || !cp.isBot) return;
 
     const diff = gameState.botDifficulty || 'moyen';
     const thinkMs = THINK_DELAY[diff] || 900;
 
+    // --- Phase reveal_initial : tous les joueurs retournent en parallèle ---
+    // currentPlayerIndex vaut -1 ici, donc on itère directement sur les bots
     if (gameState.phase === 'reveal_initial') {
-      // Révéler 2 cartes aléatoires non révélées
-      if ((gameState.initialReveals[cp.id] || 0) >= 2) return;
-      await delay(thinkMs);
-      if (!gameState || gameState.phase !== 'reveal_initial') return;
-      const unrevealed = [];
-      for (let r = 0; r < ROWS; r++)
-        for (let c = 0; c < COLS; c++)
-          if (!gameState.revealed[cp.id][r][c] && !gameState.eliminated[cp.id][c])
-            unrevealed.push({r, c});
-      if (unrevealed.length === 0) return;
-      const pick = unrevealed[Math.floor(Math.random() * unrevealed.length)];
-      handlePlayerAction(cp.id, { type: 'reveal', row: pick.r, col: pick.c });
-      // Déclencher à nouveau si besoin (2e carte)
-      setTimeout(() => maybePlay(), 50);
+      const bots = gameState.players.filter(p => p.isBot);
+      for (const bot of bots) {
+        if ((gameState.initialReveals[bot.id] || 0) >= 2) continue; // déjà fait
+        await delay(thinkMs);
+        if (!gameState || gameState.phase !== 'reveal_initial') return;
+        const unrevealed = [];
+        for (let r = 0; r < ROWS; r++)
+          for (let c = 0; c < COLS; c++)
+            if (!gameState.revealed[bot.id][r][c] && !gameState.eliminated[bot.id][c])
+              unrevealed.push({ r, c });
+        if (unrevealed.length === 0) continue;
+        const pick = unrevealed[Math.floor(Math.random() * unrevealed.length)];
+        handlePlayerAction(bot.id, { type: 'reveal', row: pick.r, col: pick.c });
+        // Si le bot doit encore retourner une 2e carte, on reboucle après un délai
+        if ((gameState.initialReveals[bot.id] || 0) < 2) {
+          setTimeout(() => maybePlay(), 50);
+        }
+      }
       return;
     }
+
+    // --- Phase playing : seul le joueur courant agit ---
+    const cp = gameState.players[gameState.currentPlayerIndex];
+    if (!cp || !cp.isBot) return;
 
     if (gameState.phase !== 'playing') return;
 
