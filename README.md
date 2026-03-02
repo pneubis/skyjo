@@ -8,7 +8,7 @@
 -------------------------------------------------
 
 Vous hébergez le fichier, vous lancez l'index depuis un navigateur, vous créez votre partie en solo ou multijoueur et c'est parti !!
-Jeu interopérable entre smartphone/pc/mac
+Jeu interopérable entre smartphone/pc/mac, quelque soit l'OS.
 
 Plusieurs améliorations UI, jouabilité, modes de jeu, sécurité, connexion, résolution de bugs.
 
