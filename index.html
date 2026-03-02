@@ -1205,6 +1205,15 @@ function getPlayerName(id) {
 }
 
 function endRound() {
+  // Sauvegarder les cartes encore cachées AVANT de tout révéler
+  gameState.hiddenAtEndOfRound = {};
+  gameState.players.forEach(p => {
+    gameState.hiddenAtEndOfRound[p.id] = [];
+    for (let r = 0; r < ROWS; r++)
+      for (let c = 0; c < COLS; c++)
+        if (!gameState.revealed[p.id][r][c] && !gameState.eliminated[p.id][c])
+          gameState.hiddenAtEndOfRound[p.id].push({ r, c });
+  });
   gameState.players.forEach(p => {
     for (let r = 0; r < ROWS; r++)
       for (let c = 0; c < COLS; c++)
@@ -1716,9 +1725,10 @@ const Render = (() => {
             const val = gameState.hands[p.id][r][c];
             const lrp = gameState.lastRevealedPosition;
             const isLastRevealed = lrp && lrp.playerId === p.id && lrp.row === r && lrp.col === c;
-            const isFaceDown = !gameState.revealed[p.id][r][c];
-            // Halo doré : carte last-revealed du gagnant OU toute carte encore cachée d'un adversaire
-            const glowClass = isLastRevealed ? ' last-revealed' : (isAdversary && isFaceDown ? ' last-revealed' : '');
+            const wasHidden = isAdversary && gameState.hiddenAtEndOfRound &&
+              (gameState.hiddenAtEndOfRound[p.id] || []).some(pos => pos.r === r && pos.c === c);
+            // Halo doré : carte last-revealed du gagnant OU toute carte encore cachée d'un adversaire en fin de manche
+            const glowClass = isLastRevealed ? ' last-revealed' : (wasHidden ? ' last-revealed' : '');
             gridHtml += `<div class="mini-card ${getCardClass(val)}${glowClass}">${val}</div>`;
           }
         }
