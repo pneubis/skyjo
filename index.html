@@ -1699,17 +1699,6 @@ const Render = (() => {
     const bestScore = gameState.roundScores[sorted[0].id] || 0;
     const bestPlayer = sorted[0];
 
-    // Nombre de cartes cachées (non révélées, non éliminées) par joueur
-    function countHidden(pid) {
-      let n = 0;
-      for (let r = 0; r < ROWS; r++)
-        for (let c = 0; c < COLS; c++)
-          if (!gameState.eliminated[pid][c] && !gameState.revealed[pid][r][c])
-            n++;
-      return n;
-    }
-    const winnerHiddenCount = countHidden(bestPlayer.id);
-
     let html = '';
     sorted.forEach(p => {
       const rs = gameState.roundScores[p.id] || 0;
@@ -1717,8 +1706,6 @@ const Render = (() => {
       const isTriggerer = p.id === gameState.lastRoundTriggeredBy;
       const isMe = p.id === myPlayerId;
       const isAdversary = p.id !== bestPlayer.id;
-      const hiddenCount = countHidden(p.id);
-      const glowHidden = isAdversary && hiddenCount === winnerHiddenCount;
 
       let gridHtml = '<div class="pr-grid">';
       for (let r = 0; r < ROWS; r++) {
@@ -1730,8 +1717,8 @@ const Render = (() => {
             const lrp = gameState.lastRevealedPosition;
             const isLastRevealed = lrp && lrp.playerId === p.id && lrp.row === r && lrp.col === c;
             const isFaceDown = !gameState.revealed[p.id][r][c];
-            // Halo doré : carte last-revealed du gagnant OU carte encore cachée d'un adversaire avec même nb de cachées
-            const glowClass = isLastRevealed ? ' last-revealed' : (glowHidden && isFaceDown ? ' last-revealed' : '');
+            // Halo doré : carte last-revealed du gagnant OU toute carte encore cachée d'un adversaire
+            const glowClass = isLastRevealed ? ' last-revealed' : (isAdversary && isFaceDown ? ' last-revealed' : '');
             gridHtml += `<div class="mini-card ${getCardClass(val)}${glowClass}">${val}</div>`;
           }
         }
