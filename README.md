@@ -4,19 +4,12 @@
 ## 2.Multijoueur en temps réel via PeerJS (WebRTC peer-to-peer, pas besoin de serveur) - jusqu'à 8 joueurs
 ## 3.Système de lobby : création de partie par l'hôte, génération d'un QR code pour rejoindre (via bibliothèque qrcode.js en CDN), affichage des joueurs connectés
 ## 4.UI minimaliste et responsive optimisée pour navigateur mobile Android/ios : cartes visuelles avec couleurs selon valeur, animations simples, interface tactile
-## 5.Le fichier sera directement hébergeable sans aucune dépendance locale
+## 5.Le fichier est directement hébergeable sans aucune dépendance locale
+-------------------------------------------------
 
---------------------------------------------------------------------------------------------------------
+Vous hébergez le fichier, vous lacez l'index depuis un navigateur, vous créez votre partie en solo ou multijoueur et c'est parti !!
+Jeu interopérable entre smartphone/pc/mac
 
-### Améliorations apportées (voir les issues des versions) 
-### Celles à venir : 
+Plusieurs améliorations UI, jouabilité, modes de jeu, sécurité, connexion, résolution de bugs.
 
-### - mettre plus en avant le joueur lorsque c’est son tour
-### - s'il reste dernière carte à retourner, annoncer les points faits avant retournement définitif
-### - choisir les cartes d'origine (UI)
-### - ajouter des animations de cartes
-### - ajouter des sons 
-### - reconnexion automatique si mise en veille ou perte de réseau ou rechargement de page (fenetre contextuelle : recharger et revenir au début ou reprendre)
-### - Tableau des scores persistant
-### - autres modes de jeu (changer les cartes, IA, time attack, help retour en arriere)
-### - minifier code et réduction de taille si trop lourd à charger
+Version actuelle V1.2.1
