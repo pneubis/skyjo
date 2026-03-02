@@ -7,7 +7,7 @@
 ## 5.Le fichier est directement hébergeable sans aucune dépendance locale
 -------------------------------------------------
 
-Vous hébergez le fichier, vous lacez l'index depuis un navigateur, vous créez votre partie en solo ou multijoueur et c'est parti !!
+Vous hébergez le fichier, vous lancez l'index depuis un navigateur, vous créez votre partie en solo ou multijoueur et c'est parti !!
 Jeu interopérable entre smartphone/pc/mac
 
 Plusieurs améliorations UI, jouabilité, modes de jeu, sécurité, connexion, résolution de bugs.
