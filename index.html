@@ -920,7 +920,8 @@ const Network = (() => {
         done(new Error('Delai depasse — verifiez votre connexion internet'));
         try { if (peer) peer.destroy(); } catch(e) {}
       }, 20000);
-      peer = id ? new Peer(id, PEER_OPTIONS) : new Peer(PEER_OPTIONS);
+      var opts = makePeerOptions();
+      peer = id ? new Peer(id, opts) : new Peer(opts);
       peer.on('open',  function(pid) { done(null, pid); });
       peer.on('error', function(err) {
         console.warn('Peer error', err.type, err.message);
