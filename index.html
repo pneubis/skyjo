@@ -100,6 +100,10 @@ input::placeholder{color:#666}
 .player-badge{font-size:.7em;padding:2px 8px;border-radius:20px;background:rgba(155,89,182,.3);color:#bb86fc}
 .turn-indicator{font-size:.7em;color:#f1c40f;font-weight:600}
 
+/* --- Bouton Exclure en jeu --- */
+.kick-in-game-btn{background:rgba(231,76,60,.15);border:1px solid rgba(231,76,60,.4);color:#e74c3c;font-size:.65em;padding:3px 8px;border-radius:8px;cursor:pointer;min-height:auto;font-weight:600;transition:all .2s;margin-left:6px;vertical-align:middle}
+.kick-in-game-btn:hover{background:rgba(231,76,60,.35);border-color:#e74c3c;transform:none;box-shadow:none}
+
 /* --- Reconnexion indicator --- */
 .reconnecting-badge{
   display:inline-flex;align-items:center;gap:6px;
@@ -327,7 +331,7 @@ input::placeholder{color:#666}
 <!-- SCREEN: MENU -->
 <div class="screen active" id="screen-menu">
   <h1>SKYJO</h1>
-  <p style="font-size:.6em;color:rgba(255,255,255,.25);letter-spacing:2px;margin:-6px 0 8px;font-weight:500">v1.3.5</p>
+  <p style="font-size:.85em;color:rgba(255,255,255,.45);letter-spacing:3px;margin:-4px 0 10px;font-weight:600">v1.3.5</p>
   <p class="subtitle" style="margin-top:0">
     <button onclick="UI.showRules()" style="background:none;border:1px solid rgba(255,255,255,.25);color:#aaa;font-size:.8em;font-weight:600;padding:3px 12px;border-radius:20px;cursor:pointer;min-height:auto;transition:all .2s" onmouseover="this.style.borderColor='rgba(255,255,255,.55)';this.style.color='#fff'" onmouseout="this.style.borderColor='rgba(255,255,255,.25)';this.style.color='#aaa'">ⓘ Règles</button>
   </p>
@@ -347,7 +351,7 @@ input::placeholder{color:#666}
 <!-- SCREEN: JOIN -->
 <div class="screen" id="screen-join">
   <h1>SKYJO</h1>
-  <p style="font-size:.6em;color:rgba(255,255,255,.25);letter-spacing:2px;margin:-6px 0 8px;font-weight:500">v1.3.5</p>
+  <p style="font-size:.85em;color:rgba(255,255,255,.45);letter-spacing:3px;margin:-4px 0 10px;font-weight:600">v1.3.5</p>
   <h2 id="join-screen-title">Rejoindre une partie</h2>
   <div style="width:100%;max-width:320px;display:flex;flex-direction:column;gap:10px">
     <input type="text" id="join-name" placeholder="Votre pseudo" maxlength="12" autocomplete="off"
@@ -437,6 +441,7 @@ input::placeholder{color:#666}
     <div class="duration-badge" id="round-duration" style="display:none">⏱ <strong id="round-duration-value"></strong></div>
     <div class="btn-group" style="margin-top:16px;width:100%;justify-content:center">
       <button id="next-round-btn" onclick="App.nextRound()">Manche suivante →</button>
+      <button class="secondary" onclick="App.backToMenu()" style="background:none;border:1px solid rgba(231,76,60,.35);color:rgba(231,76,60,.7);font-size:.85em;padding:8px 16px;min-height:auto;transition:all .2s" onmouseover="this.style.borderColor='rgba(231,76,60,.8)';this.style.color='#e74c3c'" onmouseout="this.style.borderColor='rgba(231,76,60,.35)';this.style.color='rgba(231,76,60,.7)'">Quitter</button>
     </div>
   </div>
 </div>
@@ -1797,10 +1802,14 @@ const Render = (() => {
       const discoTag = p.disconnected ? '<span class="reconnecting-badge">⚠️ déconnecté</span>' : '';
       // Index de couleur stable basé sur la position initiale du joueur
       const colorIdx = gameState.players.findIndex(pl => pl.id === p.id) % 8;
+      // Bouton exclure en jeu : visible pour l'hôte sur les autres joueurs humains non-hôte
+      const kickInGameBtn = (isHost && !isMe && !p.isHost && !p.isBot)
+        ? `<button class="kick-in-game-btn" onclick="App.confirmKickPlayer('${p.id}','${p.name.replace(/'/g,String.fromCharCode(39))}')">✕ Exclure</button>`
+        : '';
 
       playersHtml += `<div class="player-zone pcolor-${colorIdx} ${isCurrent ? 'current-turn' : ''} ${isMe ? 'is-me' : ''}">
         <div class="player-header">
-          <span class="player-name">${p.name}${isMe ? ' (vous)' : ''} ${discoTag}</span>
+          <span class="player-name">${p.name}${isMe ? ' (vous)' : ''} ${discoTag}${kickInGameBtn}</span>
           <span>
             ${isCurrent ? '<span class="turn-indicator">▶ </span>' : ''}
             <span class="player-score">Visible: ${visibleScore} | Total: ${totalScore}</span>
@@ -2374,24 +2383,77 @@ const App = (() => {
     initRound();
   }
 
+  function confirmKickPlayer(playerId, playerName) {
+    if (!isHost || !gameState) return;
+    UI.showModal(
+      '✕ Exclure un joueur',
+      'Voulez-vous exclure <strong>' + playerName + '</strong> de la partie ?',
+      [
+        { text: 'Annuler', action: 'UI.closeModal()' },
+        { text: '✕ Exclure', action: "App.kickPlayer('" + playerId + "');UI.closeModal()" }
+      ]
+    );
+  }
+
   function kickPlayer(playerId) {
     if (!isHost || !gameState) return;
     const player = gameState.players.find(p => p.id === playerId);
     if (!player || player.isHost) return;
+
+    // Compter les clients humains non-hôte restants (hors bots)
+    const humanClients = gameState.players.filter(p => !p.isHost && !p.isBot);
+    const isLastClient = humanClients.length <= 1;
+
     const conn = connections[playerId];
     if (conn) {
       try { conn.send({ type: 'rejected', msg: 'Vous avez été expulsé par l\'hôte' }); } catch(e) {}
       setTimeout(() => { try { conn.close(); } catch(e) {} }, 400);
     }
     delete connections[playerId];
-    gameState.players = gameState.players.filter(p => p.id !== playerId);
-    delete gameState.totalScores[playerId];
+
+    if (isLastClient) {
+      // Plus aucun client humain : renvoyer tout le monde à l'accueil
+      Object.values(connections).forEach(c => {
+        try { c.send({ type: 'rejected', msg: 'La partie a été dissoute par l\'hôte' }); } catch(e) {}
+        setTimeout(() => { try { c.close(); } catch(e) {} }, 300);
+      });
+      UI.toast(player.name + ' expulsé — retour à l\'accueil');
+      setTimeout(() => App.backToMenu(), 800);
+      return;
+    }
+
+    // Vérifier si c'était le joueur courant et ajuster l'index
+    if (gameState.phase === 'playing' || gameState.phase === 'reveal_initial') {
+      const kickedIndex = gameState.players.findIndex(p => p.id === playerId);
+      gameState.players = gameState.players.filter(p => p.id !== playerId);
+      delete gameState.totalScores[playerId];
+      if (gameState.currentPlayerIndex > kickedIndex) {
+        gameState.currentPlayerIndex--;
+      } else if (gameState.currentPlayerIndex === kickedIndex) {
+        // C'était son tour : passer au joueur suivant
+        gameState.currentPlayerIndex = gameState.currentPlayerIndex % gameState.players.length;
+        gameState.turnPhase = 'draw';
+        gameState.drawnCard = null;
+        gameState.drawnFrom = null;
+        gameState.drawnByPlayerId = null;
+      }
+      // Si le dernier tour avait été déclenché par ce joueur
+      if (gameState.lastRoundTriggeredBy === playerId) {
+        gameState.lastRoundTriggeredBy = null;
+        gameState.lastRoundTurnsLeft = -1;
+      }
+    } else {
+      gameState.players = gameState.players.filter(p => p.id !== playerId);
+      delete gameState.totalScores[playerId];
+    }
+
     Network.broadcastState();
     UI.toast(player.name + ' a été expulsé');
     ActionLog.add('🚫 ' + player.name + ' expulsé');
+    setTimeout(() => Bot.maybePlay(), 100);
   }
 
-  return { showJoinScreen, createSoloGame, createGame, switchToMulti, setBotDifficulty, joinGame, showLobby, copyCode, leaveLobby, backToMenu, startGame, nextRound, kickPlayer };
+  return { showJoinScreen, createSoloGame, createGame, switchToMulti, setBotDifficulty, joinGame, showLobby, copyCode, leaveLobby, backToMenu, startGame, nextRound, kickPlayer, confirmKickPlayer };
 })();
 
 
