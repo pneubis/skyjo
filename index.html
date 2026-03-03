@@ -229,11 +229,34 @@ input::placeholder{color:#666}
   100%{transform:translate(-50%,-50%) scale(1);opacity:0}
 }
 
+/* --- Quit game button --- */
+.quit-game-btn{background:rgba(231,76,60,.12);border:1px solid rgba(231,76,60,.35);color:rgba(231,76,60,.8);font-size:.85em;padding:5px 10px;border-radius:10px;cursor:pointer;min-height:36px;font-weight:600;transition:all .2s;line-height:1}
+.quit-game-btn:hover,.quit-game-btn:active{background:rgba(231,76,60,.35);color:#fff;border-color:#e74c3c;transform:none;box-shadow:0 0 10px rgba(231,76,60,.3)}
+
+/* --- Improved Action bar mobile portrait --- */
+.action-bar{position:fixed;bottom:0;left:0;right:0;background:rgba(22,22,26,.97);backdrop-filter:blur(14px);padding:10px 14px 14px;border-top:1px solid rgba(255,255,255,.1);z-index:100;-webkit-safe-area-inset-bottom:env(safe-area-inset-bottom)}
+.action-bar-inner{display:flex;flex-direction:column;align-items:center;gap:8px;width:100%}
+.action-bar-hint{font-size:.82em;color:#ccc;display:flex;align-items:center;gap:8px;font-weight:500}
+.action-bar-btns{display:flex;gap:10px;justify-content:center;width:100%}
+.action-bar-sub{font-size:.7em;color:#555;text-align:center;font-style:italic}
+.action-btn-place{background:linear-gradient(135deg,#e74c3c,#c0392b);color:#fff;border:none;padding:14px 24px;border-radius:14px;font-size:1em;font-weight:700;cursor:pointer;touch-action:manipulation;min-height:52px;width:100%;max-width:340px;transition:all .15s;box-shadow:0 4px 16px rgba(231,76,60,.35)}
+.action-btn-place:active{transform:scale(.97)}
+.card-badge{display:inline-flex;align-items:center;justify-content:center;width:28px;height:36px;border-radius:5px;font-size:.95em;font-weight:900;border:1.5px solid rgba(255,255,255,.2);text-shadow:0 1px 4px rgba(0,0,0,.6)}
+
 /* --- Responsive --- */
 @media(max-width:400px){
   .card{width:44px;height:62px;font-size:1em;border-radius:6px}
   .pile .card{width:50px;height:70px;font-size:1.2em}
   h1{font-size:1.8em}
+  .action-btn-place{font-size:.9em;padding:13px 16px}
+}
+@media(max-width:360px){
+  .card{width:40px;height:57px;font-size:.92em}
+  .pile .card{width:46px;height:65px}
+}
+/* Safe area for notch phones */
+@supports(padding-bottom:env(safe-area-inset-bottom)){
+  .action-bar{padding-bottom:calc(14px + env(safe-area-inset-bottom))}
 }
 
 /* --- Fullscreen button --- */
@@ -331,27 +354,26 @@ input::placeholder{color:#666}
 <!-- SCREEN: MENU -->
 <div class="screen active" id="screen-menu">
   <h1>SKYJO</h1>
-  <p style="font-size:.85em;color:rgba(255,255,255,.45);letter-spacing:3px;margin:-4px 0 10px;font-weight:600">v1.3.8</p>
+  <p style="font-size:.85em;color:rgba(255,255,255,.45);letter-spacing:3px;margin:-4px 0 10px;font-weight:600">v1.4.0</p>
   <p class="subtitle" style="margin-top:0">
     <button onclick="UI.showRules()" style="background:none;border:1px solid rgba(255,255,255,.25);color:#aaa;font-size:.8em;font-weight:600;padding:3px 12px;border-radius:20px;cursor:pointer;min-height:auto;transition:all .2s" onmouseover="this.style.borderColor='rgba(255,255,255,.55)';this.style.color='#fff'" onmouseout="this.style.borderColor='rgba(255,255,255,.25)';this.style.color='#aaa'">ⓘ Règles</button>
   </p>
   <div style="margin:12px 0;width:100%;max-width:320px">
     <input type="text" id="player-name" placeholder="Votre pseudo" maxlength="12" autocomplete="off">
   </div>
-  <div class="btn-group" style="margin-top:8px">
-    <button onclick="App.createSoloGame()" style="background:linear-gradient(135deg,#27ae60,#2ecc71)">🤖 Solo</button>
-    <button onclick="App.createGame()">👥 Multijoueur</button>
-    <button class="secondary" onclick="App.showJoinScreen()">Rejoindre</button>
+  <div class="btn-group" style="margin-top:8px;flex-direction:column;width:100%;max-width:320px">
+    <button onclick="App.createSoloGame()" style="background:linear-gradient(135deg,#27ae60,#2ecc71);width:100%">🤖 Solo (vs Bot)</button>
+    <button onclick="App.createGame()" style="width:100%">👥 Créer une partie</button>
+    <button class="secondary" onclick="App.showJoinScreen()" style="width:100%">🔗 Rejoindre une partie</button>
   </div>
   <div class="leaderboard-box" id="menu-leaderboard" style="margin-top:24px"></div>
   <button id="reset-lb-btn" onclick="UI.confirmResetLeaderboard()" style="margin-top:8px;background:none;border:1px solid rgba(231,76,60,.3);color:rgba(231,76,60,.5);font-size:.72em;font-weight:600;padding:4px 14px;border-radius:20px;cursor:pointer;min-height:auto;transition:all .2s" onmouseover="this.style.borderColor='rgba(231,76,60,.7)';this.style.color='#e74c3c'" onmouseout="this.style.borderColor='rgba(231,76,60,.3)';this.style.color='rgba(231,76,60,.5)'">🗑 Réinitialiser le classement</button>
-  <p style="position:fixed;bottom:10px;left:50%;transform:translateX(-50%);font-size:.68em;color:rgba(255,255,255,.2);white-space:nowrap;pointer-events:none">Pour quitter ou revenir à l'accueil — rafraîchir la page</p>
 </div>
 
 <!-- SCREEN: JOIN -->
 <div class="screen" id="screen-join">
   <h1>SKYJO</h1>
-  <p style="font-size:.85em;color:rgba(255,255,255,.45);letter-spacing:3px;margin:-4px 0 10px;font-weight:600">v1.3.8</p>
+  <p style="font-size:.85em;color:rgba(255,255,255,.45);letter-spacing:3px;margin:-4px 0 10px;font-weight:600">v1.4.0</p>
   <h2 id="join-screen-title">Rejoindre une partie</h2>
   <div style="width:100%;max-width:320px;display:flex;flex-direction:column;gap:10px">
     <input type="text" id="join-name" placeholder="Votre pseudo" maxlength="12" autocomplete="off"
@@ -361,9 +383,9 @@ input::placeholder{color:#666}
       style="text-transform:uppercase;text-align:center;font-size:1.4em;letter-spacing:4px"
       onkeydown="if(event.key==='Enter')App.joinGame()">
   </div>
-  <div class="btn-group">
-    <button onclick="App.joinGame()">Rejoindre</button>
-    <button class="secondary" onclick="UI.showScreen('screen-menu')">Retour</button>
+  <div class="btn-group" style="flex-direction:column;width:100%;max-width:320px">
+    <button onclick="App.joinGame()" style="width:100%">✅ Rejoindre</button>
+    <button class="secondary" onclick="UI.showScreen('screen-menu')" style="width:100%">← Retour</button>
   </div>
 </div>
 
@@ -414,7 +436,10 @@ input::placeholder{color:#666}
   <div class="game-header">
     <div class="round-info" id="round-info">Manche 1</div>
     <div class="game-status" id="game-status">En attente...</div>
-    <button class="secondary" style="padding:6px 12px;font-size:.75em" onclick="UI.showRules()">?</button>
+    <div style="display:flex;gap:6px;align-items:center;flex-shrink:0">
+      <button class="secondary" style="padding:6px 10px;font-size:.75em;min-height:36px" onclick="UI.showRules()" title="Règles">?</button>
+      <button class="quit-game-btn" onclick="UI.confirmQuitGame()" title="Quitter la partie">🚪</button>
+    </div>
   </div>
   <div class="game-content" id="game-content">
     <div class="piles" id="piles-area"></div>
@@ -441,7 +466,7 @@ input::placeholder{color:#666}
     <div class="duration-badge" id="round-duration" style="display:none">⏱ <strong id="round-duration-value"></strong></div>
     <div class="btn-group" style="margin-top:16px;width:100%;justify-content:center">
       <button id="next-round-btn" onclick="App.nextRound()">Manche suivante →</button>
-      <button class="secondary" onclick="App.backToMenu()" style="background:none;border:1px solid rgba(231,76,60,.35);color:rgba(231,76,60,.7);font-size:.85em;padding:8px 16px;min-height:auto;transition:all .2s" onmouseover="this.style.borderColor='rgba(231,76,60,.8)';this.style.color='#e74c3c'" onmouseout="this.style.borderColor='rgba(231,76,60,.35)';this.style.color='rgba(231,76,60,.7)'">Quitter</button>
+      <button class="quit-game-btn" onclick="UI.confirmQuitGame()" style="min-height:48px;padding:12px 20px;font-size:.9em">🚪 Quitter la partie</button>
     </div>
   </div>
 </div>
@@ -463,7 +488,7 @@ input::placeholder{color:#666}
 <script>
 "use strict";
 // ============================================================
-// SKYJO MULTIJOUEUR — Version 1.2.0
+// SKYJO MULTIJOUEUR — Version 1.4.0
 //
 // ARCHITECTURE (chaque section est clairement délimitée) :
 //  1. CONSTANTS        — Valeurs immuables du jeu
@@ -839,7 +864,18 @@ const UI = (() => {
     toast('Classement réinitialisé');
   }
 
-  return { showScreen, toast, showModal, closeModal, showRules, toggleFullscreen, closeFsTip, setConnStatus, confirmResetLeaderboard, resetLeaderboard };
+  function confirmQuitGame() {
+    showModal(
+      '🚪 Quitter la partie ?',
+      'Vous allez abandonner la partie en cours. Les autres joueurs seront informés.',
+      [
+        { text: 'Continuer à jouer', action: 'UI.closeModal()' },
+        { text: '🚪 Quitter', action: 'UI.closeModal();App.backToMenu()' }
+      ]
+    );
+  }
+
+  return { showScreen, toast, showModal, closeModal, showRules, toggleFullscreen, closeFsTip, setConnStatus, confirmResetLeaderboard, resetLeaderboard, confirmQuitGame };
 })();
 
 
@@ -1863,10 +1899,20 @@ const Render = (() => {
     // Action bar
     if (isMyTurn && gameState.turnPhase === 'drawn_from_pile') {
       actionBar.style.display = '';
-      actionBar.innerHTML = `<button class="danger" onclick="Handlers.discardDrawn()" style="font-size:1em;padding:14px 28px">🗑️ Défausser le ${gameState.drawnCard} et retourner une carte</button>`;
+      actionBar.innerHTML = `
+        <div class="action-bar-inner">
+          <div class="action-bar-hint">Carte piochée : <strong class="card-badge ${getCardClass(gameState.drawnCard)}">${gameState.drawnCard}</strong></div>
+          <div class="action-bar-btns">
+            <button class="action-btn-place" onclick="Handlers.discardDrawn()">🗑️ Défausser &amp; retourner</button>
+          </div>
+          <div class="action-bar-sub">— ou tapez une carte de votre grille pour la remplacer —</div>
+        </div>`;
     } else if (isMyTurn && gameState.turnPhase === 'must_reveal') {
       actionBar.style.display = '';
-      actionBar.innerHTML = '<div style="color:#f1c40f;font-weight:600;padding:8px">👆 Cliquez sur une carte face cachée pour la retourner</div>';
+      actionBar.innerHTML = `
+        <div class="action-bar-inner">
+          <div class="action-bar-hint">👆 Tapez une carte <strong>face cachée</strong> pour la retourner</div>
+        </div>`;
     } else {
       actionBar.style.display = 'none';
       actionBar.innerHTML = '';
@@ -1882,8 +1928,8 @@ const Render = (() => {
     const actionsEl = document.getElementById('reveal-actions');
     if (actionsEl) {
       actionsEl.innerHTML = isHost
-        ? '<button onclick="Render.showRoundScoreTable()">Voir les scores →</button>'
-        : '<div style="color:#888;font-size:.85em;padding:8px">⏳ En attente de l\'hôte...</div>';
+        ? '<button onclick="Render.showRoundScoreTable()">Voir les scores →</button><button class="quit-game-btn" style="min-height:44px;padding:10px 18px;font-size:.85em" onclick="UI.confirmQuitGame()">🚪 Quitter</button>'
+        : '<div style="color:#888;font-size:.85em;padding:8px">⏳ En attente de l\'hôte...</div><button class="quit-game-btn" style="min-height:44px;padding:10px 18px;font-size:.85em;margin-top:8px" onclick="UI.confirmQuitGame()">🚪 Quitter</button>';
     }
     const summary = document.getElementById('reveal-summary');
     const sorted = [...gameState.players].sort((a, b) =>
