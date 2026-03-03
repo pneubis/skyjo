@@ -498,6 +498,7 @@ let myPlayerId = '';
 let currentScreen = 'screen-menu';
 let reconnectTimer = null;
 let reconnectAttempt = 0;
+let _rejectedByHost = false; // flag : refus en cours, évite la reconnexion automatique
 
 
 // ============================================================
@@ -2206,9 +2207,28 @@ const App = (() => {
       reconnectAttempt = 0;
       hostConn.send({ type: 'join', name: myName, id: myPeerId });
       hostConn.on('data', (data) => {
-        // Utiliser handleClientMessage via Network
         switch(data.type) {
-          case 'state':  gameState = data.state; Render.fromState(); break;
+          case 'state':
+            gameState = data.state;
+            hideWaitingApproval();
+            Render.fromState();
+            break;
+          case 'pending':
+            // L’hôte a mis la demande en attente
+            showWaitingApproval();
+            break;
+          case 'approved':
+            // L’hôte a accepté — le state arrive juste après
+            hideWaitingApproval();
+            UI.toast('✅ Vous avez été accepté !');
+            break;
+          case 'rejected':
+            // L’hôte a refusé : on marque le flag AVANT que close() soit appelé
+            _rejectedByHost = true;
+            hideWaitingApproval();
+            UI.toast('❌ ' + (data.msg || 'Accès refusé par l’hôte'));
+            setTimeout(() => App.backToMenu(), 1500);
+            break;
           case 'error':  UI.toast(data.msg); break;
           case 'toast':  UI.toast(data.msg); break;
           case 'log':    ActionLog.add(data.msg); break;
@@ -2217,6 +2237,14 @@ const App = (() => {
       });
     });
     hostConn.on('close', () => {
+      if (_rejectedByHost) { _rejectedByHost = false; return; } // refus géré via 'rejected'
+      if (currentScreen === 'screen-lobby' && !gameState) {
+        // Connexion perdue pendant l’attente d’approbation
+        hideWaitingApproval();
+        UI.toast('Connexion perdue');
+        App.backToMenu();
+        return;
+      }
       if (currentScreen !== 'screen-menu') {
         UI.setConnStatus('reconnecting', 'Reconnexion...');
         Network.scheduleReconnect();
