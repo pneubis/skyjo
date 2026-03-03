@@ -347,9 +347,14 @@ input::placeholder{color:#666}
 <!-- SCREEN: JOIN -->
 <div class="screen" id="screen-join">
   <h1>SKYJO</h1>
-  <h2>Rejoindre une partie</h2>
-  <div style="width:100%;max-width:320px">
-    <input type="text" id="room-input" placeholder="Code de la salle" maxlength="6" autocomplete="off" style="text-transform:uppercase;text-align:center;font-size:1.4em;letter-spacing:4px">
+  <h2 id="join-screen-title">Rejoindre une partie</h2>
+  <div style="width:100%;max-width:320px;display:flex;flex-direction:column;gap:10px">
+    <input type="text" id="join-name" placeholder="Votre pseudo" maxlength="12" autocomplete="off"
+      style="text-align:center;font-size:1em"
+      oninput="document.getElementById('player-name').value=this.value">
+    <input type="text" id="room-input" placeholder="Code de la salle" maxlength="6" autocomplete="off"
+      style="text-transform:uppercase;text-align:center;font-size:1.4em;letter-spacing:4px"
+      onkeydown="if(event.key==='Enter')App.joinGame()">
   </div>
   <div class="btn-group">
     <button onclick="App.joinGame()">Rejoindre</button>
@@ -498,7 +503,6 @@ let myPlayerId = '';
 let currentScreen = 'screen-menu';
 let reconnectTimer = null;
 let reconnectAttempt = 0;
-let _rejectedByHost = false; // flag : refus en cours, évite la reconnexion automatique
 
 
 // ============================================================
@@ -2079,15 +2083,26 @@ const Handlers = (() => {
 const App = (() => {
 
   function getName() {
-    let name = document.getElementById('player-name').value.trim();
+    // Priorité au champ join-name (écran rejoindre) s'il est rempli
+    const joinField = document.getElementById('join-name');
+    const mainField = document.getElementById('player-name');
+    let name = (joinField && joinField.value.trim()) || (mainField && mainField.value.trim()) || '';
     if (!name) name = 'Joueur' + Math.floor(Math.random() * 999);
     return name;
   }
 
   function showJoinScreen() {
-    myName = getName();
+    // Pré-remplir le champ pseudo avec ce qui est déjà saisi dans le menu
+    const mainName = document.getElementById('player-name').value.trim();
+    const joinNameEl = document.getElementById('join-name');
+    if (joinNameEl && mainName) joinNameEl.value = mainName;
     UI.showScreen('screen-join');
-    document.getElementById('room-input').focus();
+    // Focus : si pseudo vide → focus pseudo, sinon focus code
+    if (joinNameEl && !joinNameEl.value.trim()) {
+      joinNameEl.focus();
+    } else {
+      document.getElementById('room-input').focus();
+    }
   }
 
   // --- Créer une partie SOLO (hôte + 1 bot) ---
@@ -2207,28 +2222,9 @@ const App = (() => {
       reconnectAttempt = 0;
       hostConn.send({ type: 'join', name: myName, id: myPeerId });
       hostConn.on('data', (data) => {
+        // Utiliser handleClientMessage via Network
         switch(data.type) {
-          case 'state':
-            gameState = data.state;
-            hideWaitingApproval();
-            Render.fromState();
-            break;
-          case 'pending':
-            // L’hôte a mis la demande en attente
-            showWaitingApproval();
-            break;
-          case 'approved':
-            // L’hôte a accepté — le state arrive juste après
-            hideWaitingApproval();
-            UI.toast('✅ Vous avez été accepté !');
-            break;
-          case 'rejected':
-            // L’hôte a refusé : on marque le flag AVANT que close() soit appelé
-            _rejectedByHost = true;
-            hideWaitingApproval();
-            UI.toast('❌ ' + (data.msg || 'Accès refusé par l’hôte'));
-            setTimeout(() => App.backToMenu(), 1500);
-            break;
+          case 'state':  gameState = data.state; Render.fromState(); break;
           case 'error':  UI.toast(data.msg); break;
           case 'toast':  UI.toast(data.msg); break;
           case 'log':    ActionLog.add(data.msg); break;
@@ -2237,14 +2233,6 @@ const App = (() => {
       });
     });
     hostConn.on('close', () => {
-      if (_rejectedByHost) { _rejectedByHost = false; return; } // refus géré via 'rejected'
-      if (currentScreen === 'screen-lobby' && !gameState) {
-        // Connexion perdue pendant l’attente d’approbation
-        hideWaitingApproval();
-        UI.toast('Connexion perdue');
-        App.backToMenu();
-        return;
-      }
       if (currentScreen !== 'screen-menu') {
         UI.setConnStatus('reconnecting', 'Reconnexion...');
         Network.scheduleReconnect();
@@ -2395,12 +2383,12 @@ function triggerBoom() {
 window.addEventListener('load', () => {
   Notif.checkGranted();
 
-  // Auto-join via paramètre URL
+  // Auto-join via paramètre URL (QR code)
   const params = new URLSearchParams(window.location.search);
   const room = params.get('room');
   if (room) {
     document.getElementById('room-input').value = room;
-    App.showJoinScreen();
+    App.showJoinScreen(); // focus auto sur le pseudo si vide, sinon sur le code
   }
 
   Leaderboard.render('menu-leaderboard');
