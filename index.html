@@ -872,49 +872,69 @@ const ActionLog = (() => {
 // ============================================================
 const Network = (() => {
 
-  // Configuration ICE robuste — necessaire pour connexions inter-reseaux
-  // (PC sur box WiFi <-> smartphone sur 4G/5G)
+  // ── CONFIGURATION RESEAU ────────────────────────────────────────────
+  // TURN freeturn (gratuit, fiable) priorite, openrelay en secours.
   const ICE_CONFIG = {
     iceServers: [
-      // STUN — multiples fournisseurs pour maximiser la decouverte d'IP
       { urls: 'stun:stun.l.google.com:19302' },
       { urls: 'stun:stun1.l.google.com:19302' },
       { urls: 'stun:stun2.l.google.com:19302' },
       { urls: 'stun:stun3.l.google.com:19302' },
       { urls: 'stun:stun4.l.google.com:19302' },
       { urls: 'stun:stun.cloudflare.com:3478' },
-      { urls: 'stun:stun.stunprotocol.org:3478' },
-      // TURN freeturn.net — fiable, gratuit, sans inscription
-      { urls: 'turn:freeturn.net:3478',     username: 'free', credential: 'free' },
-      { urls: 'turns:freeturn.net:5349',    username: 'free', credential: 'free' },
-      // TURN openrelay — de secours
+      { urls: 'turn:freeturn.net:3478',                      username: 'free',             credential: 'free'             },
+      { urls: 'turns:freeturn.net:5349',                     username: 'free',             credential: 'free'             },
       { urls: 'turn:openrelay.metered.ca:80',                username: 'openrelayproject', credential: 'openrelayproject' },
       { urls: 'turn:openrelay.metered.ca:443',               username: 'openrelayproject', credential: 'openrelayproject' },
       { urls: 'turn:openrelay.metered.ca:443?transport=tcp', username: 'openrelayproject', credential: 'openrelayproject' },
+      { urls: 'turn:openrelay.metered.ca:80?transport=tcp',  username: 'openrelayproject', credential: 'openrelayproject' },
     ],
     iceCandidatePoolSize: 10,
     iceTransportPolicy: 'all',
   };
 
-  const PEER_OPTIONS = { config: ICE_CONFIG, debug: 0 };
+  // Broker PeerJS officiel configure explicitement (host+port+path).
+  // ATTENTION : les IDs ne doivent PAS contenir de tirets (rejet silencieux).
+  function makePeerOptions() {
+    return {
+      host: '0.peerjs.com',
+      port: 443,
+      path: '/',
+      secure: true,
+      config: ICE_CONFIG,
+      debug: 0,
+      pingInterval: 5000,
+    };
+  }
 
   function initPeer(id) {
-    return new Promise((resolve, reject) => {
-      // Timeout 15s — le serveur PeerJS peut etre lent selon les reseaux
-      const timer = setTimeout(() => {
-        try { if (peer) peer.destroy(); } catch(e) {}
-        reject(new Error('Délai dépassé — vérifiez votre connexion internet'));
-      }, 15000);
-      peer = new Peer(id, PEER_OPTIONS);
-      peer.on('open', (pid) => { clearTimeout(timer); myPeerId = pid; resolve(pid); });
-      peer.on('error', (err) => {
+    if (peer) { try { peer.destroy(); } catch(e) {} peer = null; }
+    return new Promise(function(resolve, reject) {
+      var settled = false;
+      function done(err, pid) {
+        if (settled) return; settled = true;
         clearTimeout(timer);
-        console.error('Peer error:', err);
-        if (err.type === 'unavailable-id') reject(new Error('Code déjà utilisé'));
-        else reject(err);
+        if (err) reject(err); else { myPeerId = pid; resolve(pid); }
+      }
+      var timer = setTimeout(function() {
+        done(new Error('Delai depasse — verifiez votre connexion internet'));
+        try { if (peer) peer.destroy(); } catch(e) {}
+      }, 20000);
+      peer = id ? new Peer(id, PEER_OPTIONS) : new Peer(PEER_OPTIONS);
+      peer.on('open',  function(pid) { done(null, pid); });
+      peer.on('error', function(err) {
+        console.warn('Peer error', err.type, err.message);
+        if (err.type === 'unavailable-id') {
+          done(new Error('Code deja utilise — relancez'));
+        } else if (['network','server-error','socket-error','socket-closed'].indexOf(err.type) >= 0) {
+          console.warn('Broker unreachable:', err.type);
+        } else {
+          done(new Error('Erreur reseau : ' + err.type));
+        }
       });
     });
   }
+
 
   // --- Hôte : gestion des connexions entrantes ---
   function setupHostListeners() {
@@ -1008,7 +1028,7 @@ const Network = (() => {
     }
     reconnectAttempt++;
     UI.setConnStatus('reconnecting', `Reconnexion... (${reconnectAttempt}/5)`);
-    const hostId = 'skyjo-' + roomCode;
+    const hostId = 'skyjo' + roomCode;
     hostConn = peer.connect(hostId, { reliable: true });
     hostConn.on('open', () => {
       clearTimeout(reconnectTimer);
@@ -2143,7 +2163,7 @@ const App = (() => {
     isHost = true;
     UI.setConnStatus('connecting', 'Connexion...');
     try {
-      await Network.initPeer('skyjo-' + roomCode);
+      await Network.initPeer('skyjo' + roomCode);
     } catch(e) {
       UI.setConnStatus('', '');
       UI.toast('Erreur: ' + e.message);
@@ -2211,7 +2231,7 @@ const App = (() => {
     isHost = true;
     UI.setConnStatus('connecting', 'Connexion...');
     try {
-      await Network.initPeer('skyjo-' + roomCode);
+      await Network.initPeer('skyjo' + roomCode);
     } catch(e) {
       UI.setConnStatus('', '');
       UI.toast('Erreur: ' + e.message);
@@ -2239,14 +2259,15 @@ const App = (() => {
     isHost = false;
     UI.setConnStatus('connecting', 'Connexion...');
     try {
-      await Network.initPeer('skyjo-' + roomCode + '-' + Math.random().toString(36).substr(2, 4));
+      // Client: ID aleatoire attribue par le broker (fiable, evite conflits d'ID)
+      await Network.initPeer(null);
     } catch(e) {
       UI.setConnStatus('', '');
       UI.toast('Erreur : ' + (e.message || 'connexion impossible'));
       return;
     }
     myPlayerId = myPeerId;
-    const hostId = 'skyjo-' + roomCode;
+    const hostId = 'skyjo' + roomCode;
     hostConn = peer.connect(hostId, { reliable: true, serialization: 'json' });
 
     // Timeout 20s : si WebRTC ne peut pas s'etablir (NAT symetrique, 4G->box)
