@@ -255,6 +255,26 @@ input::placeholder{color:#666}
 #action-log{width:100%;max-width:700px;padding:0 8px 4px;pointer-events:none}
 .log-entry{background:rgba(255,255,255,.04);border-left:2px solid rgba(155,89,182,.5);padding:3px 10px;border-radius:0 6px 6px 0;font-size:.72em;color:#888;margin-bottom:3px;animation:logSlide .3s ease-out}
 @keyframes logSlide{from{opacity:0;transform:translateX(-10px)}to{opacity:1;transform:translateX(0)}}
+
+/* --- Join request banner (hôte) --- */
+.join-request{background:rgba(41,128,185,.12);border:1px solid rgba(41,128,185,.4);border-radius:10px;padding:10px 12px;margin-bottom:8px;display:flex;align-items:center;gap:8px;animation:requestSlide .3s ease-out}
+@keyframes requestSlide{from{opacity:0;transform:translateY(-8px)}to{opacity:1;transform:translateY(0)}}
+.join-request .req-name{flex:1;font-weight:600;font-size:.88em;color:#fff}
+.join-request .req-name small{display:block;color:#888;font-size:.75em;font-weight:400}
+.join-request button{padding:6px 12px;font-size:.78em;min-height:32px}
+.join-request .btn-accept{background:linear-gradient(135deg,#27ae60,#2ecc71)}
+.join-request .btn-reject{background:rgba(231,76,60,.25);border:1px solid rgba(231,76,60,.5);color:#e74c3c}
+.join-request .btn-reject:hover{background:rgba(231,76,60,.5)}
+#join-requests-area{margin-bottom:8px}
+
+/* --- Waiting approval screen --- */
+#waiting-approval{text-align:center;padding:20px 0}
+#waiting-approval .wa-spinner{width:40px;height:40px;border:3px solid rgba(155,89,182,.2);border-top-color:#9b59b6;border-radius:50%;margin:0 auto 16px;animation:waSpin 1s linear infinite}
+@keyframes waSpin{to{transform:rotate(360deg)}}
+
+/* --- Kick button in player list --- */
+.lobby-players li .kick-btn{background:rgba(231,76,60,.18);border:1px solid rgba(231,76,60,.35);color:rgba(231,76,60,.8);font-size:.68em;padding:3px 9px;border-radius:8px;cursor:pointer;min-height:auto;line-height:1.4;transition:all .18s;margin-left:6px}
+.lobby-players li .kick-btn:hover{background:rgba(231,76,60,.45);color:#fff;border-color:#e74c3c}
 </style>
 </head>
 <body>
@@ -342,6 +362,16 @@ input::placeholder{color:#666}
   <div class="lobby-box">
     <h2 id="lobby-title">Salle d'attente</h2>
     <p class="subtitle" id="lobby-subtitle">Partagez le code ou le QR code</p>
+
+    <!-- Zone demandes d'accès (hôte uniquement) -->
+    <div id="join-requests-area" style="display:none"></div>
+
+    <!-- Écran d'attente d'approbation (client en attente) -->
+    <div id="waiting-approval" style="display:none">
+      <div class="wa-spinner"></div>
+      <p style="color:#ccc;font-size:.9em">En attente de l'approbation de l'hôte…</p>
+      <p style="color:#666;font-size:.78em;margin-top:8px" id="waiting-approval-name"></p>
+    </div>
     <div id="lobby-solo-info" style="display:none;margin-bottom:12px">
       <div style="background:rgba(39,174,96,.1);border:1px solid rgba(39,174,96,.3);border-radius:10px;padding:12px 14px;font-size:.85em;color:#2ecc71;text-align:center;margin-bottom:10px">
         🤖 Mode Solo — 1 bot adverse
@@ -883,21 +913,60 @@ const Network = (() => {
         if (gameState.players.length >= MAX_PLAYERS) {
           conn.send({ type: 'error', msg: 'Salle pleine' }); return;
         }
-        // Sécurité : on utilise conn.peer (non falsifiable) comme identifiant
-        connections[conn.peer] = conn;
-        gameState.players.push({ id: conn.peer, name: data.name, isHost: false });
-        gameState.totalScores[conn.peer] = 0;
-        broadcast({ type: 'state', state: gameState });
-        Render.fromState(); // Mettre à jour l'affichage de l'hôte (bouton "Lancer")
-        UI.toast(data.name + ' a rejoint');
-        ActionLog.add('👋 ' + data.name + ' a rejoint');
+        // Mettre la demande en attente d'approbation de l'hôte
+        pendingRequests[conn.peer] = { conn, name: data.name };
+        conn.send({ type: 'pending', msg: "En attente d'approbation…" });
+        renderJoinRequests();
+        UI.toast('🔔 ' + data.name + ' demande à rejoindre');
         break;
 
       case 'action':
-        // Sécurité : on ignore le data.playerId et on utilise conn.peer
         handlePlayerAction(conn.peer, data.action);
         break;
     }
+  }
+
+  const pendingRequests = {};
+
+  function approveJoin(peerId) {
+    const req = pendingRequests[peerId];
+    if (!req) return;
+    delete pendingRequests[peerId];
+    connections[peerId] = req.conn;
+    gameState.players.push({ id: peerId, name: req.name, isHost: false });
+    gameState.totalScores[peerId] = 0;
+    broadcast({ type: 'state', state: gameState });
+    req.conn.send({ type: 'approved' });
+    Render.fromState();
+    UI.toast(req.name + ' a rejoint');
+    ActionLog.add('👋 ' + req.name + ' a rejoint');
+    renderJoinRequests();
+  }
+
+  function rejectJoin(peerId) {
+    const req = pendingRequests[peerId];
+    if (!req) return;
+    delete pendingRequests[peerId];
+    try { req.conn.send({ type: 'rejected', msg: "Accès refusé par l'hôte" }); } catch(e) {}
+    setTimeout(() => { try { req.conn.close(); } catch(e) {} }, 400);
+    UI.toast('Accès refusé à ' + req.name);
+    renderJoinRequests();
+  }
+
+  function renderJoinRequests() {
+    const area = document.getElementById('join-requests-area');
+    if (!area) return;
+    const keys = Object.keys(pendingRequests);
+    if (keys.length === 0) { area.style.display = 'none'; area.innerHTML = ''; return; }
+    area.style.display = '';
+    area.innerHTML = keys.map(pid => {
+      const name = pendingRequests[pid].name;
+      return '<div class="join-request">'
+        + '<div class="req-name">' + name + '<small>demande à rejoindre</small></div>'
+        + '<button class="btn-accept" onclick="Network.approveJoin(\'' + pid + '\')">\u2714 Accepter</button>'
+        + '<button class="btn-reject" onclick="Network.rejectJoin(\'' + pid + '\')">\u2715 Refuser</button>'
+        + '</div>';
+    }).join('');
   }
 
   // --- Client : reconnexion automatique ---
@@ -935,6 +1004,20 @@ const Network = (() => {
       case 'state':
         gameState = data.state;
         Render.fromState();
+        break;
+      case 'pending':
+        // L'hôte a mis la demande en attente, afficher l'écran d'attente
+        showWaitingApproval();
+        break;
+      case 'approved':
+        // L'hôte a accepté, masquer l'écran d'attente (le state suivra)
+        hideWaitingApproval();
+        UI.toast('\u2705 Vous avez été accepté !');
+        break;
+      case 'rejected':
+        hideWaitingApproval();
+        UI.toast('\u274C ' + (data.msg || 'Accès refusé'));
+        setTimeout(() => App.backToMenu(), 1200);
         break;
       case 'error':
         UI.toast(data.msg);
@@ -996,7 +1079,7 @@ const Network = (() => {
   return {
     initPeer, setupHostListeners, tryReconnect, scheduleReconnect,
     broadcastState, broadcastToast, broadcastLog, broadcastBoom,
-    sendToHost, generateRoomCode
+    sendToHost, generateRoomCode, approveJoin, rejectJoin
   };
 })();
 
@@ -1567,7 +1650,11 @@ const Render = (() => {
     list.innerHTML = gameState.players.map(p => {
       const badge = p.isHost ? '<span class="host-badge">HÔTE</span>' : (p.isBot ? '<span class="host-badge" style="background:#27ae60">🤖 BOT</span>' : '');
       const me = p.id === myPlayerId ? ' (vous)' : '';
-      return `<li>${p.name}${me} ${badge}</li>`;
+      // Bouton expulser visible pour l'hôte uniquement, sur les autres joueurs non-bot
+      const kickBtn = (isHost && !p.isHost && !p.isBot)
+        ? `<button class="kick-btn" onclick="App.kickPlayer('${p.id}')">✕ Expulser</button>`
+        : '';
+      return `<li>${p.name}${me} ${badge}${kickBtn}</li>`;
     }).join('');
 
     const startBtn = document.getElementById('start-btn');
@@ -2195,13 +2282,48 @@ const App = (() => {
     initRound();
   }
 
-  return { showJoinScreen, createSoloGame, createGame, switchToMulti, setBotDifficulty, joinGame, showLobby, copyCode, leaveLobby, backToMenu, startGame, nextRound };
+  function kickPlayer(playerId) {
+    if (!isHost || !gameState) return;
+    const player = gameState.players.find(p => p.id === playerId);
+    if (!player || player.isHost) return;
+    const conn = connections[playerId];
+    if (conn) {
+      try { conn.send({ type: 'rejected', msg: 'Vous avez été expulsé par l\'hôte' }); } catch(e) {}
+      setTimeout(() => { try { conn.close(); } catch(e) {} }, 400);
+    }
+    delete connections[playerId];
+    gameState.players = gameState.players.filter(p => p.id !== playerId);
+    delete gameState.totalScores[playerId];
+    Network.broadcastState();
+    UI.toast(player.name + ' a été expulsé');
+    ActionLog.add('🚫 ' + player.name + ' expulsé');
+  }
+
+  return { showJoinScreen, createSoloGame, createGame, switchToMulti, setBotDifficulty, joinGame, showLobby, copyCode, leaveLobby, backToMenu, startGame, nextRound, kickPlayer };
 })();
 
 
 // ============================================================
 // HELPERS GLOBAUX — Fonctions restant accessibles globalement
 // ============================================================
+
+function showWaitingApproval() {
+  UI.showScreen('screen-lobby');
+  document.getElementById('waiting-approval').style.display = '';
+  document.getElementById('lobby-solo-info').style.display = 'none';
+  document.getElementById('lobby-multi-info').style.display = 'none';
+  document.getElementById('lobby-players').style.display = 'none';
+  document.querySelector('#screen-lobby .btn-group').style.display = 'none';
+  document.getElementById('join-requests-area').style.display = 'none';
+  const nameEl = document.getElementById('waiting-approval-name');
+  if (nameEl) nameEl.textContent = 'Salle : ' + (roomCode || '');
+}
+
+function hideWaitingApproval() {
+  document.getElementById('waiting-approval').style.display = 'none';
+  document.getElementById('lobby-players').style.display = '';
+  document.querySelector('#screen-lobby .btn-group').style.display = '';
+}
 
 function generateQR() {
   const url = window.location.href.split('?')[0] + '?room=' + roomCode;
