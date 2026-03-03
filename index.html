@@ -34,6 +34,16 @@ input::placeholder{color:#666}
 /* --- Cards --- */
 .card{width:62px;height:86px;border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:2.5em;font-weight:900;cursor:pointer;transition:all .2s;position:relative;border:2px solid rgba(255,255,255,.18);letter-spacing:-1px}
 .card:active{transform:scale(.95)}
+
+/* --- Card flip animation --- */
+.card-flip-wrapper{width:62px;height:86px;perspective:600px;display:inline-flex;flex-shrink:0}
+.card-flip-wrapper .card{width:100%;height:100%;backface-visibility:hidden;-webkit-backface-visibility:hidden}
+@keyframes cardFlip{
+  0%{transform:rotateY(0deg)}
+  50%{transform:rotateY(90deg)}
+  100%{transform:rotateY(0deg)}
+}
+.card.flipping{animation:cardFlip .35s ease-in-out}
 .card.face-down{background-image:url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 52 72'><defs><linearGradient id='bg' x1='0%' y1='0%' x2='100%' y2='100%'><stop offset='0%' style='stop-color:%231565c0'/><stop offset='100%' style='stop-color:%230a3d8f'/></linearGradient><pattern id='d' x='0' y='0' width='8' height='8' patternUnits='userSpaceOnUse'><polygon points='4,0.5 7.5,4 4,7.5 0.5,4' fill='none' stroke='rgba(255,255,255,0.07)' stroke-width='0.5'/></pattern></defs><rect width='52' height='72' rx='5' ry='5' fill='url(%23bg)'/><rect width='52' height='72' rx='5' ry='5' fill='url(%23d)'/><rect x='2.5' y='2.5' width='47' height='67' rx='4' ry='4' fill='none' stroke='rgba(255,255,255,0.25)' stroke-width='1'/><rect x='4' y='4' width='44' height='64' rx='3' ry='3' fill='none' stroke='rgba(255,255,255,0.1)' stroke-width='0.5'/><g transform='translate(26,36) rotate(-35)'><text font-family='Arial Black,Arial,sans-serif' font-size='13' font-weight='900' fill='rgba(255,255,255,0.18)' text-anchor='middle' dominant-baseline='middle' letter-spacing='1'>SKYJO</text></g><g transform='translate(26,36) rotate(-35)'><text font-family='Arial Black,Arial,sans-serif' font-size='12' font-weight='900' fill='rgba(255,255,255,0.9)' text-anchor='middle' dominant-baseline='middle' letter-spacing='1' stroke='rgba(0,50,150,0.4)' stroke-width='0.3'>SKYJO</text></g><circle cx='26' cy='36' r='14' fill='none' stroke='rgba(255,255,255,0.15)' stroke-width='1'/><circle cx='7' cy='7' r='1.5' fill='rgba(255,255,255,0.25)'/><circle cx='45' cy='7' r='1.5' fill='rgba(255,255,255,0.25)'/><circle cx='7' cy='65' r='1.5' fill='rgba(255,255,255,0.25)'/><circle cx='45' cy='65' r='1.5' fill='rgba(255,255,255,0.25)'/></svg>");background-size:cover;background-position:center;color:transparent;cursor:pointer;border-color:rgba(30,100,200,0.5)}
 .card.face-down::before,.card.face-down::after{content:none}
 .card.eliminated{opacity:0;pointer-events:none;transform:scale(0)}
@@ -223,8 +233,8 @@ input::placeholder{color:#666}
 }
 
 /* --- Fullscreen button --- */
-#fullscreen-btn{position:fixed;top:10px;right:10px;z-index:500;background:rgba(155,89,182,.7);border:none;color:#fff;border-radius:10px;padding:8px 12px;font-size:1.2em;cursor:pointer;backdrop-filter:blur(10px);min-height:42px;min-width:42px;line-height:1;transition:background .2s;box-shadow:0 2px 8px rgba(0,0,0,.3)}
-#fullscreen-btn:hover,#fullscreen-btn:active{background:rgba(155,89,182,1)}
+#fullscreen-btn{position:fixed;top:8px;right:8px;z-index:500;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);color:rgba(255,255,255,.35);border-radius:8px;padding:5px 8px;font-size:.85em;cursor:pointer;backdrop-filter:blur(6px);min-height:28px;min-width:28px;line-height:1;transition:all .25s;box-shadow:none}
+#fullscreen-btn:hover,#fullscreen-btn:active{background:rgba(155,89,182,.5);color:#fff;border-color:rgba(155,89,182,.6);box-shadow:0 2px 8px rgba(0,0,0,.3)}
 
 /* --- iOS fullscreen tip --- */
 #fs-tip{position:fixed;bottom:70px;left:50%;transform:translateX(-50%);background:rgba(26,26,46,.97);color:#fff;padding:14px 20px;border-radius:14px;font-size:.82em;z-index:600;text-align:center;max-width:300px;display:none;border:1px solid rgba(155,89,182,.4);box-shadow:0 4px 20px rgba(0,0,0,.5)}
@@ -310,6 +320,7 @@ input::placeholder{color:#666}
     <button class="secondary" onclick="App.showJoinScreen()">Rejoindre</button>
   </div>
   <div class="leaderboard-box" id="menu-leaderboard" style="margin-top:24px"></div>
+  <button id="reset-lb-btn" onclick="UI.confirmResetLeaderboard()" style="margin-top:8px;background:none;border:1px solid rgba(231,76,60,.3);color:rgba(231,76,60,.5);font-size:.72em;font-weight:600;padding:4px 14px;border-radius:20px;cursor:pointer;min-height:auto;transition:all .2s" onmouseover="this.style.borderColor='rgba(231,76,60,.7)';this.style.color='#e74c3c'" onmouseout="this.style.borderColor='rgba(231,76,60,.3)';this.style.color='rgba(231,76,60,.5)'">🗑 Réinitialiser le classement</button>
   <p style="position:fixed;bottom:10px;left:50%;transform:translateX(-50%);font-size:.68em;color:rgba(255,255,255,.2);white-space:nowrap;pointer-events:none">Pour quitter ou revenir à l'accueil — rafraîchir la page</p>
 </div>
 
@@ -498,7 +509,10 @@ const Leaderboard = (() => {
     });
     container.innerHTML = html;
   }
-  return { update, render };
+  function reset() {
+    try { localStorage.removeItem('skyjo_leaderboard'); } catch(e) {}
+  }
+  return { update, render, reset };
 })();
 
 
@@ -765,7 +779,25 @@ const UI = (() => {
     }
   });
 
-  return { showScreen, toast, showModal, closeModal, showRules, toggleFullscreen, closeFsTip, setConnStatus };
+  function confirmResetLeaderboard() {
+    showModal(
+      '🗑 Réinitialiser le classement',
+      'Toutes les statistiques de victoires et de parties seront supprimées définitivement.',
+      [
+        { text: 'Annuler', action: 'UI.closeModal()' },
+        { text: '⚠️ Confirmer', action: 'UI.resetLeaderboard()' }
+      ]
+    );
+  }
+
+  function resetLeaderboard() {
+    Leaderboard.reset();
+    closeModal();
+    Leaderboard.render('menu-leaderboard');
+    toast('Classement réinitialisé');
+  }
+
+  return { showScreen, toast, showModal, closeModal, showRules, toggleFullscreen, closeFsTip, setConnStatus, confirmResetLeaderboard, resetLeaderboard };
 })();
 
 
@@ -1485,6 +1517,8 @@ const Render = (() => {
         renderLobby();
         break;
       case 'reveal_initial':
+        _revealedKeys.clear();
+      /* falls through */
       case 'playing':
         UI.showScreen('screen-game');
         renderGame();
@@ -1540,6 +1574,9 @@ const Render = (() => {
     startBtn.style.display = (isHost && gameState.players.length >= 2) ? '' : 'none';
     startBtn.textContent = isSolo ? 'Jouer !' : 'Lancer la partie';
   }
+
+  // Suivi des cartes déjà révélées pour détecter les nouvelles révélations (animation flip)
+  const _revealedKeys = new Set();
 
   function renderGame() {
     const pilesArea = document.getElementById('piles-area');
@@ -1643,7 +1680,10 @@ const Render = (() => {
             playersHtml += '<div class="card eliminated"></div>';
           } else if (gameState.revealed[p.id][r][c]) {
             const val = gameState.hands[p.id][r][c];
-            playersHtml += `<div class="card ${getCardClass(val)}">${val}</div>`;
+            const key = `${p.id}-${r}-${c}`;
+            const isNew = !_revealedKeys.has(key);
+            if (isNew) _revealedKeys.add(key);
+            playersHtml += `<div class="card ${getCardClass(val)}${isNew ? ' flipping' : ''}">${val}</div>`;
           } else {
             const selectable = isCardSelectable(p.id, r, c);
             playersHtml += `<div class="card face-down ${selectable ? 'selectable' : ''}" onclick="Handlers.clickCard('${p.id}',${r},${c})"></div>`;
@@ -1878,7 +1918,7 @@ const Render = (() => {
     return `${s}s`;
   }
 
-  return { fromState, renderLobby, showRoundScoreTable };
+  return { fromState, renderLobby, showRoundScoreTable, clearFlipKeys: () => _revealedKeys.clear() };
 })();
 
 // Expose getCardClass globally (used in game logic too)
