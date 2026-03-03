@@ -364,12 +364,13 @@ input::placeholder{color:#666}
     <input type="text" id="player-name" placeholder="Votre pseudo" maxlength="12" autocomplete="off">
   </div>
   <div class="btn-group" style="margin-top:8px;flex-direction:column;width:100%;max-width:320px">
-    <button onclick="App.createSoloGame()" style="background:linear-gradient(135deg,#27ae60,#2ecc71);width:100%">🤖 Solo (vs Bot)</button>
+    <button onclick="App.createSoloGame()" style="background:linear-gradient(135deg,#27ae60,#2ecc71);width:100%;color:#fff;font-weight:700;text-shadow:0 1px 4px rgba(0,0,0,.4)">🤖 Solo (vs Bot)</button>
     <button onclick="App.createGame()" style="width:100%">👥 Créer une partie</button>
     <button class="secondary" onclick="App.showJoinScreen()" style="width:100%">🔗 Rejoindre une partie</button>
   </div>
   <div class="leaderboard-box" id="menu-leaderboard" style="margin-top:24px"></div>
   <button id="reset-lb-btn" onclick="UI.confirmResetLeaderboard()" style="margin-top:10px;background:rgba(231,76,60,.12);border:1.5px solid rgba(231,76,60,.55);color:#e74c3c;font-size:.78em;font-weight:700;padding:8px 18px;border-radius:10px;cursor:pointer;min-height:auto;transition:all .2s;letter-spacing:.2px" onmouseover="this.style.background='rgba(231,76,60,.28)';this.style.borderColor='#e74c3c'" onmouseout="this.style.background='rgba(231,76,60,.12)';this.style.borderColor='rgba(231,76,60,.55)'">🗑 Réinitialiser le classement</button>
+  <p style="margin-top:18px;font-size:.62em;color:rgba(255,255,255,.18);letter-spacing:.5px;pointer-events:none;text-align:center">crédits : claude.ai · @Pneubis</p>
 </div>
 
 <!-- SCREEN: JOIN -->
@@ -407,15 +408,15 @@ input::placeholder{color:#666}
       <p style="color:#666;font-size:.78em;margin-top:8px" id="waiting-approval-name"></p>
     </div>
     <div id="lobby-solo-info" style="display:none;margin-bottom:12px">
-      <div style="background:rgba(39,174,96,.1);border:1px solid rgba(39,174,96,.3);border-radius:10px;padding:12px 14px;font-size:.85em;color:#2ecc71;text-align:center;margin-bottom:10px">
+      <div style="background:rgba(39,174,96,.15);border:1.5px solid rgba(39,174,96,.5);border-radius:10px;padding:12px 14px;font-size:.9em;color:#fff;font-weight:700;text-align:center;margin-bottom:10px;text-shadow:0 1px 4px rgba(0,0,0,.5)">
         🤖 Mode Solo — 1 bot adverse
       </div>
       <div style="margin-bottom:10px">
-        <p style="font-size:.78em;color:#888;text-align:center;margin-bottom:8px;text-transform:uppercase;letter-spacing:.8px">Difficulté du bot</p>
+        <p style="font-size:.78em;color:#aaa;text-align:center;margin-bottom:8px;text-transform:uppercase;letter-spacing:.8px;font-weight:600">Difficulté du bot</p>
         <div style="display:flex;gap:8px;justify-content:center">
-          <button id="diff-facile"  onclick="App.setBotDifficulty('facile')"  style="flex:1;padding:10px 6px;font-size:.82em;background:rgba(39,174,96,.2);border:2px solid rgba(39,174,96,.5);color:#2ecc71">😊 Facile</button>
-          <button id="diff-moyen"   onclick="App.setBotDifficulty('moyen')"   style="flex:1;padding:10px 6px;font-size:.82em;background:rgba(241,196,15,.15);border:2px solid rgba(241,196,15,.4);color:#f1c40f">🎯 Moyen</button>
-          <button id="diff-fort"    onclick="App.setBotDifficulty('fort')"    style="flex:1;padding:10px 6px;font-size:.82em;background:rgba(231,76,60,.15);border:2px solid rgba(231,76,60,.4);color:#e74c3c">💀 Fort</button>
+          <button id="diff-facile" onclick="App.setBotDifficulty('facile')" style="flex:1;padding:12px 6px;font-size:.85em;font-weight:700;background:rgba(39,174,96,.25);border:2px solid rgba(39,174,96,.6);color:#fff;text-shadow:0 1px 3px rgba(0,0,0,.6)">😊 Facile</button>
+          <button id="diff-moyen"  onclick="App.setBotDifficulty('moyen')"  style="flex:1;padding:12px 6px;font-size:.85em;font-weight:700;background:rgba(241,196,15,.22);border:2px solid rgba(241,196,15,.6);color:#fff;text-shadow:0 1px 3px rgba(0,0,0,.6)">🎯 Moyen</button>
+          <button id="diff-fort"   onclick="App.setBotDifficulty('fort')"   style="flex:1;padding:12px 6px;font-size:.85em;font-weight:700;background:rgba(231,76,60,.22);border:2px solid rgba(231,76,60,.6);color:#fff;text-shadow:0 1px 3px rgba(0,0,0,.6)">💀 Fort</button>
         </div>
       </div>
       <button class="secondary" style="width:100%;font-size:.85em" onclick="App.switchToMulti()">🔀 Passer en multijoueur</button>
