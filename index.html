@@ -67,15 +67,18 @@ input::placeholder{color:#666}
 
 /* --- Player areas --- */
 .players-area{width:100%;max-width:700px;display:flex;flex-direction:column;gap:12px;padding:8px}
+/* Fond neutre par défaut */
 .player-zone{background:rgba(255,255,255,.05);border-radius:12px;padding:10px;border:2px solid transparent;transition:border-color .3s}
-.player-zone.pcolor-0{background:rgba(52,152,219,.10);border-color:rgba(52,152,219,.25)}
-.player-zone.pcolor-1{background:rgba(46,204,113,.10);border-color:rgba(46,204,113,.25)}
-.player-zone.pcolor-2{background:rgba(230,126,34,.10);border-color:rgba(230,126,34,.25)}
-.player-zone.pcolor-3{background:rgba(155,89,182,.10);border-color:rgba(155,89,182,.25)}
-.player-zone.pcolor-4{background:rgba(231,76,60,.10);border-color:rgba(231,76,60,.25)}
-.player-zone.pcolor-5{background:rgba(241,196,15,.10);border-color:rgba(241,196,15,.25)}
-.player-zone.pcolor-6{background:rgba(26,188,156,.10);border-color:rgba(26,188,156,.25)}
-.player-zone.pcolor-7{background:rgba(236,112,99,.10);border-color:rgba(236,112,99,.25)}
+/* Palette de couleurs par joueur — fond doux pour ne pas écraser les cartes */
+.player-zone.pcolor-0{background:rgba(52,152,219,.10);border-color:rgba(52,152,219,.25)}   /* bleu   */
+.player-zone.pcolor-1{background:rgba(46,204,113,.10);border-color:rgba(46,204,113,.25)}   /* vert   */
+.player-zone.pcolor-2{background:rgba(230,126,34,.10);border-color:rgba(230,126,34,.25)}   /* orange */
+.player-zone.pcolor-3{background:rgba(155,89,182,.10);border-color:rgba(155,89,182,.25)}   /* violet */
+.player-zone.pcolor-4{background:rgba(231,76,60,.10);border-color:rgba(231,76,60,.25)}    /* rouge  */
+.player-zone.pcolor-5{background:rgba(241,196,15,.10);border-color:rgba(241,196,15,.25)}   /* jaune  */
+.player-zone.pcolor-6{background:rgba(26,188,156,.10);border-color:rgba(26,188,156,.25)}   /* cyan   */
+.player-zone.pcolor-7{background:rgba(236,112,99,.10);border-color:rgba(236,112,99,.25)}   /* rose   */
+/* Surbrillance du tour courant — renforce la couleur du joueur */
 .player-zone.pcolor-0.current-turn{background:rgba(52,152,219,.22);border-color:rgba(52,152,219,.7);box-shadow:0 0 16px rgba(52,152,219,.3)}
 .player-zone.pcolor-1.current-turn{background:rgba(46,204,113,.22);border-color:rgba(46,204,113,.7);box-shadow:0 0 16px rgba(46,204,113,.3)}
 .player-zone.pcolor-2.current-turn{background:rgba(230,126,34,.22);border-color:rgba(230,126,34,.7);box-shadow:0 0 16px rgba(230,126,34,.3)}
@@ -84,6 +87,7 @@ input::placeholder{color:#666}
 .player-zone.pcolor-5.current-turn{background:rgba(241,196,15,.22);border-color:rgba(241,196,15,.7);box-shadow:0 0 16px rgba(241,196,15,.3)}
 .player-zone.pcolor-6.current-turn{background:rgba(26,188,156,.22);border-color:rgba(26,188,156,.7);box-shadow:0 0 16px rgba(26,188,156,.3)}
 .player-zone.pcolor-7.current-turn{background:rgba(236,112,99,.22);border-color:rgba(236,112,99,.7);box-shadow:0 0 16px rgba(236,112,99,.3)}
+/* Animation pulse "mon tour" adaptée à la couleur du joueur local (pcolor-0 par défaut) */
 .player-zone.is-me.current-turn{animation:myTurnPulse 2s ease-in-out infinite}
 @keyframes myTurnPulse{
   0%,100%{filter:brightness(1)}
@@ -178,6 +182,7 @@ input::placeholder{color:#666}
 }
 .reveal-summary .player-result .pr-grid .mini-card.empty{opacity:0;pointer-events:none}
 .reveal-summary .player-result .score-val{font-size:1.1em;font-weight:800;color:#bb86fc;min-width:52px;text-align:right;flex-shrink:0}
+
 
 /* --- Duration badge --- */
 .duration-badge{display:inline-flex;align-items:center;gap:6px;margin:10px auto 4px;padding:7px 16px;background:rgba(255,255,255,.05);border-radius:20px;color:#888;font-size:.82em;border:1px solid rgba(255,255,255,.08)}
@@ -278,12 +283,19 @@ input::placeholder{color:#666}
 </head>
 <body>
 
+<!-- ============================================================
+     DOM — OVERLAYS & FIXED ELEMENTS
+     ============================================================ -->
+
 <!-- Connection status -->
 <div id="conn-status"></div>
+
 <!-- Toast -->
 <div class="toast" id="toast"></div>
+
 <!-- Fullscreen Button -->
 <button id="fullscreen-btn" onclick="UI.toggleFullscreen()" title="Plein écran">⛶</button>
+
 <!-- iOS Fullscreen Tip -->
 <div id="fs-tip">
   <div>📱 <strong>iOS Safari</strong> ne supporte pas le plein écran natif.</div>
@@ -292,14 +304,17 @@ input::placeholder{color:#666}
     <button onclick="UI.closeFsTip()">OK compris</button>
   </div>
 </div>
+
 <!-- Notification permission banner -->
 <div id="notif-banner">
   <span>🔔 Recevoir une notif quand c'est votre tour ?</span>
   <button onclick="Notif.requestPermission()">Oui</button>
   <button class="secondary" style="min-height:36px;padding:6px 10px" onclick="Notif.dismissBanner()">Non</button>
 </div>
+
 <!-- Boom Overlay -->
 <div class="boom-overlay" id="boom-overlay"></div>
+
 <!-- Modal -->
 <div class="modal-overlay" id="modal">
   <div class="modal">
@@ -308,6 +323,10 @@ input::placeholder{color:#666}
     <div class="btn-group" id="modal-buttons"></div>
   </div>
 </div>
+
+<!-- ============================================================
+     DOM — SCREENS
+     ============================================================ -->
 
 <!-- SCREEN: MENU -->
 <div class="screen active" id="screen-menu">
@@ -353,7 +372,11 @@ input::placeholder{color:#666}
   <div class="lobby-box">
     <h2 id="lobby-title">Salle d'attente</h2>
     <p class="subtitle" id="lobby-subtitle">Partagez le code ou le QR code</p>
+
+    <!-- Zone demandes d'accès (hôte uniquement) -->
     <div id="join-requests-area" style="display:none"></div>
+
+    <!-- Écran d'attente d'approbation (client en attente) -->
     <div id="waiting-approval" style="display:none">
       <div class="wa-spinner"></div>
       <p style="color:#ccc;font-size:.9em">En attente de l'approbation de l'hôte…</p>
@@ -439,179 +462,2071 @@ input::placeholder{color:#666}
 
 <script>
 "use strict";
+// ============================================================
+// SKYJO MULTIJOUEUR — Version 1.2.0
+//
+// ARCHITECTURE (chaque section est clairement délimitée) :
+//  1. CONSTANTS        — Valeurs immuables du jeu
+//  2. STATE            — Variables globales de session
+//  3. LEADERBOARD      — Classement persistant (localStorage)
+//  4. SOUND            — Sons via Web Audio API
+//  5. NOTIFICATIONS    — API Notifications + Vibration
+//  6. UI               — Helpers d'interface (fullscreen, modals, toast)
+//  7. ACTION LOG       — Historique des actions en jeu
+//  8. NETWORK          — Couche PeerJS (création, connexion, messages)
+//  9. GAME LOGIC       — Règles du jeu (host seulement)
+//  9.5 BOT AI          — Intelligence artificielle (mode solo)
+// 10. RENDER           — Rendu DOM depuis le gameState
+// 11. CLICK HANDLERS   — Interactions utilisateur
+// 12. APP              — Orchestration (createSoloGame, createGame, etc.)
+// ============================================================
+
+
+// ============================================================
+// 1. CONSTANTS
+// ============================================================
 const CARD_COUNTS = {'-2':5,'-1':10,'0':15,'1':10,'2':10,'3':10,'4':10,'5':10,'6':10,'7':10,'8':10,'9':10,'10':10,'11':10,'12':10};
-const ROWS = 3, COLS = 4, MAX_PLAYERS = 8, END_SCORE = 100, RECONNECT_TIMEOUT_MS = 15000, MAX_LOG_ENTRIES = 5;
-let peer=null,connections={},hostConn=null,isHost=false,myPeerId='',myName='',roomCode='',gameState=null,myPlayerId='',currentScreen='screen-menu',reconnectTimer=null,reconnectAttempt=0,_rejectedByHost=false;
+const ROWS = 3;
+const COLS = 4;
+const MAX_PLAYERS = 8;
+const END_SCORE = 100;
+const RECONNECT_TIMEOUT_MS = 15000; // 15s avant d'abandonner la reconnexion
+const MAX_LOG_ENTRIES = 5;
 
-const Leaderboard=(() => {
-  function get(){try{return JSON.parse(localStorage.getItem('skyjo_leaderboard')||'{}');}catch(e){return{};}}
-  function save(lb){try{localStorage.setItem('skyjo_leaderboard',JSON.stringify(lb));}catch(e){}}
-  function update(playerName,won){const lb=get();if(!lb[playerName])lb[playerName]={wins:0,games:0};lb[playerName].games++;if(won)lb[playerName].wins++;save(lb);}
-  function render(containerId){const lb=get();const container=document.getElementById(containerId);if(!container)return;const entries=Object.entries(lb).sort((a,b)=>b[1].wins-a[1].wins||a[1].games-b[1].games);if(entries.length===0){container.innerHTML='<h3>🏆 Classement</h3><p style="color:#666;font-size:.85em;text-align:center">Aucune partie terminée</p>';return;}let html='<h3>🏆 Classement persistant</h3>';entries.slice(0,10).forEach(([name,data],i)=>{const rank=i===0?'🥇':i===1?'🥈':i===2?'🥉':(i+1);html+=`<div class="lb-row"><span class="lb-rank">${rank}</span><span class="lb-name">${name}</span><span class="lb-wins">${data.wins}W</span><span class="lb-games">${data.games}G</span></div>`;});container.innerHTML=html;}
-  function reset(){try{localStorage.removeItem('skyjo_leaderboard');}catch(e){}}
-  return{update,render,reset};
+
+// ============================================================
+// 2. STATE
+// ============================================================
+let peer = null;
+let connections = {};    // { peerId: DataConnection } — hôte uniquement
+let hostConn = null;     // DataConnection vers l'hôte — client uniquement
+let isHost = false;
+let myPeerId = '';
+let myName = '';
+let roomCode = '';
+let gameState = null;
+let myPlayerId = '';
+let currentScreen = 'screen-menu';
+let reconnectTimer = null;
+let reconnectAttempt = 0;
+let _rejectedByHost = false;
+
+
+// ============================================================
+// 3. LEADERBOARD — Classement persistant (localStorage)
+// ============================================================
+const Leaderboard = (() => {
+  function get() {
+    try { return JSON.parse(localStorage.getItem('skyjo_leaderboard') || '{}'); }
+    catch(e) { return {}; }
+  }
+  function save(lb) {
+    try { localStorage.setItem('skyjo_leaderboard', JSON.stringify(lb)); } catch(e) {}
+  }
+  function update(playerName, won) {
+    const lb = get();
+    if (!lb[playerName]) lb[playerName] = { wins: 0, games: 0 };
+    lb[playerName].games++;
+    if (won) lb[playerName].wins++;
+    save(lb);
+  }
+  function render(containerId) {
+    const lb = get();
+    const container = document.getElementById(containerId);
+    if (!container) return;
+    const entries = Object.entries(lb).sort((a, b) => b[1].wins - a[1].wins || a[1].games - b[1].games);
+    if (entries.length === 0) {
+      container.innerHTML = '<h3>🏆 Classement</h3><p style="color:#666;font-size:.85em;text-align:center">Aucune partie terminée</p>';
+      return;
+    }
+    let html = '<h3>🏆 Classement persistant</h3>';
+    entries.slice(0, 10).forEach(([name, data], i) => {
+      const rank = i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : (i + 1);
+      html += `<div class="lb-row">
+        <span class="lb-rank">${rank}</span>
+        <span class="lb-name">${name}</span>
+        <span class="lb-wins">${data.wins}W</span>
+        <span class="lb-games">${data.games}G</span>
+      </div>`;
+    });
+    container.innerHTML = html;
+  }
+  function reset() {
+    try { localStorage.removeItem('skyjo_leaderboard'); } catch(e) {}
+  }
+  return { update, render, reset };
 })();
 
-const Sound=(() => {
-  let ctx=null,enabled=true;
-  function getCtx(){if(!ctx){try{ctx=new(window.AudioContext||window.webkitAudioContext)();}catch(e){return null;}}if(ctx.state==='suspended')ctx.resume();return ctx;}
-  function play(type){if(!enabled)return;const c=getCtx();if(!c)return;try{const osc=c.createOscillator();const gain=c.createGain();osc.connect(gain);gain.connect(c.destination);switch(type){case 'card_flip':osc.type='sine';osc.frequency.setValueAtTime(880,c.currentTime);osc.frequency.exponentialRampToValueAtTime(440,c.currentTime+0.1);gain.gain.setValueAtTime(0.15,c.currentTime);gain.gain.exponentialRampToValueAtTime(0.001,c.currentTime+0.15);osc.start(c.currentTime);osc.stop(c.currentTime+0.15);break;case 'your_turn':osc.type='triangle';osc.frequency.setValueAtTime(523,c.currentTime);osc.frequency.setValueAtTime(659,c.currentTime+0.12);gain.gain.setValueAtTime(0.2,c.currentTime);gain.gain.exponentialRampToValueAtTime(0.001,c.currentTime+0.3);osc.start(c.currentTime);osc.stop(c.currentTime+0.3);break;case 'boom':osc.type='sawtooth';osc.frequency.setValueAtTime(200,c.currentTime);osc.frequency.exponentialRampToValueAtTime(40,c.currentTime+0.4);gain.gain.setValueAtTime(0.3,c.currentTime);gain.gain.exponentialRampToValueAtTime(0.001,c.currentTime+0.4);osc.start(c.currentTime);osc.stop(c.currentTime+0.4);break;case 'win':[523,659,784,1047].forEach((freq,i)=>{const o=c.createOscillator();const g=c.createGain();o.connect(g);g.connect(c.destination);o.type='triangle';o.frequency.value=freq;g.gain.setValueAtTime(0.15,c.currentTime+i*0.12);g.gain.exponentialRampToValueAtTime(0.001,c.currentTime+i*0.12+0.3);o.start(c.currentTime+i*0.12);o.stop(c.currentTime+i*0.12+0.3);});return;}}catch(e){}}
-  function toggle(){enabled=!enabled;return enabled;}
-  return{play,toggle,isEnabled:()=>enabled};
+
+// ============================================================
+// 4. SOUND — Web Audio API (sans fichier externe)
+// ============================================================
+const Sound = (() => {
+  let ctx = null;
+  let enabled = true;
+
+  function getCtx() {
+    if (!ctx) {
+      try { ctx = new (window.AudioContext || window.webkitAudioContext)(); }
+      catch(e) { return null; }
+    }
+    // Resume si suspendu (politique navigateur)
+    if (ctx.state === 'suspended') ctx.resume();
+    return ctx;
+  }
+
+  // Joue un son synthétique simple
+  function play(type) {
+    if (!enabled) return;
+    const c = getCtx();
+    if (!c) return;
+    try {
+      const osc = c.createOscillator();
+      const gain = c.createGain();
+      osc.connect(gain);
+      gain.connect(c.destination);
+
+      switch(type) {
+        case 'card_flip':
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(880, c.currentTime);
+          osc.frequency.exponentialRampToValueAtTime(440, c.currentTime + 0.1);
+          gain.gain.setValueAtTime(0.15, c.currentTime);
+          gain.gain.exponentialRampToValueAtTime(0.001, c.currentTime + 0.15);
+          osc.start(c.currentTime);
+          osc.stop(c.currentTime + 0.15);
+          break;
+        case 'your_turn':
+          osc.type = 'triangle';
+          osc.frequency.setValueAtTime(523, c.currentTime);
+          osc.frequency.setValueAtTime(659, c.currentTime + 0.12);
+          gain.gain.setValueAtTime(0.2, c.currentTime);
+          gain.gain.exponentialRampToValueAtTime(0.001, c.currentTime + 0.3);
+          osc.start(c.currentTime);
+          osc.stop(c.currentTime + 0.3);
+          break;
+        case 'boom':
+          osc.type = 'sawtooth';
+          osc.frequency.setValueAtTime(200, c.currentTime);
+          osc.frequency.exponentialRampToValueAtTime(40, c.currentTime + 0.4);
+          gain.gain.setValueAtTime(0.3, c.currentTime);
+          gain.gain.exponentialRampToValueAtTime(0.001, c.currentTime + 0.4);
+          osc.start(c.currentTime);
+          osc.stop(c.currentTime + 0.4);
+          break;
+        case 'win':
+          [523, 659, 784, 1047].forEach((freq, i) => {
+            const o = c.createOscillator();
+            const g = c.createGain();
+            o.connect(g); g.connect(c.destination);
+            o.type = 'triangle';
+            o.frequency.value = freq;
+            g.gain.setValueAtTime(0.15, c.currentTime + i * 0.12);
+            g.gain.exponentialRampToValueAtTime(0.001, c.currentTime + i * 0.12 + 0.3);
+            o.start(c.currentTime + i * 0.12);
+            o.stop(c.currentTime + i * 0.12 + 0.3);
+          });
+          return;
+      }
+    } catch(e) {}
+  }
+
+  function toggle() {
+    enabled = !enabled;
+    return enabled;
+  }
+
+  return { play, toggle, isEnabled: () => enabled };
 })();
 
-const Notif=(() => {
-  let permitted=false;
-  function init(){if(!('Notification' in window))return;if(localStorage.getItem('skyjo_notif_asked'))return;document.getElementById('notif-banner').classList.add('show');}
-  async function requestPermission(){dismissBanner();localStorage.setItem('skyjo_notif_asked','1');if(!('Notification' in window))return;const result=await Notification.requestPermission();permitted=(result==='granted');if(permitted)UI.toast('🔔 Notifications activées');}
-  function dismissBanner(){document.getElementById('notif-banner').classList.remove('show');localStorage.setItem('skyjo_notif_asked','1');}
-  function notifyMyTurn(){Sound.play('your_turn');if(navigator.vibrate)navigator.vibrate([150,80,150]);if(permitted&&document.hidden){try{new Notification('SKYJO — C\'est votre tour !',{body:'À vous de jouer',icon:'https://public-frontend-cos.metadl.com/mgx/img/favicon_atoms.ico',tag:'skyjo-turn',renotify:true});}catch(e){}}}
-  function checkGranted(){if('Notification' in window&&Notification.permission==='granted'){permitted=true;localStorage.setItem('skyjo_notif_asked','1');}}
-  return{init,requestPermission,dismissBanner,notifyMyTurn,checkGranted};
+
+// ============================================================
+// 5. NOTIFICATIONS — Notifications navigateur + Vibration
+// ============================================================
+const Notif = (() => {
+  let permitted = false;
+
+  // Affiche la bannière de demande si pas encore décidé
+  function init() {
+    if (!('Notification' in window)) return;
+    if (localStorage.getItem('skyjo_notif_asked')) return;
+    document.getElementById('notif-banner').classList.add('show');
+  }
+
+  async function requestPermission() {
+    dismissBanner();
+    localStorage.setItem('skyjo_notif_asked', '1');
+    if (!('Notification' in window)) return;
+    const result = await Notification.requestPermission();
+    permitted = (result === 'granted');
+    if (permitted) UI.toast('🔔 Notifications activées');
+  }
+
+  function dismissBanner() {
+    document.getElementById('notif-banner').classList.remove('show');
+    localStorage.setItem('skyjo_notif_asked', '1');
+  }
+
+  // Notification + vibration quand c'est le tour du joueur
+  function notifyMyTurn() {
+    Sound.play('your_turn');
+    // Vibration (mobile)
+    if (navigator.vibrate) navigator.vibrate([150, 80, 150]);
+    // Notification navigateur si permission
+    if (permitted && document.hidden) {
+      try {
+        new Notification('SKYJO — C\'est votre tour !', {
+          body: 'À vous de jouer',
+          icon: 'https://public-frontend-cos.metadl.com/mgx/img/favicon_atoms.ico',
+          tag: 'skyjo-turn',
+          renotify: true
+        });
+      } catch(e) {}
+    }
+  }
+
+  // Vérifie si permission déjà accordée
+  function checkGranted() {
+    if ('Notification' in window && Notification.permission === 'granted') {
+      permitted = true;
+      localStorage.setItem('skyjo_notif_asked', '1');
+    }
+  }
+
+  return { init, requestPermission, dismissBanner, notifyMyTurn, checkGranted };
 })();
 
-const UI=(() => {
-  const isIOS=/iPad|iPhone|iPod/.test(navigator.userAgent)&&!window.MSStream;
-  function showScreen(id){document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));document.getElementById(id).classList.add('active');currentScreen=id;if(id==='screen-menu')Leaderboard.render('menu-leaderboard');}
-  function toast(msg){const el=document.getElementById('toast');el.textContent=msg;el.classList.add('show');setTimeout(()=>el.classList.remove('show'),2500);}
-  function showModal(title,text,buttons){document.getElementById('modal-title').textContent=title;document.getElementById('modal-text').innerHTML=text;const btnContainer=document.getElementById('modal-buttons');btnContainer.innerHTML=buttons.map(b=>`<button onclick="${b.action}">${b.text}</button>`).join('');document.getElementById('modal').classList.add('active');}
-  function closeModal(){document.getElementById('modal').classList.remove('active');}
-  function showRules(){showModal('Règles Skyjo',`<div style="text-align:left;font-size:.85em;max-height:60vh;overflow-y:auto;line-height:1.6"><b>But :</b> Avoir le score le plus bas à la fin de la partie.<br><br><b>Début :</b> Chaque joueur retourne 2 cartes. Le joueur avec la plus haute somme commence.<br><br><b>Tour :</b><br>• Piochez depuis la <b>pioche</b> ou la <b>défausse</b><br>• Si pioche : placez la carte sur votre grille OU défaussez-la et retournez une carte face cachée<br>• Si défausse : vous DEVEZ placer la carte sur votre grille<br><br><b>Colonnes :</b> 3 cartes identiques dans une colonne → éliminées !<br><br><b>Fin de manche :</b> Quand un joueur a toutes ses cartes visibles, chaque autre joueur joue un dernier tour.<br><br><b>Score doublé :</b> Si le joueur qui termine n'a pas le score le plus bas, son score est doublé !<br><br><b>Fin de partie :</b> Quand un joueur atteint 100 points. Le joueur avec le score le plus bas gagne !<br><br><b>Valeurs :</b> -2 (×5), -1 (×10), 0 (×15), 1-12 (×10 chaque)</div>`,[{text:'Compris !',action:'UI.closeModal()'}]);}
-  function toggleFullscreen(){const btn=document.getElementById('fullscreen-btn');if(isIOS){const tip=document.getElementById('fs-tip');tip.style.display=tip.style.display==='block'?'none':'block';return;}const isFs=!!(document.fullscreenElement||document.webkitFullscreenElement||document.mozFullScreenElement);if(!isFs){const el=document.documentElement;const req=el.requestFullscreen||el.webkitRequestFullscreen||el.mozRequestFullScreen||el.msRequestFullscreen;if(req){req.call(el).then(()=>{btn.textContent='✕';btn.title='Quitter le plein écran';try{screen.orientation?.lock?.('portrait');}catch(e){}}).catch(()=>toast('Plein écran non disponible'));}else{toast('Plein écran non supporté sur ce navigateur');}}else{const exit=document.exitFullscreen||document.webkitExitFullscreen||document.mozCancelFullScreen;if(exit)exit.call(document);btn.textContent='⛶';btn.title='Plein écran';}}
-  function closeFsTip(){document.getElementById('fs-tip').style.display='none';}
-  function setConnStatus(status,msg){const el=document.getElementById('conn-status');el.className=status;el.textContent=msg||'';}
-  ['fullscreenchange','webkitfullscreenchange','mozfullscreenchange'].forEach(ev=>{document.addEventListener(ev,()=>{const btn=document.getElementById('fullscreen-btn');const isFs=!!(document.fullscreenElement||document.webkitFullscreenElement||document.mozFullScreenElement);btn.textContent=isFs?'✕':'⛶';btn.title=isFs?'Quitter le plein écran':'Plein écran';});});
-  window.addEventListener('load',()=>{if(isIOS){const btn=document.getElementById('fullscreen-btn');btn.textContent='📱';btn.title='Plein écran (aide)';if(!localStorage.getItem('skyjo_fs_tip_shown')){setTimeout(()=>{document.getElementById('fs-tip').style.display='block';localStorage.setItem('skyjo_fs_tip_shown','1');},1500);}}});
-  window.addEventListener('beforeunload',(e)=>{if(gameState&&gameState.phase!=='lobby'&&gameState.phase!=='game_over'){e.preventDefault();e.returnValue='';}});
-  function confirmResetLeaderboard(){showModal('🗑 Réinitialiser le classement','Toutes les statistiques de victoires et de parties seront supprimées définitivement.',[{text:'Annuler',action:'UI.closeModal()'},{text:'⚠️ Confirmer',action:'UI.resetLeaderboard()'}]);}
-  function resetLeaderboard(){Leaderboard.reset();closeModal();Leaderboard.render('menu-leaderboard');toast('Classement réinitialisé');}
-  return{showScreen,toast,showModal,closeModal,showRules,toggleFullscreen,closeFsTip,setConnStatus,confirmResetLeaderboard,resetLeaderboard};
+
+// ============================================================
+// 6. UI — Helpers d'interface
+// ============================================================
+const UI = (() => {
+  const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+
+  function showScreen(id) {
+    document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+    document.getElementById(id).classList.add('active');
+    currentScreen = id;
+    if (id === 'screen-menu') Leaderboard.render('menu-leaderboard');
+  }
+
+  function toast(msg) {
+    const el = document.getElementById('toast');
+    el.textContent = msg;
+    el.classList.add('show');
+    setTimeout(() => el.classList.remove('show'), 2500);
+  }
+
+  function showModal(title, text, buttons) {
+    document.getElementById('modal-title').textContent = title;
+    document.getElementById('modal-text').innerHTML = text;
+    const btnContainer = document.getElementById('modal-buttons');
+    btnContainer.innerHTML = buttons.map(b =>
+      `<button onclick="${b.action}">${b.text}</button>`
+    ).join('');
+    document.getElementById('modal').classList.add('active');
+  }
+
+  function closeModal() {
+    document.getElementById('modal').classList.remove('active');
+  }
+
+  function showRules() {
+    showModal('Règles Skyjo', `
+      <div style="text-align:left;font-size:.85em;max-height:60vh;overflow-y:auto;line-height:1.6">
+      <b>But :</b> Avoir le score le plus bas à la fin de la partie.<br><br>
+      <b>Début :</b> Chaque joueur retourne 2 cartes. Le joueur avec la plus haute somme commence.<br><br>
+      <b>Tour :</b><br>
+      • Piochez depuis la <b>pioche</b> ou la <b>défausse</b><br>
+      • Si pioche : placez la carte sur votre grille OU défaussez-la et retournez une carte face cachée<br>
+      • Si défausse : vous DEVEZ placer la carte sur votre grille<br><br>
+      <b>Colonnes :</b> 3 cartes identiques dans une colonne → éliminées !<br><br>
+      <b>Fin de manche :</b> Quand un joueur a toutes ses cartes visibles, chaque autre joueur joue un dernier tour.<br><br>
+      <b>Score doublé :</b> Si le joueur qui termine n'a pas le score le plus bas, son score est doublé !<br><br>
+      <b>Fin de partie :</b> Quand un joueur atteint 100 points. Le joueur avec le score le plus bas gagne !<br><br>
+      <b>Valeurs :</b> -2 (×5), -1 (×10), 0 (×15), 1-12 (×10 chaque)
+      </div>
+    `, [{ text: 'Compris !', action: 'UI.closeModal()' }]);
+  }
+
+  // --- Fullscreen ---
+  function toggleFullscreen() {
+    const btn = document.getElementById('fullscreen-btn');
+    if (isIOS) {
+      const tip = document.getElementById('fs-tip');
+      tip.style.display = tip.style.display === 'block' ? 'none' : 'block';
+      return;
+    }
+    const isFs = !!(document.fullscreenElement || document.webkitFullscreenElement || document.mozFullScreenElement);
+    if (!isFs) {
+      const el = document.documentElement;
+      const req = el.requestFullscreen || el.webkitRequestFullscreen || el.mozRequestFullScreen || el.msRequestFullscreen;
+      if (req) {
+        req.call(el).then(() => {
+          btn.textContent = '✕';
+          btn.title = 'Quitter le plein écran';
+          try { screen.orientation?.lock?.('portrait'); } catch(e) {}
+        }).catch(() => toast('Plein écran non disponible'));
+      } else {
+        toast('Plein écran non supporté sur ce navigateur');
+      }
+    } else {
+      const exit = document.exitFullscreen || document.webkitExitFullscreen || document.mozCancelFullScreen;
+      if (exit) exit.call(document);
+      btn.textContent = '⛶';
+      btn.title = 'Plein écran';
+    }
+  }
+
+  function closeFsTip() {
+    document.getElementById('fs-tip').style.display = 'none';
+  }
+
+  function setConnStatus(status, msg) {
+    const el = document.getElementById('conn-status');
+    el.className = status; // '', 'connecting', 'reconnecting', 'connected'
+    el.textContent = msg || '';
+  }
+
+  // Sync fullscreen button icon
+  ['fullscreenchange', 'webkitfullscreenchange', 'mozfullscreenchange'].forEach(ev => {
+    document.addEventListener(ev, () => {
+      const btn = document.getElementById('fullscreen-btn');
+      const isFs = !!(document.fullscreenElement || document.webkitFullscreenElement || document.mozFullScreenElement);
+      btn.textContent = isFs ? '✕' : '⛶';
+      btn.title = isFs ? 'Quitter le plein écran' : 'Plein écran';
+    });
+  });
+
+  // iOS: icône différente + tip automatique
+  window.addEventListener('load', () => {
+    if (isIOS) {
+      const btn = document.getElementById('fullscreen-btn');
+      btn.textContent = '📱';
+      btn.title = 'Plein écran (aide)';
+      if (!localStorage.getItem('skyjo_fs_tip_shown')) {
+        setTimeout(() => {
+          document.getElementById('fs-tip').style.display = 'block';
+          localStorage.setItem('skyjo_fs_tip_shown', '1');
+        }, 1500);
+      }
+    }
+  });
+
+  // Interception du bouton retour / fermeture d'onglet
+  window.addEventListener('beforeunload', (e) => {
+    if (gameState && gameState.phase !== 'lobby' && gameState.phase !== 'game_over') {
+      e.preventDefault();
+      e.returnValue = '';
+    }
+  });
+
+  function confirmResetLeaderboard() {
+    showModal(
+      '🗑 Réinitialiser le classement',
+      'Toutes les statistiques de victoires et de parties seront supprimées définitivement.',
+      [
+        { text: 'Annuler', action: 'UI.closeModal()' },
+        { text: '⚠️ Confirmer', action: 'UI.resetLeaderboard()' }
+      ]
+    );
+  }
+
+  function resetLeaderboard() {
+    Leaderboard.reset();
+    closeModal();
+    Leaderboard.render('menu-leaderboard');
+    toast('Classement réinitialisé');
+  }
+
+  return { showScreen, toast, showModal, closeModal, showRules, toggleFullscreen, closeFsTip, setConnStatus, confirmResetLeaderboard, resetLeaderboard };
 })();
 
-const ActionLog=(() => {
-  const entries=[];
-  function add(msg){const container=document.getElementById('action-log');if(!container)return;entries.push(msg);if(entries.length>MAX_LOG_ENTRIES)entries.shift();container.innerHTML=entries.map(e=>`<div class="log-entry">${e}</div>`).join('');}
-  function clear(){entries.length=0;const container=document.getElementById('action-log');if(container)container.innerHTML='';}
-  return{add,clear};
+
+// ============================================================
+// 7. ACTION LOG — Historique des actions (in-game)
+// ============================================================
+const ActionLog = (() => {
+  const entries = [];
+
+  function add(msg) {
+    const container = document.getElementById('action-log');
+    if (!container) return;
+    entries.push(msg);
+    if (entries.length > MAX_LOG_ENTRIES) entries.shift();
+    container.innerHTML = entries.map(e =>
+      `<div class="log-entry">${e}</div>`
+    ).join('');
+  }
+
+  function clear() {
+    entries.length = 0;
+    const container = document.getElementById('action-log');
+    if (container) container.innerHTML = '';
+  }
+
+  return { add, clear };
 })();
 
-const Network=(() => {
-  const ICE_CONFIG={iceServers:[{urls:'stun:stun.l.google.com:19302'},{urls:'stun:stun1.l.google.com:19302'},{urls:'stun:stun2.l.google.com:19302'},{urls:'stun:stun3.l.google.com:19302'},{urls:'stun:stun4.l.google.com:19302'},{urls:'stun:stun.cloudflare.com:3478'},{urls:'stun:freestun.net:3479'},{urls:'turn:freestun.net:3479',username:'free',credential:'free'},{urls:'turns:freestun.net:5350',username:'free',credential:'free'}],iceCandidatePoolSize:10};
-  function initPeer(id){if(peer){try{peer.destroy();}catch(e){}peer=null;}return new Promise(function(resolve,reject){var settled=false;function done(err,pid){if(settled)return;settled=true;clearTimeout(timer);if(err)reject(err);else{myPeerId=pid;resolve(pid);}}var timer=setTimeout(function(){done(new Error('Serveur PeerJS inaccessible (timeout 15s)'));try{if(peer){peer.destroy();peer=null;}}catch(e){}},15000);try{var opts={config:ICE_CONFIG,debug:1};peer=id?new Peer(id,opts):new Peer(opts);}catch(e){done(new Error(e.message));return;}peer.on('open',function(pid){UI.setConnStatus('connecting','📡 Connecté au serveur');done(null,pid);});peer.on('error',function(err){console.warn('PeerJS error:',err.type,err.message);if(err.type==='unavailable-id'){done(new Error('Code déjà utilisé — relancez'));}else{done(new Error('Erreur réseau ('+err.type+') — vérifiez votre connexion'));}});peer.on('disconnected',function(){if(!settled)peer.reconnect();});});}
-  function setupHostListeners(){peer.on('connection',(conn)=>{conn.on('open',()=>{conn.on('data',(data)=>handleHostMessage(conn,data));});conn.on('close',()=>handleDisconnect(conn.peer));conn.on('error',(e)=>console.warn('conn error',e));});}
-  function handleHostMessage(conn,data){switch(data.type){case 'join':if(!gameState){conn.send({type:'error',msg:'Salle non prête, réessayez'});return;}if(gameState.phase!=='lobby'){conn.send({type:'error',msg:'Partie déjà en cours'});return;}if(gameState.players.length>=MAX_PLAYERS){conn.send({type:'error',msg:'Salle pleine'});return;}pendingRequests[conn.peer]={conn,name:data.name};conn.send({type:'pending',msg:"En attente d'approbation…"});renderJoinRequests();UI.toast('🔔 '+data.name+' demande à rejoindre');break;case 'action':if(!gameState)return;handlePlayerAction(conn.peer,data.action);break;}}
-  const pendingRequests={};
-  function approveJoin(peerId){const req=pendingRequests[peerId];if(!req)return;delete pendingRequests[peerId];connections[peerId]=req.conn;gameState.players.push({id:peerId,name:req.name,isHost:false});gameState.totalScores[peerId]=0;req.conn.send({type:'approved'});broadcast({type:'state',state:gameState});Render.fromState();UI.toast(req.name+' a rejoint');ActionLog.add('👋 '+req.name+' a rejoint');renderJoinRequests();}
-  function rejectJoin(peerId){const req=pendingRequests[peerId];if(!req)return;delete pendingRequests[peerId];try{req.conn.send({type:'rejected',msg:"Accès refusé par l'hôte"});}catch(e){}setTimeout(()=>{try{req.conn.close();}catch(e){}},400);UI.toast('Accès refusé à '+req.name);renderJoinRequests();}
-  function renderJoinRequests(){const area=document.getElementById('join-requests-area');if(!area)return;const keys=Object.keys(pendingRequests);if(keys.length===0){area.style.display='none';area.innerHTML='';return;}area.style.display='';area.innerHTML=keys.map(pid=>{const name=pendingRequests[pid].name;return'<div class="join-request"><div class="req-name">'+name+'<small>demande à rejoindre</small></div><button class="btn-accept" onclick="Network.approveJoin(\''+pid+'\')">\u2714 Accepter</button><button class="btn-reject" onclick="Network.rejectJoin(\''+pid+'\')">\u2715 Refuser</button></div>';}).join('');}
-  function tryReconnect(){if(reconnectAttempt>=5){UI.toast('Connexion perdue définitivement');UI.setConnStatus('','');App.backToMenu();return;}reconnectAttempt++;UI.setConnStatus('reconnecting',`Reconnexion... (${reconnectAttempt}/5)`);const hostId='skyjo'+roomCode;hostConn=peer.connect(hostId,{reliable:true});hostConn.on('open',()=>{clearTimeout(reconnectTimer);reconnectAttempt=0;UI.setConnStatus('connected','');hostConn.send({type:'rejoin',id:myPeerId,name:myName});hostConn.on('data',(data)=>handleClientMessage(data));});hostConn.on('close',()=>scheduleReconnect());hostConn.on('error',()=>scheduleReconnect());}
-  function scheduleReconnect(){if(currentScreen==='screen-menu')return;const delay=Math.min(2000*reconnectAttempt,8000);reconnectTimer=setTimeout(tryReconnect,delay);}
-  function handleClientMessage(data){switch(data.type){case 'state':gameState=data.state;Render.fromState();break;case 'pending':showWaitingApproval();break;case 'approved':hideWaitingApproval();UI.toast('\u2705 Vous avez été accepté !');break;case 'rejected':hideWaitingApproval();UI.toast('\u274C '+(data.msg||'Accès refusé'));setTimeout(()=>App.backToMenu(),1200);break;case 'error':UI.toast(data.msg);break;case 'toast':UI.toast(data.msg);break;case 'log':ActionLog.add(data.msg);break;case 'boom':triggerBoom();Sound.play('boom');break;}}
-  function broadcast(msg){Object.values(connections).forEach(conn=>{try{conn.send(msg);}catch(e){}});}
-  function broadcastState(){broadcast({type:'state',state:gameState});Render.fromState();setTimeout(()=>Bot.maybePlay(),80);}
-  function broadcastToast(msg){broadcast({type:'toast',msg});UI.toast(msg);}
-  function broadcastLog(msg){broadcast({type:'log',msg});ActionLog.add(msg);}
-  function broadcastBoom(){broadcast({type:'boom'});triggerBoom();Sound.play('boom');}
-  function sendToHost(data){if(hostConn&&hostConn.open)hostConn.send(data);}
-  function generateRoomCode(){const chars='ABCDEFGHJKLMNPQRSTUVWXYZ23456789';let code='';for(let i=0;i<5;i++)code+=chars[Math.floor(Math.random()*chars.length)];return code;}
-  return{initPeer,setupHostListeners,tryReconnect,scheduleReconnect,broadcastState,broadcastToast,broadcastLog,broadcastBoom,sendToHost,generateRoomCode,approveJoin,rejectJoin,isPending:(id)=>!!pendingRequests[id],removePending:(id)=>{delete pendingRequests[id];renderJoinRequests();}};
+
+// ============================================================
+// 8. NETWORK — Couche PeerJS
+//
+// Amélioration clé : TURN servers ajoutés pour NAT symétrique
+// + validation des actions côté hôte (playerId == conn.peer)
+// + reconnexion automatique côté client
+// ============================================================
+const Network = (() => {
+
+  // ── CONFIGURATION RESEAU ────────────────────────────────────────────
+  // Mode cloud PeerJS (sans host/port explicite = serveur officiel geré par PeerJS Inc.)
+  // + ICE : STUN Google + TURN freestun public pour traversee NAT
+  const ICE_CONFIG = {
+    iceServers: [
+      { urls: 'stun:stun.l.google.com:19302' },
+      { urls: 'stun:stun1.l.google.com:19302' },
+      { urls: 'stun:stun2.l.google.com:19302' },
+      { urls: 'stun:stun3.l.google.com:19302' },
+      { urls: 'stun:stun4.l.google.com:19302' },
+      { urls: 'stun:stun.cloudflare.com:3478' },
+      { urls: 'stun:freestun.net:3479' },
+      { urls: 'turn:freestun.net:3479',  username: 'free', credential: 'free' },
+      { urls: 'turns:freestun.net:5350', username: 'free', credential: 'free' },
+    ],
+    iceCandidatePoolSize: 10,
+  };
+
+  // initPeer : id=null => ID aleatoire attribue par le serveur (pour les clients)
+  function initPeer(id) {
+    if (peer) { try { peer.destroy(); } catch(e) {} peer = null; }
+    return new Promise(function(resolve, reject) {
+      var settled = false;
+      function done(err, pid) {
+        if (settled) return; settled = true; clearTimeout(timer);
+        if (err) reject(err); else { myPeerId = pid; resolve(pid); }
+      }
+      var timer = setTimeout(function() {
+        done(new Error('Serveur PeerJS inaccessible (timeout 15s)'));
+        try { if (peer) { peer.destroy(); peer = null; } } catch(e) {}
+      }, 15000);
+      try {
+        // Sans host/port : utilise le CDN PeerJS officiel (plus stable)
+        var opts = { config: ICE_CONFIG, debug: 1 };
+        peer = id ? new Peer(id, opts) : new Peer(opts);
+      } catch(e) { done(new Error(e.message)); return; }
+      peer.on('open', function(pid) {
+        UI.setConnStatus('connecting', '📡 Connecté au serveur');
+        done(null, pid);
+      });
+      peer.on('error', function(err) {
+        console.warn('PeerJS error:', err.type, err.message);
+        if (err.type === 'unavailable-id') {
+          done(new Error('Code déjà utilisé — relancez'));
+        } else {
+          done(new Error('Erreur réseau (' + err.type + ') — vérifiez votre connexion'));
+        }
+      });
+      peer.on('disconnected', function() {
+        if (!settled) peer.reconnect();
+      });
+    });
+  }
+
+
+  // --- Hôte : gestion des connexions entrantes ---
+  function setupHostListeners() {
+    peer.on('connection', (conn) => {
+      conn.on('open', () => {
+        // Sécurité : on enregistre conn.peer comme clé, pas le data.id envoyé
+        conn.on('data', (data) => handleHostMessage(conn, data));
+      });
+      conn.on('close', () => handleDisconnect(conn.peer));
+      conn.on('error', (e) => console.warn('conn error', e));
+    });
+  }
+
+  // --- Hôte : réception des messages ---
+  function handleHostMessage(conn, data) {
+    switch(data.type) {
+      case 'join':
+        if (!gameState) { conn.send({ type: 'error', msg: 'Salle non prête, réessayez' }); return; }
+        if (gameState.phase !== 'lobby') {
+          conn.send({ type: 'error', msg: 'Partie déjà en cours' }); return;
+        }
+        if (gameState.players.length >= MAX_PLAYERS) {
+          conn.send({ type: 'error', msg: 'Salle pleine' }); return;
+        }
+        // Mettre la demande en attente d'approbation de l'hôte
+        pendingRequests[conn.peer] = { conn, name: data.name };
+        conn.send({ type: 'pending', msg: "En attente d'approbation…" });
+        renderJoinRequests();
+        UI.toast('🔔 ' + data.name + ' demande à rejoindre');
+        break;
+
+      case 'action':
+        if (!gameState) return;
+        handlePlayerAction(conn.peer, data.action);
+        break;
+    }
+  }
+
+  const pendingRequests = {};
+
+  function approveJoin(peerId) {
+    const req = pendingRequests[peerId];
+    if (!req) return;
+    delete pendingRequests[peerId];
+    // Ajouter à connections AVANT le broadcast pour qu'il reçoive le state
+    connections[peerId] = req.conn;
+    gameState.players.push({ id: peerId, name: req.name, isHost: false });
+    gameState.totalScores[peerId] = 0;
+    // Envoyer 'approved' en premier : le client cache l'écran d'attente avant de rendre
+    req.conn.send({ type: 'approved' });
+    broadcast({ type: 'state', state: gameState });
+    Render.fromState();
+    UI.toast(req.name + ' a rejoint');
+    ActionLog.add('👋 ' + req.name + ' a rejoint');
+    renderJoinRequests();
+  }
+
+  function rejectJoin(peerId) {
+    const req = pendingRequests[peerId];
+    if (!req) return;
+    delete pendingRequests[peerId];
+    try { req.conn.send({ type: 'rejected', msg: "Accès refusé par l'hôte" }); } catch(e) {}
+    setTimeout(() => { try { req.conn.close(); } catch(e) {} }, 400);
+    UI.toast('Accès refusé à ' + req.name);
+    renderJoinRequests();
+  }
+
+  function renderJoinRequests() {
+    const area = document.getElementById('join-requests-area');
+    if (!area) return;
+    const keys = Object.keys(pendingRequests);
+    if (keys.length === 0) { area.style.display = 'none'; area.innerHTML = ''; return; }
+    area.style.display = '';
+    area.innerHTML = keys.map(pid => {
+      const name = pendingRequests[pid].name;
+      return '<div class="join-request">'
+        + '<div class="req-name">' + name + '<small>demande à rejoindre</small></div>'
+        + '<button class="btn-accept" onclick="Network.approveJoin(\'' + pid + '\')">\u2714 Accepter</button>'
+        + '<button class="btn-reject" onclick="Network.rejectJoin(\'' + pid + '\')">\u2715 Refuser</button>'
+        + '</div>';
+    }).join('');
+  }
+
+  // --- Client : reconnexion automatique ---
+  function tryReconnect() {
+    if (reconnectAttempt >= 5) {
+      UI.toast('Connexion perdue définitivement');
+      UI.setConnStatus('', '');
+      App.backToMenu();
+      return;
+    }
+    reconnectAttempt++;
+    UI.setConnStatus('reconnecting', `Reconnexion... (${reconnectAttempt}/5)`);
+    const hostId = 'skyjo' + roomCode;
+    hostConn = peer.connect(hostId, { reliable: true });
+    hostConn.on('open', () => {
+      clearTimeout(reconnectTimer);
+      reconnectAttempt = 0;
+      UI.setConnStatus('connected', '');
+      hostConn.send({ type: 'rejoin', id: myPeerId, name: myName });
+      hostConn.on('data', (data) => handleClientMessage(data));
+    });
+    hostConn.on('close', () => scheduleReconnect());
+    hostConn.on('error', () => scheduleReconnect());
+  }
+
+  function scheduleReconnect() {
+    if (currentScreen === 'screen-menu') return;
+    const delay = Math.min(2000 * reconnectAttempt, 8000);
+    reconnectTimer = setTimeout(tryReconnect, delay);
+  }
+
+  // --- Client : réception des messages ---
+  function handleClientMessage(data) {
+    switch(data.type) {
+      case 'state':
+        gameState = data.state;
+        Render.fromState();
+        break;
+      case 'pending':
+        // L'hôte a mis la demande en attente, afficher l'écran d'attente
+        showWaitingApproval();
+        break;
+      case 'approved':
+        // L'hôte a accepté, masquer l'écran d'attente (le state suivra)
+        hideWaitingApproval();
+        UI.toast('\u2705 Vous avez été accepté !');
+        break;
+      case 'rejected':
+        hideWaitingApproval();
+        UI.toast('\u274C ' + (data.msg || 'Accès refusé'));
+        setTimeout(() => App.backToMenu(), 1200);
+        break;
+      case 'error':
+        UI.toast(data.msg);
+        break;
+      case 'toast':
+        UI.toast(data.msg);
+        break;
+      case 'log':
+        ActionLog.add(data.msg);
+        break;
+      case 'boom':
+        triggerBoom();
+        Sound.play('boom');
+        break;
+    }
+  }
+
+  // --- Broadcast (hôte → tous les clients) ---
+  function broadcast(msg) {
+    Object.values(connections).forEach(conn => {
+      try { conn.send(msg); } catch(e) {}
+    });
+  }
+
+  function broadcastState() {
+    broadcast({ type: 'state', state: gameState });
+    Render.fromState();
+    // Déclencher le bot si c'est son tour
+    setTimeout(() => Bot.maybePlay(), 80);
+  }
+
+  function broadcastToast(msg) {
+    broadcast({ type: 'toast', msg });
+    UI.toast(msg);
+  }
+
+  function broadcastLog(msg) {
+    broadcast({ type: 'log', msg });
+    ActionLog.add(msg);
+  }
+
+  function broadcastBoom() {
+    broadcast({ type: 'boom' });
+    triggerBoom();
+    Sound.play('boom');
+  }
+
+  function sendToHost(data) {
+    if (hostConn && hostConn.open) hostConn.send(data);
+  }
+
+  function generateRoomCode() {
+    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+    let code = '';
+    for (let i = 0; i < 5; i++) code += chars[Math.floor(Math.random() * chars.length)];
+    return code;
+  }
+
+  return {
+    initPeer, setupHostListeners, tryReconnect, scheduleReconnect,
+    broadcastState, broadcastToast, broadcastLog, broadcastBoom,
+    sendToHost, generateRoomCode, approveJoin, rejectJoin,
+    isPending: (id) => !!pendingRequests[id],
+    removePending: (id) => { delete pendingRequests[id]; renderJoinRequests(); }
+  };
 })();
 
-function shuffle(arr){const a=[...arr];for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;}
-function createDeck(){const deck=[];for(const[val,count]of Object.entries(CARD_COUNTS)){for(let i=0;i<count;i++)deck.push(parseInt(val));}return shuffle(deck);}
 
-function initRound(){const deck=createDeck();const hands={},revealed={};gameState.players.forEach(p=>{const cards=[];for(let r=0;r<ROWS;r++){const row=[];for(let c=0;c<COLS;c++)row.push(deck.pop());cards.push(row);}hands[p.id]=cards;revealed[p.id]=Array.from({length:ROWS},()=>Array(COLS).fill(false));});const discardTop=deck.pop();gameState.round++;gameState.phase='reveal_initial';gameState.deck=deck;gameState.discard=[discardTop];gameState.hands=hands;gameState.revealed=revealed;gameState.eliminated={};gameState.players.forEach(p=>{gameState.eliminated[p.id]=Array(COLS).fill(false);});gameState.currentPlayerIndex=-1;gameState.initialReveals={};gameState.players.forEach(p=>gameState.initialReveals[p.id]=0);gameState.turnPhase=null;gameState.drawnCard=null;gameState.drawnFrom=null;gameState.drawnByPlayerId=null;gameState.lastRoundTriggeredBy=null;gameState.lastRoundTurnsLeft=-1;gameState.lastRevealedPosition=null;gameState.roundScores={};ActionLog.clear();Network.broadcastToast('Manche '+gameState.round+' — Retournez 2 cartes !');Network.broadcastState();setTimeout(()=>Bot.maybePlay(),100);}
+// ============================================================
+// 9. GAME LOGIC — Règles du jeu (hôte uniquement)
+// ============================================================
 
-function performAction(action){if(isHost)handlePlayerAction(myPlayerId,action);else Network.sendToHost({type:'action',action});}
-function handlePlayerAction(playerId,action){if(!isHost||!gameState)return;switch(gameState.phase){case 'reveal_initial':handleRevealInitial(playerId,action);break;case 'playing':handlePlayingAction(playerId,action);break;}}
-function handleRevealInitial(playerId,action){if(action.type!=='reveal')return;const{row,col}=action;if(gameState.revealed[playerId][row][col])return;if(gameState.eliminated[playerId][col])return;if(gameState.initialReveals[playerId]>=2)return;gameState.revealed[playerId][row][col]=true;gameState.initialReveals[playerId]++;Sound.play('card_flip');const allDone=gameState.players.every(p=>gameState.initialReveals[p.id]>=2);if(allDone){let maxSum=-Infinity,startIdx=0;gameState.players.forEach((p,idx)=>{let sum=0;for(let r=0;r<ROWS;r++)for(let c=0;c<COLS;c++)if(gameState.revealed[p.id][r][c])sum+=gameState.hands[p.id][r][c];if(sum>maxSum){maxSum=sum;startIdx=idx;}});gameState.currentPlayerIndex=startIdx;gameState.phase='playing';gameState.turnPhase='draw';Network.broadcastToast(gameState.players[startIdx].name+' commence !');ActionLog.add('▶ '+gameState.players[startIdx].name+' commence');}Network.broadcastState();}
-function handlePlayingAction(playerId,action){const currentPlayer=gameState.players[gameState.currentPlayerIndex];if(playerId!==currentPlayer.id)return;switch(action.type){case 'draw_deck':if(gameState.turnPhase!=='draw')return;if(gameState.deck.length===0)reshuffleDeck();gameState.drawnCard=gameState.deck.pop();gameState.drawnFrom='deck';gameState.drawnByPlayerId=playerId;gameState.turnPhase='drawn_from_pile';Network.broadcastLog('🃏 '+getPlayerName(playerId)+' pioche dans la pile');Network.broadcastState();break;case 'draw_discard':if(gameState.turnPhase!=='draw')return;if(gameState.discard.length===0)return;gameState.drawnCard=gameState.discard.pop();gameState.drawnFrom='discard';gameState.drawnByPlayerId=playerId;gameState.turnPhase='place_mandatory';Network.broadcastLog('♻️ '+getPlayerName(playerId)+' prend la défausse ('+gameState.drawnCard+')');Network.broadcastState();break;case 'place_card':{if(gameState.turnPhase!=='drawn_from_pile'&&gameState.turnPhase!=='place_mandatory')return;const{row,col}=action;if(gameState.eliminated[playerId][col])return;const oldCard=gameState.hands[playerId][row][col];gameState.hands[playerId][row][col]=gameState.drawnCard;gameState.revealed[playerId][row][col]=true;gameState.discard.push(oldCard);Network.broadcastLog('📌 '+getPlayerName(playerId)+' place '+gameState.drawnCard+' (était '+oldCard+')');gameState.lastRevealedPosition={playerId,row,col};gameState.drawnCard=null;gameState.drawnByPlayerId=null;checkColumnElimination(playerId);endTurn();break;}case 'discard_drawn':if(gameState.turnPhase!=='drawn_from_pile')return;Network.broadcastLog('🗑 '+getPlayerName(playerId)+' défausse le '+gameState.drawnCard);gameState.discard.push(gameState.drawnCard);gameState.drawnCard=null;gameState.drawnByPlayerId=null;gameState.turnPhase='must_reveal';Network.broadcastState();break;case 'reveal_card':{if(gameState.turnPhase!=='must_reveal')return;const{row:rr,col:rc}=action;if(gameState.revealed[playerId][rr][rc])return;if(gameState.eliminated[playerId][rc])return;gameState.revealed[playerId][rr][rc]=true;const revVal=gameState.hands[playerId][rr][rc];Network.broadcastLog('👁 '+getPlayerName(playerId)+' révèle un '+revVal);gameState.lastRevealedPosition={playerId,row:rr,col:rc};checkColumnElimination(playerId);endTurn();break;}}}
-function checkColumnElimination(playerId){for(let c=0;c<COLS;c++){if(gameState.eliminated[playerId][c])continue;let allRevealed=true,allSame=true,val=null;for(let r=0;r<ROWS;r++){if(!gameState.revealed[playerId][r][c]){allRevealed=false;break;}if(val===null)val=gameState.hands[playerId][r][c];else if(gameState.hands[playerId][r][c]!==val)allSame=false;}if(allRevealed&&allSame){gameState.eliminated[playerId][c]=true;for(let r=0;r<ROWS;r++)gameState.discard.push(gameState.hands[playerId][r][c]);Network.broadcastToast(getPlayerName(playerId)+' élimine une colonne de '+val+' !');Network.broadcastLog('💥 '+getPlayerName(playerId)+' élimine colonne '+val);Network.broadcastBoom();}}}
-function reshuffleDeck(){if(gameState.discard.length<=1)return;const top=gameState.discard.pop();gameState.deck=shuffle(gameState.discard);gameState.discard=[top];}
-function endTurn(){const playerId=gameState.players[gameState.currentPlayerIndex].id;if(gameState.lastRoundTriggeredBy===null){if(isAllRevealed(playerId)){gameState.lastRoundTriggeredBy=playerId;gameState.lastRoundTurnsLeft=gameState.players.length-1;Network.broadcastToast(getPlayerName(playerId)+' a tout révélé ! Dernier tour !');ActionLog.add('🔔 Dernier tour déclenché par '+getPlayerName(playerId));}}if(gameState.lastRoundTriggeredBy!==null){gameState.lastRoundTurnsLeft--;if(gameState.lastRoundTurnsLeft<=0){endRound();return;}}gameState.currentPlayerIndex=(gameState.currentPlayerIndex+1)%gameState.players.length;gameState.turnPhase='draw';gameState.drawnCard=null;gameState.drawnFrom=null;gameState.drawnByPlayerId=null;Network.broadcastState();}
-function isAllRevealed(playerId){for(let r=0;r<ROWS;r++)for(let c=0;c<COLS;c++)if(!gameState.eliminated[playerId][c]&&!gameState.revealed[playerId][r][c])return false;return true;}
-function getPlayerName(id){const p=gameState.players.find(pl=>pl.id===id);return p?p.name:'?';}
-function endRound(){gameState.hiddenAtEndOfRound={};gameState.players.forEach(p=>{gameState.hiddenAtEndOfRound[p.id]=[];for(let r=0;r<ROWS;r++)for(let c=0;c<COLS;c++)if(!gameState.revealed[p.id][r][c]&&!gameState.eliminated[p.id][c])gameState.hiddenAtEndOfRound[p.id].push({r,c});});gameState.players.forEach(p=>{for(let r=0;r<ROWS;r++)for(let c=0;c<COLS;c++)gameState.revealed[p.id][r][c]=true;});const scores={};gameState.players.forEach(p=>{let sum=0;for(let r=0;r<ROWS;r++)for(let c=0;c<COLS;c++)if(!gameState.eliminated[p.id][c])sum+=gameState.hands[p.id][r][c];scores[p.id]=sum;});const trigId=gameState.lastRoundTriggeredBy;if(trigId){const trigScore=scores[trigId];const minOther=Math.min(...gameState.players.filter(p=>p.id!==trigId).map(p=>scores[p.id]));if(trigScore>=minOther){scores[trigId]*=2;Network.broadcastToast(getPlayerName(trigId)+' n\'a pas le score le plus bas ! Score doublé !');ActionLog.add('⚠️ Score doublé pour '+getPlayerName(trigId));}}gameState.roundScores=scores;gameState.players.forEach(p=>{gameState.totalScores[p.id]=(gameState.totalScores[p.id]||0)+scores[p.id];});const gameOver=gameState.players.some(p=>gameState.totalScores[p.id]>=END_SCORE);gameState.phase=gameOver?'game_over_reveal':'round_reveal';gameState.drawnCard=null;gameState.drawnByPlayerId=null;Network.broadcastState();}
-function handleDisconnect(peerId){if(Network.isPending(peerId)){Network.removePending(peerId);return;}if(!gameState)return;delete connections[peerId];const player=gameState.players.find(p=>p.id===peerId);if(gameState.phase==='lobby'){gameState.players=gameState.players.filter(p=>p.id!==peerId);delete gameState.totalScores[peerId];if(player)UI.toast(player.name+' a quitté');Network.broadcastState();}else{if(player){player.disconnected=true;Network.broadcastToast(player.name+' s\'est déconnecté');Network.broadcastState();}}}
+function shuffle(arr) {
+  const a = [...arr];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
 
-const Bot=(() => {
-  const THINK_DELAY={facile:1200,moyen:900,fort:600};
-  let botTimers=[];
-  function clearTimers(){botTimers.forEach(t=>clearTimeout(t));botTimers=[];}
-  function delay(ms){return new Promise(resolve=>{const t=setTimeout(resolve,ms);botTimers.push(t);});}
-  async function maybePlay(){if(!gameState||!isHost)return;const diff=gameState.botDifficulty||'moyen';const thinkMs=THINK_DELAY[diff]||900;if(gameState.phase==='reveal_initial'){const bots=gameState.players.filter(p=>p.isBot);for(const bot of bots){if((gameState.initialReveals[bot.id]||0)>=2)continue;await delay(thinkMs);if(!gameState||gameState.phase!=='reveal_initial')return;const unrevealed=[];for(let r=0;r<ROWS;r++)for(let c=0;c<COLS;c++)if(!gameState.revealed[bot.id][r][c]&&!gameState.eliminated[bot.id][c])unrevealed.push({r,c});if(unrevealed.length===0)continue;const pick=unrevealed[Math.floor(Math.random()*unrevealed.length)];handlePlayerAction(bot.id,{type:'reveal',row:pick.r,col:pick.c});if((gameState.initialReveals[bot.id]||0)<2){setTimeout(()=>maybePlay(),50);}}return;}const cp=gameState.players[gameState.currentPlayerIndex];if(!cp||!cp.isBot)return;if(gameState.phase!=='playing')return;if(gameState.turnPhase==='draw'){await delay(thinkMs);if(!gameState||!gameState.players[gameState.currentPlayerIndex]?.isBot)return;playDrawPhase(cp.id,diff);}else if(gameState.turnPhase==='drawn_from_pile'){await delay(thinkMs*0.7);if(!gameState||!gameState.players[gameState.currentPlayerIndex]?.isBot)return;playDecidePhase(cp.id,diff);}else if(gameState.turnPhase==='place_mandatory'){await delay(thinkMs*0.5);if(!gameState||!gameState.players[gameState.currentPlayerIndex]?.isBot)return;playPlacePhase(cp.id,diff);}else if(gameState.turnPhase==='must_reveal'){await delay(thinkMs*0.7);if(!gameState||!gameState.players[gameState.currentPlayerIndex]?.isBot)return;playRevealPhase(cp.id,diff);}}
-  function playDrawPhase(botId,diff){const discardTop=gameState.discard.length>0?gameState.discard[gameState.discard.length-1]:null;let takeDiscard=false;if(discardTop!==null){if(diff==='facile'){takeDiscard=Math.random()<0.3;}else if(diff==='moyen'){takeDiscard=discardTop<=3;}else{const worstVisible=getWorstVisibleCard(botId);takeDiscard=discardTop<worstVisible&&discardTop<=5;}}handlePlayerAction(botId,{type:takeDiscard?'draw_discard':'draw_deck'});setTimeout(()=>maybePlay(),50);}
-  function playDecidePhase(botId,diff){const card=gameState.drawnCard;let place=false;if(diff==='facile'){place=Math.random()<0.5;}else if(diff==='moyen'){place=card<=4;}else{const worstVisible=getWorstVisibleCard(botId);place=card<worstVisible;}if(place){const pos=getBestPlacementPosition(botId,card,diff);handlePlayerAction(botId,{type:'place_card',row:pos.r,col:pos.c});}else{handlePlayerAction(botId,{type:'discard_drawn'});setTimeout(()=>maybePlay(),50);}}
-  function playPlacePhase(botId,diff){const card=gameState.drawnCard;const pos=getBestPlacementPosition(botId,card,diff);handlePlayerAction(botId,{type:'place_card',row:pos.r,col:pos.c});}
-  function playRevealPhase(botId,diff){const hidden=[];for(let r=0;r<ROWS;r++)for(let c=0;c<COLS;c++)if(!gameState.revealed[botId][r][c]&&!gameState.eliminated[botId][c])hidden.push({r,c});if(hidden.length===0)return;const pick=hidden[Math.floor(Math.random()*hidden.length)];handlePlayerAction(botId,{type:'reveal_card',row:pick.r,col:pick.c});}
-  function getWorstVisibleCard(botId){let worst=-Infinity;for(let r=0;r<ROWS;r++)for(let c=0;c<COLS;c++)if(gameState.revealed[botId][r][c]&&!gameState.eliminated[botId][c])worst=Math.max(worst,gameState.hands[botId][r][c]);return worst===-Infinity?8:worst;}
-  function getBestPlacementPosition(botId,card,diff){const positions=[];for(let r=0;r<ROWS;r++)for(let c=0;c<COLS;c++)if(!gameState.eliminated[botId][c])positions.push({r,c,revealed:gameState.revealed[botId][r][c],val:gameState.hands[botId][r][c]});if(diff==='facile'){return positions[Math.floor(Math.random()*positions.length)];}const revealed=positions.filter(p=>p.revealed);if(revealed.length>0){const worst=revealed.reduce((a,b)=>a.val>b.val?a:b);if(worst.val>card)return worst;}const hidden=positions.filter(p=>!p.revealed);if(hidden.length>0)return hidden[Math.floor(Math.random()*hidden.length)];return positions[0];}
-  return{maybePlay,clearTimers};
+function createDeck() {
+  const deck = [];
+  for (const [val, count] of Object.entries(CARD_COUNTS)) {
+    for (let i = 0; i < count; i++) deck.push(parseInt(val));
+  }
+  return shuffle(deck);
+}
+
+function initRound() {
+  const deck = createDeck();
+  const hands = {}, revealed = {};
+  gameState.players.forEach(p => {
+    const cards = [];
+    for (let r = 0; r < ROWS; r++) {
+      const row = [];
+      for (let c = 0; c < COLS; c++) row.push(deck.pop());
+      cards.push(row);
+    }
+    hands[p.id] = cards;
+    revealed[p.id] = Array.from({length: ROWS}, () => Array(COLS).fill(false));
+  });
+  const discardTop = deck.pop();
+  gameState.round++;
+  gameState.phase = 'reveal_initial';
+  gameState.deck = deck;
+  gameState.discard = [discardTop];
+  gameState.hands = hands;
+  gameState.revealed = revealed;
+  gameState.eliminated = {};
+  gameState.players.forEach(p => { gameState.eliminated[p.id] = Array(COLS).fill(false); });
+  gameState.currentPlayerIndex = -1;
+  gameState.initialReveals = {};
+  gameState.players.forEach(p => gameState.initialReveals[p.id] = 0);
+  gameState.turnPhase = null;
+  gameState.drawnCard = null;
+  gameState.drawnFrom = null;
+  gameState.drawnByPlayerId = null;
+  gameState.lastRoundTriggeredBy = null;
+  gameState.lastRoundTurnsLeft = -1;
+  gameState.lastRevealedPosition = null;
+  gameState.roundScores = {};
+  ActionLog.clear();
+  Network.broadcastToast('Manche ' + gameState.round + ' — Retournez 2 cartes !');
+  Network.broadcastState();
+  // Déclencher immédiatement le bot pour la phase reveal_initial
+  setTimeout(() => Bot.maybePlay(), 100);
+}
+
+// --- Action dispatch ---
+function performAction(action) {
+  if (isHost) handlePlayerAction(myPlayerId, action);
+  else Network.sendToHost({ type: 'action', action });
+}
+
+function handlePlayerAction(playerId, action) {
+  if (!isHost || !gameState) return;
+  switch(gameState.phase) {
+    case 'reveal_initial': handleRevealInitial(playerId, action); break;
+    case 'playing':        handlePlayingAction(playerId, action); break;
+  }
+}
+
+function handleRevealInitial(playerId, action) {
+  if (action.type !== 'reveal') return;
+  const { row, col } = action;
+  if (gameState.revealed[playerId][row][col]) return;
+  if (gameState.eliminated[playerId][col]) return;
+  if (gameState.initialReveals[playerId] >= 2) return;
+
+  gameState.revealed[playerId][row][col] = true;
+  gameState.initialReveals[playerId]++;
+  Sound.play('card_flip');
+
+  const allDone = gameState.players.every(p => gameState.initialReveals[p.id] >= 2);
+  if (allDone) {
+    let maxSum = -Infinity, startIdx = 0;
+    gameState.players.forEach((p, idx) => {
+      let sum = 0;
+      for (let r = 0; r < ROWS; r++)
+        for (let c = 0; c < COLS; c++)
+          if (gameState.revealed[p.id][r][c]) sum += gameState.hands[p.id][r][c];
+      if (sum > maxSum) { maxSum = sum; startIdx = idx; }
+    });
+    gameState.currentPlayerIndex = startIdx;
+    gameState.phase = 'playing';
+    gameState.turnPhase = 'draw';
+    Network.broadcastToast(gameState.players[startIdx].name + ' commence !');
+    ActionLog.add('▶ ' + gameState.players[startIdx].name + ' commence');
+  }
+  Network.broadcastState();
+}
+
+function handlePlayingAction(playerId, action) {
+  const currentPlayer = gameState.players[gameState.currentPlayerIndex];
+  if (playerId !== currentPlayer.id) return; // Sécurité : seul le joueur courant peut agir
+
+  switch(action.type) {
+    case 'draw_deck':
+      if (gameState.turnPhase !== 'draw') return;
+      if (gameState.deck.length === 0) reshuffleDeck();
+      gameState.drawnCard = gameState.deck.pop();
+      gameState.drawnFrom = 'deck';
+      gameState.drawnByPlayerId = playerId;
+      gameState.turnPhase = 'drawn_from_pile';
+      Network.broadcastLog('🃏 ' + getPlayerName(playerId) + ' pioche dans la pile');
+      Network.broadcastState();
+      break;
+
+    case 'draw_discard':
+      if (gameState.turnPhase !== 'draw') return;
+      if (gameState.discard.length === 0) return;
+      gameState.drawnCard = gameState.discard.pop();
+      gameState.drawnFrom = 'discard';
+      gameState.drawnByPlayerId = playerId;
+      gameState.turnPhase = 'place_mandatory';
+      Network.broadcastLog('♻️ ' + getPlayerName(playerId) + ' prend la défausse (' + gameState.drawnCard + ')');
+      Network.broadcastState();
+      break;
+
+    case 'place_card': {
+      if (gameState.turnPhase !== 'drawn_from_pile' && gameState.turnPhase !== 'place_mandatory') return;
+      const { row, col } = action;
+      if (gameState.eliminated[playerId][col]) return;
+      const oldCard = gameState.hands[playerId][row][col];
+      gameState.hands[playerId][row][col] = gameState.drawnCard;
+      gameState.revealed[playerId][row][col] = true;
+      gameState.discard.push(oldCard);
+      Network.broadcastLog('📌 ' + getPlayerName(playerId) + ' place ' + gameState.drawnCard + ' (était ' + oldCard + ')');
+      gameState.lastRevealedPosition = { playerId, row, col };
+      gameState.drawnCard = null;
+      gameState.drawnByPlayerId = null;
+      checkColumnElimination(playerId);
+      endTurn();
+      break;
+    }
+
+    case 'discard_drawn':
+      if (gameState.turnPhase !== 'drawn_from_pile') return;
+      Network.broadcastLog('🗑 ' + getPlayerName(playerId) + ' défausse le ' + gameState.drawnCard);
+      gameState.discard.push(gameState.drawnCard);
+      gameState.drawnCard = null;
+      gameState.drawnByPlayerId = null;
+      gameState.turnPhase = 'must_reveal';
+      Network.broadcastState();
+      break;
+
+    case 'reveal_card': {
+      if (gameState.turnPhase !== 'must_reveal') return;
+      const { row: rr, col: rc } = action;
+      if (gameState.revealed[playerId][rr][rc]) return;
+      if (gameState.eliminated[playerId][rc]) return;
+      gameState.revealed[playerId][rr][rc] = true;
+      const revVal = gameState.hands[playerId][rr][rc];
+      Network.broadcastLog('👁 ' + getPlayerName(playerId) + ' révèle un ' + revVal);
+      gameState.lastRevealedPosition = { playerId, row: rr, col: rc };
+      checkColumnElimination(playerId);
+      endTurn();
+      break;
+    }
+  }
+}
+
+function checkColumnElimination(playerId) {
+  for (let c = 0; c < COLS; c++) {
+    if (gameState.eliminated[playerId][c]) continue;
+    let allRevealed = true, allSame = true, val = null;
+    for (let r = 0; r < ROWS; r++) {
+      if (!gameState.revealed[playerId][r][c]) { allRevealed = false; break; }
+      if (val === null) val = gameState.hands[playerId][r][c];
+      else if (gameState.hands[playerId][r][c] !== val) allSame = false;
+    }
+    if (allRevealed && allSame) {
+      gameState.eliminated[playerId][c] = true;
+      for (let r = 0; r < ROWS; r++) gameState.discard.push(gameState.hands[playerId][r][c]);
+      Network.broadcastToast(getPlayerName(playerId) + ' élimine une colonne de ' + val + ' !');
+      Network.broadcastLog('💥 ' + getPlayerName(playerId) + ' élimine colonne ' + val);
+      Network.broadcastBoom();
+    }
+  }
+}
+
+function reshuffleDeck() {
+  if (gameState.discard.length <= 1) return;
+  const top = gameState.discard.pop();
+  gameState.deck = shuffle(gameState.discard);
+  gameState.discard = [top];
+}
+
+function endTurn() {
+  const playerId = gameState.players[gameState.currentPlayerIndex].id;
+  if (gameState.lastRoundTriggeredBy === null) {
+    if (isAllRevealed(playerId)) {
+      gameState.lastRoundTriggeredBy = playerId;
+      gameState.lastRoundTurnsLeft = gameState.players.length - 1;
+      Network.broadcastToast(getPlayerName(playerId) + ' a tout révélé ! Dernier tour !');
+      ActionLog.add('🔔 Dernier tour déclenché par ' + getPlayerName(playerId));
+    }
+  }
+  if (gameState.lastRoundTriggeredBy !== null) {
+    gameState.lastRoundTurnsLeft--;
+    if (gameState.lastRoundTurnsLeft <= 0) { endRound(); return; }
+  }
+  gameState.currentPlayerIndex = (gameState.currentPlayerIndex + 1) % gameState.players.length;
+  gameState.turnPhase = 'draw';
+  gameState.drawnCard = null;
+  gameState.drawnFrom = null;
+  gameState.drawnByPlayerId = null;
+  Network.broadcastState();
+}
+
+function isAllRevealed(playerId) {
+  for (let r = 0; r < ROWS; r++)
+    for (let c = 0; c < COLS; c++)
+      if (!gameState.eliminated[playerId][c] && !gameState.revealed[playerId][r][c]) return false;
+  return true;
+}
+
+function getPlayerName(id) {
+  const p = gameState.players.find(pl => pl.id === id);
+  return p ? p.name : '?';
+}
+
+function endRound() {
+  // Sauvegarder les cartes encore cachées AVANT de tout révéler
+  gameState.hiddenAtEndOfRound = {};
+  gameState.players.forEach(p => {
+    gameState.hiddenAtEndOfRound[p.id] = [];
+    for (let r = 0; r < ROWS; r++)
+      for (let c = 0; c < COLS; c++)
+        if (!gameState.revealed[p.id][r][c] && !gameState.eliminated[p.id][c])
+          gameState.hiddenAtEndOfRound[p.id].push({ r, c });
+  });
+  gameState.players.forEach(p => {
+    for (let r = 0; r < ROWS; r++)
+      for (let c = 0; c < COLS; c++)
+        gameState.revealed[p.id][r][c] = true;
+  });
+  const scores = {};
+  gameState.players.forEach(p => {
+    let sum = 0;
+    for (let r = 0; r < ROWS; r++)
+      for (let c = 0; c < COLS; c++)
+        if (!gameState.eliminated[p.id][c]) sum += gameState.hands[p.id][r][c];
+    scores[p.id] = sum;
+  });
+  const trigId = gameState.lastRoundTriggeredBy;
+  if (trigId) {
+    const trigScore = scores[trigId];
+    const minOther = Math.min(...gameState.players.filter(p => p.id !== trigId).map(p => scores[p.id]));
+    if (trigScore >= minOther) {
+      scores[trigId] *= 2;
+      Network.broadcastToast(getPlayerName(trigId) + ' n\'a pas le score le plus bas ! Score doublé !');
+      ActionLog.add('⚠️ Score doublé pour ' + getPlayerName(trigId));
+    }
+  }
+  gameState.roundScores = scores;
+  gameState.players.forEach(p => {
+    gameState.totalScores[p.id] = (gameState.totalScores[p.id] || 0) + scores[p.id];
+  });
+  const gameOver = gameState.players.some(p => gameState.totalScores[p.id] >= END_SCORE);
+  gameState.phase = gameOver ? 'game_over_reveal' : 'round_reveal';
+  gameState.drawnCard = null;
+  gameState.drawnByPlayerId = null;
+  Network.broadcastState();
+}
+
+function handleDisconnect(peerId) {
+  // Si le client était en attente d'approbation, nettoyer silencieusement
+  if (Network.isPending(peerId)) {
+    Network.removePending(peerId);
+    return;
+  }
+  if (!gameState) return;
+  delete connections[peerId];
+  const player = gameState.players.find(p => p.id === peerId);
+  if (gameState.phase === 'lobby') {
+    gameState.players = gameState.players.filter(p => p.id !== peerId);
+    delete gameState.totalScores[peerId];
+    if (player) UI.toast(player.name + ' a quitté');
+    Network.broadcastState();
+  } else {
+    // En partie : marquer le joueur comme déconnecté plutôt que le supprimer
+    if (player) {
+      player.disconnected = true;
+      Network.broadcastToast(player.name + ' s\'est déconnecté');
+      Network.broadcastState();
+    }
+  }
+}
+
+
+// ============================================================
+// 9.5. BOT AI — Intelligence artificielle des bots
+//
+// Stratégie : le bot analyse son état et choisit l'action
+// optimale avec une part de hasard selon la difficulté.
+// Niveaux : facile (aléatoire), moyen (semi-stratégique),
+//           fort (minimise le score visible).
+// ============================================================
+const Bot = (() => {
+
+  // Délai simulé pour rendre le bot crédible (ms)
+  const THINK_DELAY = { facile: 1200, moyen: 900, fort: 600 };
+
+  let botTimers = [];
+
+  function clearTimers() {
+    botTimers.forEach(t => clearTimeout(t));
+    botTimers = [];
+  }
+
+  function delay(ms) {
+    return new Promise(resolve => {
+      const t = setTimeout(resolve, ms);
+      botTimers.push(t);
+    });
+  }
+
+  // Point d'entrée : jouer le tour d'un bot si c'est son tour
+  async function maybePlay() {
+    if (!gameState || !isHost) return;
+
+    const diff = gameState.botDifficulty || 'moyen';
+    const thinkMs = THINK_DELAY[diff] || 900;
+
+    // --- Phase reveal_initial : tous les joueurs retournent en parallèle ---
+    // currentPlayerIndex vaut -1 ici, donc on itère directement sur les bots
+    if (gameState.phase === 'reveal_initial') {
+      const bots = gameState.players.filter(p => p.isBot);
+      for (const bot of bots) {
+        if ((gameState.initialReveals[bot.id] || 0) >= 2) continue; // déjà fait
+        await delay(thinkMs);
+        if (!gameState || gameState.phase !== 'reveal_initial') return;
+        const unrevealed = [];
+        for (let r = 0; r < ROWS; r++)
+          for (let c = 0; c < COLS; c++)
+            if (!gameState.revealed[bot.id][r][c] && !gameState.eliminated[bot.id][c])
+              unrevealed.push({ r, c });
+        if (unrevealed.length === 0) continue;
+        const pick = unrevealed[Math.floor(Math.random() * unrevealed.length)];
+        handlePlayerAction(bot.id, { type: 'reveal', row: pick.r, col: pick.c });
+        // Si le bot doit encore retourner une 2e carte, on reboucle après un délai
+        if ((gameState.initialReveals[bot.id] || 0) < 2) {
+          setTimeout(() => maybePlay(), 50);
+        }
+      }
+      return;
+    }
+
+    // --- Phase playing : seul le joueur courant agit ---
+    const cp = gameState.players[gameState.currentPlayerIndex];
+    if (!cp || !cp.isBot) return;
+
+    if (gameState.phase !== 'playing') return;
+
+    if (gameState.turnPhase === 'draw') {
+      await delay(thinkMs);
+      if (!gameState || !gameState.players[gameState.currentPlayerIndex]?.isBot) return;
+      playDrawPhase(cp.id, diff);
+    } else if (gameState.turnPhase === 'drawn_from_pile') {
+      await delay(thinkMs * 0.7);
+      if (!gameState || !gameState.players[gameState.currentPlayerIndex]?.isBot) return;
+      playDecidePhase(cp.id, diff);
+    } else if (gameState.turnPhase === 'place_mandatory') {
+      await delay(thinkMs * 0.5);
+      if (!gameState || !gameState.players[gameState.currentPlayerIndex]?.isBot) return;
+      playPlacePhase(cp.id, diff);
+    } else if (gameState.turnPhase === 'must_reveal') {
+      await delay(thinkMs * 0.7);
+      if (!gameState || !gameState.players[gameState.currentPlayerIndex]?.isBot) return;
+      playRevealPhase(cp.id, diff);
+    }
+  }
+
+  // --- Phase DRAW : piocher depuis la pioche ou la défausse ---
+  function playDrawPhase(botId, diff) {
+    const discardTop = gameState.discard.length > 0
+      ? gameState.discard[gameState.discard.length - 1] : null;
+
+    let takeDiscard = false;
+    if (discardTop !== null) {
+      if (diff === 'facile') {
+        takeDiscard = Math.random() < 0.3;
+      } else if (diff === 'moyen') {
+        // Prendre la défausse si la carte est ≤ 3
+        takeDiscard = discardTop <= 3;
+      } else {
+        // Fort : prendre la défausse si ça permet d'améliorer le pire emplacement visible
+        const worstVisible = getWorstVisibleCard(botId);
+        takeDiscard = discardTop < worstVisible && discardTop <= 5;
+      }
+    }
+
+    handlePlayerAction(botId, { type: takeDiscard ? 'draw_discard' : 'draw_deck' });
+    setTimeout(() => maybePlay(), 50);
+  }
+
+  // --- Phase DRAWN_FROM_PILE : placer ou défausser ---
+  function playDecidePhase(botId, diff) {
+    const card = gameState.drawnCard;
+    let place = false;
+
+    if (diff === 'facile') {
+      place = Math.random() < 0.5;
+    } else if (diff === 'moyen') {
+      place = card <= 4;
+    } else {
+      // Fort : placer si ça améliore le pire emplacement
+      const worstVisible = getWorstVisibleCard(botId);
+      place = card < worstVisible;
+    }
+
+    if (place) {
+      const pos = getBestPlacementPosition(botId, card, diff);
+      handlePlayerAction(botId, { type: 'place_card', row: pos.r, col: pos.c });
+    } else {
+      handlePlayerAction(botId, { type: 'discard_drawn' });
+      setTimeout(() => maybePlay(), 50);
+    }
+  }
+
+  // --- Phase PLACE_MANDATORY (pris dans la défausse) ---
+  function playPlacePhase(botId, diff) {
+    const card = gameState.drawnCard;
+    const pos = getBestPlacementPosition(botId, card, diff);
+    handlePlayerAction(botId, { type: 'place_card', row: pos.r, col: pos.c });
+  }
+
+  // --- Phase MUST_REVEAL : révéler une carte face cachée ---
+  function playRevealPhase(botId, diff) {
+    const hidden = [];
+    for (let r = 0; r < ROWS; r++)
+      for (let c = 0; c < COLS; c++)
+        if (!gameState.revealed[botId][r][c] && !gameState.eliminated[botId][c])
+          hidden.push({r, c});
+
+    if (hidden.length === 0) return;
+
+    // Tous les niveaux : révéler une carte aléatoire (on ne connaît pas la valeur)
+    const pick = hidden[Math.floor(Math.random() * hidden.length)];
+    handlePlayerAction(botId, { type: 'reveal_card', row: pick.r, col: pick.c });
+  }
+
+  // --- Helpers stratégiques ---
+
+  // Retourne la valeur de la pire carte visible du bot (ou 12 si aucune)
+  function getWorstVisibleCard(botId) {
+    let worst = -Infinity;
+    for (let r = 0; r < ROWS; r++)
+      for (let c = 0; c < COLS; c++)
+        if (gameState.revealed[botId][r][c] && !gameState.eliminated[botId][c])
+          worst = Math.max(worst, gameState.hands[botId][r][c]);
+    return worst === -Infinity ? 8 : worst;
+  }
+
+  // Retourne la meilleure position pour placer une carte
+  function getBestPlacementPosition(botId, card, diff) {
+    // Construire la liste des emplacements disponibles
+    const positions = [];
+    for (let r = 0; r < ROWS; r++)
+      for (let c = 0; c < COLS; c++)
+        if (!gameState.eliminated[botId][c])
+          positions.push({ r, c, revealed: gameState.revealed[botId][r][c], val: gameState.hands[botId][r][c] });
+
+    if (diff === 'facile') {
+      // Aléatoire parmi toutes les positions
+      return positions[Math.floor(Math.random() * positions.length)];
+    }
+
+    // Moyen / Fort : remplacer de préférence la carte révélée avec la plus grande valeur
+    const revealed = positions.filter(p => p.revealed);
+    if (revealed.length > 0) {
+      const worst = revealed.reduce((a, b) => a.val > b.val ? a : b);
+      if (worst.val > card) return worst;
+    }
+
+    // Sinon, une position cachée aléatoire (on espère qu'elle est mauvaise)
+    const hidden = positions.filter(p => !p.revealed);
+    if (hidden.length > 0) return hidden[Math.floor(Math.random() * hidden.length)];
+
+    return positions[0];
+  }
+
+  return { maybePlay, clearTimers };
 })();
 
-const Render=(() => {
-  function fromState(){if(!gameState)return;if(gameState.phase==='playing'){const cp=gameState.players[gameState.currentPlayerIndex];if(cp&&cp.id===myPlayerId&&gameState.turnPhase==='draw'){Notif.notifyMyTurn();}}switch(gameState.phase){case 'lobby':UI.showScreen('screen-lobby');document.getElementById('lobby-code').textContent=roomCode;renderLobby();break;case 'reveal_initial':_revealedKeys.clear();/* falls through */case 'playing':UI.showScreen('screen-game');renderGame();break;case 'round_reveal':UI.showScreen('screen-round-reveal');renderRoundReveal(false);break;case 'game_over_reveal':UI.showScreen('screen-round-reveal');renderRoundReveal(true);break;case 'round_end':UI.showScreen('screen-round-scores');renderRoundScores();break;case 'game_over':if(!isHost){const sorted=[...gameState.players].sort((a,b)=>(gameState.totalScores[a.id]||0)-(gameState.totalScores[b.id]||0));gameState.players.forEach(p=>Leaderboard.update(p.name,p.id===sorted[0].id));}UI.showScreen('screen-final-scores');renderFinalScores();Sound.play('win');break;}}
-  function renderLobby(){if(!gameState)return;const isSolo=gameState.isSolo;const titleEl=document.getElementById('lobby-title');const subtitleEl=document.getElementById('lobby-subtitle');const soloInfo=document.getElementById('lobby-solo-info');const multiInfo=document.getElementById('lobby-multi-info');if(titleEl)titleEl.textContent=isSolo?'Partie Solo':'Salle d\'attente';if(subtitleEl)subtitleEl.textContent=isSolo?'Prêt à jouer contre le bot ?':'Partagez le code ou le QR code';if(soloInfo)soloInfo.style.display=isSolo?'':'none';if(multiInfo)multiInfo.style.display=isSolo?'none':'';const list=document.getElementById('lobby-players');list.innerHTML=gameState.players.map(p=>{const badge=p.isHost?'<span class="host-badge">HÔTE</span>':(p.isBot?'<span class="host-badge" style="background:#27ae60">🤖 BOT</span>':'');const me=p.id===myPlayerId?' (vous)':'';const kickBtn=(isHost&&!p.isHost&&!p.isBot)?`<button class="kick-btn" onclick="App.kickPlayer('${p.id}')">✕ Expulser</button>`:'';return`<li>${p.name}${me} ${badge}${kickBtn}</li>`;}).join('');const startBtn=document.getElementById('start-btn');startBtn.style.display=(isHost&&gameState.players.length>=2)?'':'none';startBtn.textContent=isSolo?'Jouer !':'Lancer la partie';}
-  const _revealedKeys=new Set();
-  function renderGame(){const pilesArea=document.getElementById('piles-area');const playersArea=document.getElementById('players-area');const actionBar=document.getElementById('action-bar');const statusEl=document.getElementById('game-status');const roundEl=document.getElementById('round-info');roundEl.textContent='Manche '+gameState.round;const isMyTurn=gameState.phase==='playing'&&gameState.players[gameState.currentPlayerIndex]?.id===myPlayerId;if(gameState.phase==='reveal_initial'){const myReveals=gameState.initialReveals[myPlayerId]||0;statusEl.textContent=myReveals<2?'Retournez '+(2-myReveals)+' carte(s)':'En attente des autres joueurs...';}else if(gameState.phase==='playing'){const cp=gameState.players[gameState.currentPlayerIndex];if(isMyTurn){switch(gameState.turnPhase){case 'draw':statusEl.textContent='Piochez une carte';break;case 'drawn_from_pile':statusEl.textContent='📌 Placez le '+gameState.drawnCard+' OU défaussez-le';break;case 'place_mandatory':statusEl.textContent='📌 Vous DEVEZ placer le '+gameState.drawnCard;break;case 'must_reveal':statusEl.textContent='👆 Retournez une carte face cachée';break;default:statusEl.textContent='À vous de jouer';}}else{statusEl.textContent='Tour de '+(cp.disconnected?cp.name+' ⚠️ (déco)':cp.name);if(gameState.drawnCard!==null&&gameState.drawnByPlayerId){if(gameState.turnPhase==='drawn_from_pile')statusEl.textContent+=' — a pioché un '+gameState.drawnCard;else if(gameState.turnPhase==='place_mandatory')statusEl.textContent+=' — doit placer le '+gameState.drawnCard;else if(gameState.turnPhase==='must_reveal')statusEl.textContent+=' — doit retourner une carte';}}if(gameState.lastRoundTriggeredBy)statusEl.textContent+=' 🔔 Dernier tour !';}
-  const discardTop=gameState.discard?.length>0?gameState.discard[gameState.discard.length-1]:null;const deckCount=gameState.deck?gameState.deck.length:0;let pilesHtml=`<div class="pile"><div class="pile-label">Pioche (${deckCount})</div><div class="card face-down" id="pile-deck" onclick="Handlers.clickDeck()"></div></div><div class="pile"><div class="pile-label">Défausse</div>${discardTop!==null?`<div class="card ${getCardClass(discardTop)}" id="pile-discard" onclick="Handlers.clickDiscard()">${discardTop}</div>`:'<div class="card face-down" style="opacity:.3"></div>'}</div>`;
-  if(gameState.drawnCard!==null&&gameState.drawnByPlayerId){const isDrawnByMe=gameState.drawnByPlayerId===myPlayerId;const drawerName=getPlayerName(gameState.drawnByPlayerId);pilesHtml+=`<div class="pile"><div class="pile-label">${isDrawnByMe?'En main':drawerName}</div>`;if(isMyTurn&&gameState.turnPhase==='drawn_from_pile'){pilesHtml+=`<div class="card ${getCardClass(gameState.drawnCard)} highlight" onclick="Handlers.discardDrawn()" title="Tap = défausser">${gameState.drawnCard}</div><div style="font-size:.65em;color:#e74c3c;margin-top:2px">Tap = défausser</div>`;}else{pilesHtml+=`<div class="card ${getCardClass(gameState.drawnCard)} highlight">${gameState.drawnCard}</div>`;}pilesHtml+='</div>';}
-  pilesArea.innerHTML=pilesHtml;
-  const orderedPlayers=[...gameState.players].sort((a,b)=>{if(a.id===myPlayerId)return -1;if(b.id===myPlayerId)return 1;return 0;});
-  let playersHtml='';
-  orderedPlayers.forEach(p=>{const isMe=p.id===myPlayerId;const isCurrent=gameState.phase==='playing'&&gameState.players[gameState.currentPlayerIndex]?.id===p.id;const visibleScore=calcVisibleScore(p.id);const totalScore=gameState.totalScores[p.id]||0;const discoTag=p.disconnected?'<span class="reconnecting-badge">⚠️ déconnecté</span>':'';const colorIdx=gameState.players.findIndex(pl=>pl.id===p.id)%8;const kickInGameBtn=(isHost&&!isMe&&!p.isHost&&!p.isBot)?`<button class="kick-in-game-btn" onclick="App.confirmKickPlayer('${p.id}','${p.name.replace(/'/g,"\\'")}')">✕ Exclure</button>`:'';
-  playersHtml+=`<div class="player-zone pcolor-${colorIdx} ${isCurrent?'current-turn':''} ${isMe?'is-me':''}"><div class="player-header"><span class="player-name">${p.name}${isMe?' (vous)':''} ${discoTag}${kickInGameBtn}</span><span>${isCurrent?'<span class="turn-indicator">▶ </span>':''}<span class="player-score">Visible: ${visibleScore} | Total: ${totalScore}</span></span></div><div class="card-container">`;
-  for(let r=0;r<ROWS;r++){playersHtml+='<div class="card-row">';for(let c=0;c<COLS;c++){if(gameState.eliminated[p.id][c]){playersHtml+='<div class="card eliminated"></div>';}else if(gameState.revealed[p.id][r][c]){const val=gameState.hands[p.id][r][c];const key=`${p.id}-${r}-${c}`;const isNew=!_revealedKeys.has(key);if(isNew)_revealedKeys.add(key);playersHtml+=`<div class="card ${getCardClass(val)}${isNew?' flipping':''}">${val}</div>`;}else{const selectable=isCardSelectable(p.id,r,c);playersHtml+=`<div class="card face-down ${selectable?'selectable':''}" onclick="Handlers.clickCard('${p.id}',${r},${c})"></div>`;}}playersHtml+='</div>';}
-  playersHtml+='</div></div>';});
-  playersArea.innerHTML=playersHtml;
-  if(isMyTurn&&(gameState.turnPhase==='drawn_from_pile'||gameState.turnPhase==='place_mandatory')){playersArea.querySelectorAll('.player-zone.is-me .card:not(.eliminated)').forEach(cardEl=>{if(!cardEl.classList.contains('face-down')){const row=cardEl.closest('.card-row');const container=cardEl.closest('.card-container');if(row&&container){const rows=Array.from(container.children);const r=rows.indexOf(row);const cols=Array.from(row.children);const c=cols.indexOf(cardEl);if(r>=0&&c>=0&&!gameState.eliminated[myPlayerId][c]){cardEl.style.cursor='pointer';cardEl.classList.add('selectable');cardEl.onclick=()=>Handlers.clickCard(myPlayerId,r,c);}}}});}
-  if(isMyTurn&&gameState.turnPhase==='drawn_from_pile'){actionBar.style.display='';actionBar.innerHTML=`<button class="danger" onclick="Handlers.discardDrawn()" style="font-size:1em;padding:14px 28px">🗑️ Défausser le ${gameState.drawnCard} et retourner une carte</button>`;}else if(isMyTurn&&gameState.turnPhase==='must_reveal'){actionBar.style.display='';actionBar.innerHTML='<div style="color:#f1c40f;font-weight:600;padding:8px">👆 Cliquez sur une carte face cachée pour la retourner</div>';}else{actionBar.style.display='none';actionBar.innerHTML='';}}
-  function renderRoundReveal(isGameOver){document.getElementById('reveal-subtitle').textContent=isGameOver?'Grilles finales de la partie':'Manche '+gameState.round+' terminée !';const actionsEl=document.getElementById('reveal-actions');if(actionsEl){actionsEl.innerHTML=isHost?'<button onclick="Render.showRoundScoreTable()">Voir les scores →</button>':'<div style="color:#888;font-size:.85em;padding:8px">⏳ En attente de l\'hôte...</div>';}const summary=document.getElementById('reveal-summary');const sorted=[...gameState.players].sort((a,b)=>(gameState.roundScores[a.id]||0)-(gameState.roundScores[b.id]||0));const bestScore=gameState.roundScores[sorted[0].id]||0;const bestPlayer=sorted[0];let html='';sorted.forEach(p=>{const rs=gameState.roundScores[p.id]||0;const isBest=rs===bestScore;const isTriggerer=p.id===gameState.lastRoundTriggeredBy;const isMe=p.id===myPlayerId;const isAdversary=p.id!==bestPlayer.id;let gridHtml='<div class="pr-grid">';for(let r=0;r<ROWS;r++){for(let c=0;c<COLS;c++){if(gameState.eliminated[p.id][c]){gridHtml+='<div class="mini-card empty"></div>';}else{const val=gameState.hands[p.id][r][c];const lrp=gameState.lastRevealedPosition;const isLastRevealed=lrp&&lrp.playerId===p.id&&lrp.row===r&&lrp.col===c;const wasHidden=isAdversary&&gameState.hiddenAtEndOfRound&&(gameState.hiddenAtEndOfRound[p.id]||[]).some(pos=>pos.r===r&&pos.c===c);const glowClass=isLastRevealed?' last-revealed':(wasHidden?' last-revealed':'');gridHtml+=`<div class="mini-card ${getCardClass(val)}${glowClass}">${val}</div>`;}}}gridHtml+='</div>';const badge=isTriggerer?' 🔔':(isBest?' ✨':'');const sign=rs>0?'+':'';html+=`<div class="player-result ${isBest?'best':''}"><div class="pr-name">${p.name}${badge}${isMe?'<small>vous</small>':''}</div>${gridHtml}<span class="score-val">${sign}${rs}</span></div>`;});summary.innerHTML=html;}
-  function showRoundScoreTable(){if(!gameState)return;if(!isHost)return;if(gameState.phase==='game_over_reveal'){const sorted=[...gameState.players].sort((a,b)=>(gameState.totalScores[a.id]||0)-(gameState.totalScores[b.id]||0));gameState.players.forEach(p=>{Leaderboard.update(p.name,p.id===sorted[0].id);});gameState.phase='game_over';}else{gameState.phase='round_end';}Network.broadcastState();}
-  function renderRoundScores(){const table=document.getElementById('round-scores-table');const sub=document.getElementById('round-scores-subtitle');if(sub)sub.textContent='Manche '+gameState.round+' sur '+gameState.round;let html='<thead><tr><th>Joueur</th><th>Manche</th><th>Total</th></tr></thead><tbody>';const sorted=[...gameState.players].sort((a,b)=>(gameState.totalScores[a.id]||0)-(gameState.totalScores[b.id]||0));sorted.forEach((p,i)=>{const rs=gameState.roundScores[p.id]||0;const ts=gameState.totalScores[p.id]||0;const isTriggerer=p.id===gameState.lastRoundTriggeredBy;const isMe=p.id===myPlayerId;const scoreClass=rs>0?'round-score-pos':(rs<0?'round-score-neg':'');const sign=rs>0?'+':'';html+=`<tr${i===0?' class="winner"':''}><td>${i===0?'<span class="winner-name">':''}${p.name}${isTriggerer?' 🔔':''}${isMe?'<br><small style="color:#888;font-size:.72em">vous</small>':''}${i===0?'</span>':''}</td><td class="${scoreClass}">${sign}${rs}</td><td class="total">${ts}</td></tr>`;});html+='</tbody>';table.innerHTML=html;const durEl=document.getElementById('round-duration');const durVal=document.getElementById('round-duration-value');if(durEl&&durVal){const dur=gameState.gameStartTime?formatDuration(Date.now()-gameState.gameStartTime):null;if(dur){durVal.textContent=dur;durEl.style.display='';}else durEl.style.display='none';}document.getElementById('next-round-btn').style.display=isHost?'':'none';}
-  function renderFinalScores(){const sorted=[...gameState.players].sort((a,b)=>(gameState.totalScores[a.id]||0)-(gameState.totalScores[b.id]||0));const winner=sorted[0];document.getElementById('final-winner-banner').innerHTML=`<div class="winner-name">🎉 ${winner.name} remporte la partie ! 🎉</div>`;const cardsEl=document.getElementById('final-score-cards');if(cardsEl){const medals=['🥇','🥈','🥉'];let cardsHtml='';sorted.forEach((p,i)=>{const ts=gameState.totalScores[p.id]||0;const medal=medals[i]||(i+1);const rankClass=i<3?`rank-${i+1}`:'';const isMe=p.id===myPlayerId;cardsHtml+=`<div class="score-card ${rankClass}"><div class="score-card-medal">${medal}</div><div class="score-card-name">${i===0?`<span class="winner-name" style="font-size:.95em">${p.name}</span>`:p.name}${isMe?'<small>vous</small>':''}</div><div class="score-card-pts">${ts} pts</div></div>`;});cardsEl.innerHTML=cardsHtml;}const durEl=document.getElementById('final-duration');const durVal=document.getElementById('final-duration-value');if(durEl&&durVal){const dur=gameState.gameStartTime?formatDuration(Date.now()-gameState.gameStartTime):null;if(dur){durVal.textContent=dur;durEl.style.display='';}else durEl.style.display='none';}Leaderboard.render('final-leaderboard');}
-  function isCardSelectable(playerId,row,col){if(gameState.eliminated[playerId][col])return false;const isMe=playerId===myPlayerId;if(gameState.phase==='reveal_initial'){return isMe&&!gameState.revealed[playerId][row][col]&&(gameState.initialReveals[playerId]||0)<2;}if(gameState.phase==='playing'){const isMyTurn=gameState.players[gameState.currentPlayerIndex]?.id===myPlayerId;if(!isMe||!isMyTurn)return false;if(gameState.turnPhase==='must_reveal')return!gameState.revealed[playerId][row][col];if(gameState.turnPhase==='drawn_from_pile'||gameState.turnPhase==='place_mandatory')return true;}return false;}
-  function calcVisibleScore(playerId){let sum=0;for(let r=0;r<ROWS;r++)for(let c=0;c<COLS;c++)if(!gameState.eliminated[playerId][c]&&gameState.revealed[playerId][r][c])sum+=gameState.hands[playerId][r][c];return sum;}
-  function getCardClass(val){if(val===-2)return'val-neg2';if(val===-1)return'val-neg1';return'val-'+val;}
-  function formatDuration(ms){if(!ms||ms<=0)return null;const totalSec=Math.floor(ms/1000);const h=Math.floor(totalSec/3600);const m=Math.floor((totalSec%3600)/60);const s=totalSec%60;if(h>0)return`${h}h ${m}min ${s}s`;if(m>0)return`${m}min ${s}s`;return`${s}s`;}
-  return{fromState,renderLobby,showRoundScoreTable,clearFlipKeys:()=>_revealedKeys.clear()};
+
+// ============================================================
+// 10. RENDER — Rendu DOM depuis le gameState
+// ============================================================
+const Render = (() => {
+
+  function fromState() {
+    if (!gameState) return;
+    // Détecter si c'est devenu notre tour → notification
+    if (gameState.phase === 'playing') {
+      const cp = gameState.players[gameState.currentPlayerIndex];
+      if (cp && cp.id === myPlayerId && gameState.turnPhase === 'draw') {
+        Notif.notifyMyTurn();
+      }
+    }
+    switch(gameState.phase) {
+      case 'lobby':
+        UI.showScreen('screen-lobby');
+        document.getElementById('lobby-code').textContent = roomCode;
+        renderLobby();
+        break;
+      case 'reveal_initial':
+        _revealedKeys.clear();
+      /* falls through */
+      case 'playing':
+        UI.showScreen('screen-game');
+        renderGame();
+        break;
+      case 'round_reveal':
+        UI.showScreen('screen-round-reveal');
+        renderRoundReveal(false);
+        break;
+      case 'game_over_reveal':
+        UI.showScreen('screen-round-reveal');
+        renderRoundReveal(true);
+        break;
+      case 'round_end':
+        UI.showScreen('screen-round-scores');
+        renderRoundScores();
+        break;
+      case 'game_over':
+        // Mettre à jour le leaderboard local (pour le client aussi)
+        if (!isHost) {
+          const sorted = [...gameState.players].sort((a, b) =>
+            (gameState.totalScores[a.id] || 0) - (gameState.totalScores[b.id] || 0)
+          );
+          gameState.players.forEach(p => Leaderboard.update(p.name, p.id === sorted[0].id));
+        }
+        UI.showScreen('screen-final-scores');
+        renderFinalScores();
+        Sound.play('win');
+        break;
+    }
+  }
+
+  function renderLobby() {
+    if (!gameState) return;
+    const isSolo = gameState.isSolo;
+    // Titre et infos contextuelles
+    const titleEl = document.getElementById('lobby-title');
+    const subtitleEl = document.getElementById('lobby-subtitle');
+    const soloInfo = document.getElementById('lobby-solo-info');
+    const multiInfo = document.getElementById('lobby-multi-info');
+    if (titleEl) titleEl.textContent = isSolo ? 'Partie Solo' : 'Salle d\'attente';
+    if (subtitleEl) subtitleEl.textContent = isSolo ? 'Prêt à jouer contre le bot ?' : 'Partagez le code ou le QR code';
+    if (soloInfo) soloInfo.style.display = isSolo ? '' : 'none';
+    if (multiInfo) multiInfo.style.display = isSolo ? 'none' : '';
+
+    const list = document.getElementById('lobby-players');
+    list.innerHTML = gameState.players.map(p => {
+      const badge = p.isHost ? '<span class="host-badge">HÔTE</span>' : (p.isBot ? '<span class="host-badge" style="background:#27ae60">🤖 BOT</span>' : '');
+      const me = p.id === myPlayerId ? ' (vous)' : '';
+      // Bouton expulser visible pour l'hôte uniquement, sur les autres joueurs non-bot
+      const kickBtn = (isHost && !p.isHost && !p.isBot)
+        ? `<button class="kick-btn" onclick="App.kickPlayer('${p.id}')">✕ Expulser</button>`
+        : '';
+      return `<li>${p.name}${me} ${badge}${kickBtn}</li>`;
+    }).join('');
+
+    const startBtn = document.getElementById('start-btn');
+    startBtn.style.display = (isHost && gameState.players.length >= 2) ? '' : 'none';
+    startBtn.textContent = isSolo ? 'Jouer !' : 'Lancer la partie';
+  }
+
+  // Suivi des cartes déjà révélées pour détecter les nouvelles révélations (animation flip)
+  const _revealedKeys = new Set();
+
+  function renderGame() {
+    const pilesArea = document.getElementById('piles-area');
+    const playersArea = document.getElementById('players-area');
+    const actionBar = document.getElementById('action-bar');
+    const statusEl = document.getElementById('game-status');
+    const roundEl = document.getElementById('round-info');
+
+    roundEl.textContent = 'Manche ' + gameState.round;
+    const isMyTurn = gameState.phase === 'playing' &&
+      gameState.players[gameState.currentPlayerIndex]?.id === myPlayerId;
+
+    // Status text
+    if (gameState.phase === 'reveal_initial') {
+      const myReveals = gameState.initialReveals[myPlayerId] || 0;
+      statusEl.textContent = myReveals < 2 ? 'Retournez ' + (2 - myReveals) + ' carte(s)' : 'En attente des autres joueurs...';
+    } else if (gameState.phase === 'playing') {
+      const cp = gameState.players[gameState.currentPlayerIndex];
+      if (isMyTurn) {
+        switch(gameState.turnPhase) {
+          case 'draw':            statusEl.textContent = 'Piochez une carte'; break;
+          case 'drawn_from_pile': statusEl.textContent = '📌 Placez le ' + gameState.drawnCard + ' OU défaussez-le'; break;
+          case 'place_mandatory': statusEl.textContent = '📌 Vous DEVEZ placer le ' + gameState.drawnCard; break;
+          case 'must_reveal':     statusEl.textContent = '👆 Retournez une carte face cachée'; break;
+          default:                statusEl.textContent = 'À vous de jouer';
+        }
+      } else {
+        statusEl.textContent = 'Tour de ' + (cp.disconnected ? cp.name + ' ⚠️ (déco)' : cp.name);
+        if (gameState.drawnCard !== null && gameState.drawnByPlayerId) {
+          if (gameState.turnPhase === 'drawn_from_pile') statusEl.textContent += ' — a pioché un ' + gameState.drawnCard;
+          else if (gameState.turnPhase === 'place_mandatory') statusEl.textContent += ' — doit placer le ' + gameState.drawnCard;
+          else if (gameState.turnPhase === 'must_reveal') statusEl.textContent += ' — doit retourner une carte';
+        }
+      }
+      if (gameState.lastRoundTriggeredBy) statusEl.textContent += ' 🔔 Dernier tour !';
+    }
+
+    // Piles
+    const discardTop = gameState.discard?.length > 0 ? gameState.discard[gameState.discard.length - 1] : null;
+    const deckCount = gameState.deck ? gameState.deck.length : 0;
+    let pilesHtml = `
+      <div class="pile">
+        <div class="pile-label">Pioche (${deckCount})</div>
+        <div class="card face-down" id="pile-deck" onclick="Handlers.clickDeck()"></div>
+      </div>
+      <div class="pile">
+        <div class="pile-label">Défausse</div>
+        ${discardTop !== null
+          ? `<div class="card ${getCardClass(discardTop)}" id="pile-discard" onclick="Handlers.clickDiscard()">${discardTop}</div>`
+          : '<div class="card face-down" style="opacity:.3"></div>'
+        }
+      </div>`;
+
+    // Carte en main visible de tous
+    if (gameState.drawnCard !== null && gameState.drawnByPlayerId) {
+      const isDrawnByMe = gameState.drawnByPlayerId === myPlayerId;
+      const drawerName = getPlayerName(gameState.drawnByPlayerId);
+      pilesHtml += `<div class="pile">
+        <div class="pile-label">${isDrawnByMe ? 'En main' : drawerName}</div>`;
+      if (isMyTurn && gameState.turnPhase === 'drawn_from_pile') {
+        pilesHtml += `<div class="card ${getCardClass(gameState.drawnCard)} highlight" onclick="Handlers.discardDrawn()" title="Tap = défausser">${gameState.drawnCard}</div>
+        <div style="font-size:.65em;color:#e74c3c;margin-top:2px">Tap = défausser</div>`;
+      } else {
+        pilesHtml += `<div class="card ${getCardClass(gameState.drawnCard)} highlight">${gameState.drawnCard}</div>`;
+      }
+      pilesHtml += '</div>';
+    }
+    pilesArea.innerHTML = pilesHtml;
+
+    // Joueurs (mon joueur en premier)
+    const orderedPlayers = [...gameState.players].sort((a, b) => {
+      if (a.id === myPlayerId) return -1;
+      if (b.id === myPlayerId) return 1;
+      return 0;
+    });
+
+    let playersHtml = '';
+    orderedPlayers.forEach(p => {
+      const isMe = p.id === myPlayerId;
+      const isCurrent = gameState.phase === 'playing' && gameState.players[gameState.currentPlayerIndex]?.id === p.id;
+      const visibleScore = calcVisibleScore(p.id);
+      const totalScore = gameState.totalScores[p.id] || 0;
+      const discoTag = p.disconnected ? '<span class="reconnecting-badge">⚠️ déconnecté</span>' : '';
+      // Index de couleur stable basé sur la position initiale du joueur
+      const colorIdx = gameState.players.findIndex(pl => pl.id === p.id) % 8;
+      // Bouton exclure en jeu : visible pour l'hôte sur les autres joueurs humains non-hôte
+      const kickInGameBtn = (isHost && !isMe && !p.isHost && !p.isBot)
+        ? `<button class="kick-in-game-btn" onclick="App.confirmKickPlayer('${p.id}','${p.name.replace(/'/g,String.fromCharCode(39))}')">✕ Exclure</button>`
+        : '';
+
+      playersHtml += `<div class="player-zone pcolor-${colorIdx} ${isCurrent ? 'current-turn' : ''} ${isMe ? 'is-me' : ''}">
+        <div class="player-header">
+          <span class="player-name">${p.name}${isMe ? ' (vous)' : ''} ${discoTag}${kickInGameBtn}</span>
+          <span>
+            ${isCurrent ? '<span class="turn-indicator">▶ </span>' : ''}
+            <span class="player-score">Visible: ${visibleScore} | Total: ${totalScore}</span>
+          </span>
+        </div>
+        <div class="card-container">`;
+
+      for (let r = 0; r < ROWS; r++) {
+        playersHtml += '<div class="card-row">';
+        for (let c = 0; c < COLS; c++) {
+          if (gameState.eliminated[p.id][c]) {
+            playersHtml += '<div class="card eliminated"></div>';
+          } else if (gameState.revealed[p.id][r][c]) {
+            const val = gameState.hands[p.id][r][c];
+            const key = `${p.id}-${r}-${c}`;
+            const isNew = !_revealedKeys.has(key);
+            if (isNew) _revealedKeys.add(key);
+            playersHtml += `<div class="card ${getCardClass(val)}${isNew ? ' flipping' : ''}">${val}</div>`;
+          } else {
+            const selectable = isCardSelectable(p.id, r, c);
+            playersHtml += `<div class="card face-down ${selectable ? 'selectable' : ''}" onclick="Handlers.clickCard('${p.id}',${r},${c})"></div>`;
+          }
+        }
+        playersHtml += '</div>';
+      }
+      playersHtml += '</div></div>';
+    });
+    playersArea.innerHTML = playersHtml;
+
+    // Rendre les cartes révélées cliquables pour placement
+    if (isMyTurn && (gameState.turnPhase === 'drawn_from_pile' || gameState.turnPhase === 'place_mandatory')) {
+      playersArea.querySelectorAll('.player-zone.is-me .card:not(.eliminated)').forEach(cardEl => {
+        if (!cardEl.classList.contains('face-down')) {
+          const row = cardEl.closest('.card-row');
+          const container = cardEl.closest('.card-container');
+          if (row && container) {
+            const rows = Array.from(container.children);
+            const r = rows.indexOf(row);
+            const cols = Array.from(row.children);
+            const c = cols.indexOf(cardEl);
+            if (r >= 0 && c >= 0 && !gameState.eliminated[myPlayerId][c]) {
+              cardEl.style.cursor = 'pointer';
+              cardEl.classList.add('selectable');
+              cardEl.onclick = () => Handlers.clickCard(myPlayerId, r, c);
+            }
+          }
+        }
+      });
+    }
+
+    // Action bar
+    if (isMyTurn && gameState.turnPhase === 'drawn_from_pile') {
+      actionBar.style.display = '';
+      actionBar.innerHTML = `<button class="danger" onclick="Handlers.discardDrawn()" style="font-size:1em;padding:14px 28px">🗑️ Défausser le ${gameState.drawnCard} et retourner une carte</button>`;
+    } else if (isMyTurn && gameState.turnPhase === 'must_reveal') {
+      actionBar.style.display = '';
+      actionBar.innerHTML = '<div style="color:#f1c40f;font-weight:600;padding:8px">👆 Cliquez sur une carte face cachée pour la retourner</div>';
+    } else {
+      actionBar.style.display = 'none';
+      actionBar.innerHTML = '';
+    }
+  }
+
+  function renderRoundReveal(isGameOver) {
+    document.getElementById('reveal-subtitle').textContent = isGameOver
+      ? 'Grilles finales de la partie'
+      : 'Manche ' + gameState.round + ' terminée !';
+
+    // Bouton "Voir les scores" uniquement pour l'hôte — le client attend
+    const actionsEl = document.getElementById('reveal-actions');
+    if (actionsEl) {
+      actionsEl.innerHTML = isHost
+        ? '<button onclick="Render.showRoundScoreTable()">Voir les scores →</button>'
+        : '<div style="color:#888;font-size:.85em;padding:8px">⏳ En attente de l\'hôte...</div>';
+    }
+    const summary = document.getElementById('reveal-summary');
+    const sorted = [...gameState.players].sort((a, b) =>
+      (gameState.roundScores[a.id] || 0) - (gameState.roundScores[b.id] || 0)
+    );
+    const bestScore = gameState.roundScores[sorted[0].id] || 0;
+    const bestPlayer = sorted[0];
+
+    let html = '';
+    sorted.forEach(p => {
+      const rs = gameState.roundScores[p.id] || 0;
+      const isBest = rs === bestScore;
+      const isTriggerer = p.id === gameState.lastRoundTriggeredBy;
+      const isMe = p.id === myPlayerId;
+      const isAdversary = p.id !== bestPlayer.id;
+
+      let gridHtml = '<div class="pr-grid">';
+      for (let r = 0; r < ROWS; r++) {
+        for (let c = 0; c < COLS; c++) {
+          if (gameState.eliminated[p.id][c]) {
+            gridHtml += '<div class="mini-card empty"></div>';
+          } else {
+            const val = gameState.hands[p.id][r][c];
+            const lrp = gameState.lastRevealedPosition;
+            const isLastRevealed = lrp && lrp.playerId === p.id && lrp.row === r && lrp.col === c;
+            const wasHidden = isAdversary && gameState.hiddenAtEndOfRound &&
+              (gameState.hiddenAtEndOfRound[p.id] || []).some(pos => pos.r === r && pos.c === c);
+            // Halo doré : carte last-revealed du gagnant OU toute carte encore cachée d'un adversaire en fin de manche
+            const glowClass = isLastRevealed ? ' last-revealed' : (wasHidden ? ' last-revealed' : '');
+            gridHtml += `<div class="mini-card ${getCardClass(val)}${glowClass}">${val}</div>`;
+          }
+        }
+      }
+      gridHtml += '</div>';
+      const badge = isTriggerer ? ' 🔔' : (isBest ? ' ✨' : '');
+      const sign = rs > 0 ? '+' : '';
+      html += `<div class="player-result ${isBest ? 'best' : ''}">
+        <div class="pr-name">${p.name}${badge}${isMe ? '<small>vous</small>' : ''}</div>
+        ${gridHtml}
+        <span class="score-val">${sign}${rs}</span>
+      </div>`;
+    });
+    summary.innerHTML = html;
+  }
+
+  function showRoundScoreTable() {
+    if (!gameState) return;
+    // Seul l'hôte pilote les transitions de phase et broadcaste
+    // Le client ne fait rien — il recevra le broadcast de l'hôte
+    if (!isHost) return;
+
+    if (gameState.phase === 'game_over_reveal') {
+      const sorted = [...gameState.players].sort((a, b) =>
+        (gameState.totalScores[a.id] || 0) - (gameState.totalScores[b.id] || 0)
+      );
+      gameState.players.forEach(p => {
+        Leaderboard.update(p.name, p.id === sorted[0].id);
+      });
+      gameState.phase = 'game_over';
+    } else {
+      gameState.phase = 'round_end';
+    }
+    Network.broadcastState();
+  }
+
+  function renderRoundScores() {
+    const table = document.getElementById('round-scores-table');
+    const sub = document.getElementById('round-scores-subtitle');
+    if (sub) sub.textContent = 'Manche ' + gameState.round + ' sur ' + gameState.round;
+    let html = '<thead><tr><th>Joueur</th><th>Manche</th><th>Total</th></tr></thead><tbody>';
+    const sorted = [...gameState.players].sort((a, b) =>
+      (gameState.totalScores[a.id] || 0) - (gameState.totalScores[b.id] || 0)
+    );
+    sorted.forEach((p, i) => {
+      const rs = gameState.roundScores[p.id] || 0;
+      const ts = gameState.totalScores[p.id] || 0;
+      const isTriggerer = p.id === gameState.lastRoundTriggeredBy;
+      const isMe = p.id === myPlayerId;
+      const scoreClass = rs > 0 ? 'round-score-pos' : (rs < 0 ? 'round-score-neg' : '');
+      const sign = rs > 0 ? '+' : '';
+      html += `<tr${i === 0 ? ' class="winner"' : ''}>`;
+      html += `<td>${i === 0 ? '<span class="winner-name">' : ''}${p.name}${isTriggerer ? ' 🔔' : ''}${isMe ? '<br><small style="color:#888;font-size:.72em">vous</small>' : ''}${i === 0 ? '</span>' : ''}</td>`;
+      html += `<td class="${scoreClass}">${sign}${rs}</td>`;
+      html += `<td class="total">${ts}</td></tr>`;
+    });
+    html += '</tbody>';
+    table.innerHTML = html;
+    const durEl = document.getElementById('round-duration');
+    const durVal = document.getElementById('round-duration-value');
+    if (durEl && durVal) {
+      const dur = gameState.gameStartTime ? formatDuration(Date.now() - gameState.gameStartTime) : null;
+      if (dur) { durVal.textContent = dur; durEl.style.display = ''; }
+      else durEl.style.display = 'none';
+    }
+    document.getElementById('next-round-btn').style.display = isHost ? '' : 'none';
+  }
+
+  function renderFinalScores() {
+    const sorted = [...gameState.players].sort((a, b) =>
+      (gameState.totalScores[a.id] || 0) - (gameState.totalScores[b.id] || 0)
+    );
+    const winner = sorted[0];
+    document.getElementById('final-winner-banner').innerHTML =
+      `<div class="winner-name">🎉 ${winner.name} remporte la partie ! 🎉</div>`;
+
+    const cardsEl = document.getElementById('final-score-cards');
+    if (cardsEl) {
+      const medals = ['🥇', '🥈', '🥉'];
+      let cardsHtml = '';
+      sorted.forEach((p, i) => {
+        const ts = gameState.totalScores[p.id] || 0;
+        const medal = medals[i] || (i + 1);
+        const rankClass = i < 3 ? `rank-${i + 1}` : '';
+        const isMe = p.id === myPlayerId;
+        cardsHtml += `<div class="score-card ${rankClass}">
+          <div class="score-card-medal">${medal}</div>
+          <div class="score-card-name">
+            ${i === 0 ? `<span class="winner-name" style="font-size:.95em">${p.name}</span>` : p.name}
+            ${isMe ? '<small>vous</small>' : ''}
+          </div>
+          <div class="score-card-pts">${ts} pts</div>
+        </div>`;
+      });
+      cardsEl.innerHTML = cardsHtml;
+    }
+
+    const durEl = document.getElementById('final-duration');
+    const durVal = document.getElementById('final-duration-value');
+    if (durEl && durVal) {
+      const dur = gameState.gameStartTime ? formatDuration(Date.now() - gameState.gameStartTime) : null;
+      if (dur) { durVal.textContent = dur; durEl.style.display = ''; }
+      else durEl.style.display = 'none';
+    }
+    Leaderboard.render('final-leaderboard');
+  }
+
+  // Helpers partagés
+  function isCardSelectable(playerId, row, col) {
+    if (gameState.eliminated[playerId][col]) return false;
+    const isMe = playerId === myPlayerId;
+    if (gameState.phase === 'reveal_initial') {
+      return isMe && !gameState.revealed[playerId][row][col] && (gameState.initialReveals[playerId] || 0) < 2;
+    }
+    if (gameState.phase === 'playing') {
+      const isMyTurn = gameState.players[gameState.currentPlayerIndex]?.id === myPlayerId;
+      if (!isMe || !isMyTurn) return false;
+      if (gameState.turnPhase === 'must_reveal') return !gameState.revealed[playerId][row][col];
+      if (gameState.turnPhase === 'drawn_from_pile' || gameState.turnPhase === 'place_mandatory') return true;
+    }
+    return false;
+  }
+
+  function calcVisibleScore(playerId) {
+    let sum = 0;
+    for (let r = 0; r < ROWS; r++)
+      for (let c = 0; c < COLS; c++)
+        if (!gameState.eliminated[playerId][c] && gameState.revealed[playerId][r][c])
+          sum += gameState.hands[playerId][r][c];
+    return sum;
+  }
+
+  function getCardClass(val) {
+    if (val === -2) return 'val-neg2';
+    if (val === -1) return 'val-neg1';
+    return 'val-' + val;
+  }
+
+  function formatDuration(ms) {
+    if (!ms || ms <= 0) return null;
+    const totalSec = Math.floor(ms / 1000);
+    const h = Math.floor(totalSec / 3600);
+    const m = Math.floor((totalSec % 3600) / 60);
+    const s = totalSec % 60;
+    if (h > 0) return `${h}h ${m}min ${s}s`;
+    if (m > 0) return `${m}min ${s}s`;
+    return `${s}s`;
+  }
+
+  return { fromState, renderLobby, showRoundScoreTable, clearFlipKeys: () => _revealedKeys.clear() };
 })();
 
-function getCardClass(val){if(val===-2)return'val-neg2';if(val===-1)return'val-neg1';return'val-'+val;}
+// Expose getCardClass globally (used in game logic too)
+function getCardClass(val) {
+  if (val === -2) return 'val-neg2';
+  if (val === -1) return 'val-neg1';
+  return 'val-' + val;
+}
 
-const Handlers=(() => {
-  function clickDeck(){const isMyTurn=gameState?.phase==='playing'&&gameState.players[gameState.currentPlayerIndex]?.id===myPlayerId;if(!isMyTurn||gameState.turnPhase!=='draw')return;Sound.play('card_flip');performAction({type:'draw_deck'});}
-  function clickDiscard(){const isMyTurn=gameState?.phase==='playing'&&gameState.players[gameState.currentPlayerIndex]?.id===myPlayerId;if(!isMyTurn||gameState.turnPhase!=='draw')return;Sound.play('card_flip');performAction({type:'draw_discard'});}
-  function clickCard(playerId,row,col){if(gameState.phase==='reveal_initial'){if(playerId!==myPlayerId)return;Sound.play('card_flip');performAction({type:'reveal',row,col});return;}if(gameState.phase==='playing'){const isMyTurn=gameState.players[gameState.currentPlayerIndex]?.id===myPlayerId;if(!isMyTurn||playerId!==myPlayerId)return;if(gameState.turnPhase==='must_reveal'){if(!gameState.revealed[playerId][row][col]){Sound.play('card_flip');performAction({type:'reveal_card',row,col});}return;}if(gameState.turnPhase==='drawn_from_pile'||gameState.turnPhase==='place_mandatory'){if(!gameState.eliminated[playerId][col]){Sound.play('card_flip');performAction({type:'place_card',row,col});}return;}}}
-  function discardDrawn(){performAction({type:'discard_drawn'});}
-  return{clickDeck,clickDiscard,clickCard,discardDrawn};
+
+// ============================================================
+// 11. CLICK HANDLERS — Interactions utilisateur
+// ============================================================
+const Handlers = (() => {
+
+  function clickDeck() {
+    const isMyTurn = gameState?.phase === 'playing' &&
+      gameState.players[gameState.currentPlayerIndex]?.id === myPlayerId;
+    if (!isMyTurn || gameState.turnPhase !== 'draw') return;
+    Sound.play('card_flip');
+    performAction({ type: 'draw_deck' });
+  }
+
+  function clickDiscard() {
+    const isMyTurn = gameState?.phase === 'playing' &&
+      gameState.players[gameState.currentPlayerIndex]?.id === myPlayerId;
+    if (!isMyTurn || gameState.turnPhase !== 'draw') return;
+    Sound.play('card_flip');
+    performAction({ type: 'draw_discard' });
+  }
+
+  function clickCard(playerId, row, col) {
+    if (gameState.phase === 'reveal_initial') {
+      if (playerId !== myPlayerId) return;
+      Sound.play('card_flip');
+      performAction({ type: 'reveal', row, col });
+      return;
+    }
+    if (gameState.phase === 'playing') {
+      const isMyTurn = gameState.players[gameState.currentPlayerIndex]?.id === myPlayerId;
+      if (!isMyTurn || playerId !== myPlayerId) return;
+      if (gameState.turnPhase === 'must_reveal') {
+        if (!gameState.revealed[playerId][row][col]) {
+          Sound.play('card_flip');
+          performAction({ type: 'reveal_card', row, col });
+        }
+        return;
+      }
+      if (gameState.turnPhase === 'drawn_from_pile' || gameState.turnPhase === 'place_mandatory') {
+        if (!gameState.eliminated[playerId][col]) {
+          Sound.play('card_flip');
+          performAction({ type: 'place_card', row, col });
+        }
+        return;
+      }
+    }
+  }
+
+  function discardDrawn() {
+    performAction({ type: 'discard_drawn' });
+  }
+
+  return { clickDeck, clickDiscard, clickCard, discardDrawn };
 })();
 
-const App=(() => {
-  function getName(){const joinField=document.getElementById('join-name');const mainField=document.getElementById('player-name');let name=(joinField&&joinField.value.trim())||(mainField&&mainField.value.trim())||'';if(!name)name='Joueur'+Math.floor(Math.random()*999);return name;}
-  function showJoinScreen(){const mainName=document.getElementById('player-name').value.trim();const joinNameEl=document.getElementById('join-name');if(joinNameEl&&mainName)joinNameEl.value=mainName;UI.showScreen('screen-join');if(joinNameEl&&!joinNameEl.value.trim()){joinNameEl.focus();}else{document.getElementById('room-input').focus();}}
-  async function createSoloGame(){myName=getName();roomCode=Network.generateRoomCode();isHost=true;UI.setConnStatus('connecting','Connexion...');try{await Network.initPeer('skyjo'+roomCode);}catch(e){UI.setConnStatus('','');UI.toast('Erreur: '+e.message);return;}UI.setConnStatus('connected','');myPlayerId=myPeerId;Network.setupHostListeners();const botId='bot-'+Math.random().toString(36).substr(2,6);const botNames=['HAL','R2D2','Wall-E','EVA','ARIA','NOVA','ZETA','ORION'];const botName=botNames[Math.floor(Math.random()*botNames.length)];gameState={phase:'lobby',isSolo:true,botDifficulty:'moyen',players:[{id:myPeerId,name:myName,isHost:true},{id:botId,name:botName,isBot:true}],round:0,totalScores:{[myPeerId]:0,[botId]:0}};showLobby();setTimeout(()=>setBotDifficulty('moyen'),50);}
-  function setBotDifficulty(level){if(!gameState)return;gameState.botDifficulty=level;['facile','moyen','fort'].forEach(l=>{const btn=document.getElementById('diff-'+l);if(!btn)return;btn.style.opacity=l===level?'1':'0.4';btn.style.transform=l===level?'scale(1.05)':'scale(1)';});}
-  function switchToMulti(){if(!isHost||!gameState||!gameState.isSolo)return;gameState.isSolo=false;gameState.players=gameState.players.filter(p=>!p.isBot);gameState.players.forEach(p=>{gameState.totalScores[p.id]=gameState.totalScores[p.id]||0;});Object.keys(gameState.totalScores).forEach(id=>{if(!gameState.players.find(p=>p.id===id))delete gameState.totalScores[id];});UI.toast('Mode multijoueur activé — Partagez le code !');Render.renderLobby();generateQR();document.getElementById('lobby-code').textContent=roomCode;}
-  async function createGame(){myName=getName();roomCode=Network.generateRoomCode();isHost=true;UI.setConnStatus('connecting','📡 Connexion au serveur...');try{await Network.initPeer('skyjo'+roomCode);}catch(e){UI.setConnStatus('','');UI.toast('Erreur : '+e.message);return;}UI.setConnStatus('connected','');myPlayerId=myPeerId;Network.setupHostListeners();gameState={phase:'lobby',isSolo:false,players:[{id:myPeerId,name:myName,isHost:true}],round:0,totalScores:{[myPeerId]:0}};showLobby();}
-  async function joinGame(){myName=getName();const code=document.getElementById('room-input').value.trim().toUpperCase();if(!code){UI.toast('Entrez un code');return;}roomCode=code;isHost=false;UI.setConnStatus('connecting','📡 Connexion au serveur...');try{await Network.initPeer(null);}catch(e){UI.setConnStatus('','');UI.toast('Erreur : '+(e.message||'connexion impossible'));return;}myPlayerId=myPeerId;UI.setConnStatus('connecting','🔗 Connexion à l\'hôte...');const hostId='skyjo'+roomCode;hostConn=peer.connect(hostId,{reliable:true});const connTimer=setTimeout(()=>{if(!hostConn||!hostConn.open){UI.setConnStatus('','');UI.toast("Impossible de joindre l'hôte — vérifiez le code ou réessayez");try{if(hostConn)hostConn.close();}catch(e){}try{if(peer){peer.destroy();peer=null;}}catch(e){}}},20000);hostConn.on('open',()=>{clearTimeout(connTimer);UI.setConnStatus('connected','');reconnectAttempt=0;hostConn.send({type:'join',name:myName,id:myPeerId});hostConn.on('data',(data)=>{switch(data.type){case 'state':gameState=data.state;hideWaitingApproval();Render.fromState();break;case 'pending':showWaitingApproval();break;case 'approved':hideWaitingApproval();UI.toast('✅ Vous avez été accepté !');break;case 'rejected':_rejectedByHost=true;hideWaitingApproval();UI.toast('❌ '+(data.msg||"Accès refusé par l'hôte"));setTimeout(()=>App.backToMenu(),1500);break;case 'error':UI.toast(data.msg);break;case 'toast':UI.toast(data.msg);break;case 'log':ActionLog.add(data.msg);break;case 'boom':triggerBoom();Sound.play('boom');break;}});});hostConn.on('close',()=>{if(_rejectedByHost){_rejectedByHost=false;return;}if(currentScreen==='screen-lobby'&&!gameState){hideWaitingApproval();UI.toast('Connexion perdue');App.backToMenu();return;}if(currentScreen!=='screen-menu'){UI.setConnStatus('reconnecting','Reconnexion...');Network.scheduleReconnect();}});hostConn.on('error',(err)=>{clearTimeout(connTimer);UI.setConnStatus('','');const msg=err&&err.type?err.type:String(err);UI.toast('Impossible de joindre l\'hôte ('+msg+')');console.error('hostConn error:',err);});}
-  function showLobby(){UI.showScreen('screen-lobby');document.getElementById('lobby-code').textContent=roomCode;generateQR();Render.renderLobby();}
-  function copyCode(){const url=window.location.href.split('?')[0]+'?room='+roomCode;navigator.clipboard.writeText(url).then(()=>UI.toast('Lien copié !')).catch(()=>UI.toast(roomCode));}
-  function leaveLobby(){if(peer)peer.destroy();peer=null;connections={};hostConn=null;gameState=null;backToMenu();}
-  function backToMenu(){clearTimeout(reconnectTimer);Bot.clearTimers();if(peer){peer.destroy();peer=null;}connections={};hostConn=null;gameState=null;isHost=false;reconnectAttempt=0;UI.setConnStatus('','');ActionLog.clear();UI.showScreen('screen-menu');}
-  function startGame(){if(!isHost)return;const minPlayers=gameState.isSolo?1:2;if(gameState.players.length<minPlayers)return;gameState.gameStartTime=Date.now();initRound();setTimeout(()=>Bot.maybePlay(),200);if(!gameState.isSolo)Notif.init();}
-  function nextRound(){if(!isHost)return;initRound();}
-  function confirmKickPlayer(playerId,playerName){if(!isHost||!gameState)return;UI.showModal('✕ Exclure un joueur','Voulez-vous exclure <strong>'+playerName+'</strong> de la partie ?',[{text:'Annuler',action:'UI.closeModal()'},{text:'✕ Exclure',action:"App.kickPlayer('"+playerId+"');UI.closeModal()"}]);}
-  function kickPlayer(playerId){if(!isHost||!gameState)return;const player=gameState.players.find(p=>p.id===playerId);if(!player||player.isHost)return;const humanClients=gameState.players.filter(p=>!p.isHost&&!p.isBot);const isLastClient=humanClients.length<=1;const conn=connections[playerId];if(conn){try{conn.send({type:'rejected',msg:'Vous avez été expulsé par l\'hôte'});}catch(e){}setTimeout(()=>{try{conn.close();}catch(e){}},400);}delete connections[playerId];if(isLastClient){Object.values(connections).forEach(c=>{try{c.send({type:'rejected',msg:'La partie a été dissoute par l\'hôte'});}catch(e){}setTimeout(()=>{try{c.close();}catch(e){}},300);});UI.toast(player.name+' expulsé — retour à l\'accueil');setTimeout(()=>App.backToMenu(),800);return;}if(gameState.phase==='playing'||gameState.phase==='reveal_initial'){const kickedIndex=gameState.players.findIndex(p=>p.id===playerId);gameState.players=gameState.players.filter(p=>p.id!==playerId);delete gameState.totalScores[playerId];if(gameState.currentPlayerIndex>kickedIndex){gameState.currentPlayerIndex--;}else if(gameState.currentPlayerIndex===kickedIndex){gameState.currentPlayerIndex=gameState.currentPlayerIndex%gameState.players.length;gameState.turnPhase='draw';gameState.drawnCard=null;gameState.drawnFrom=null;gameState.drawnByPlayerId=null;}if(gameState.lastRoundTriggeredBy===playerId){gameState.lastRoundTriggeredBy=null;gameState.lastRoundTurnsLeft=-1;}}else{gameState.players=gameState.players.filter(p=>p.id!==playerId);delete gameState.totalScores[playerId];}Network.broadcastState();UI.toast(player.name+' a été expulsé');ActionLog.add('🚫 '+player.name+' expulsé');setTimeout(()=>Bot.maybePlay(),100);}
-  return{showJoinScreen,createSoloGame,createGame,switchToMulti,setBotDifficulty,joinGame,showLobby,copyCode,leaveLobby,backToMenu,startGame,nextRound,kickPlayer,confirmKickPlayer};
+
+// ============================================================
+// 12. APP — Orchestration principale
+// ============================================================
+const App = (() => {
+
+  function getName() {
+    // Priorité au champ join-name (écran rejoindre) s'il est rempli
+    const joinField = document.getElementById('join-name');
+    const mainField = document.getElementById('player-name');
+    let name = (joinField && joinField.value.trim()) || (mainField && mainField.value.trim()) || '';
+    if (!name) name = 'Joueur' + Math.floor(Math.random() * 999);
+    return name;
+  }
+
+  function showJoinScreen() {
+    // Pré-remplir le champ pseudo avec ce qui est déjà saisi dans le menu
+    const mainName = document.getElementById('player-name').value.trim();
+    const joinNameEl = document.getElementById('join-name');
+    if (joinNameEl && mainName) joinNameEl.value = mainName;
+    UI.showScreen('screen-join');
+    // Focus : si pseudo vide → focus pseudo, sinon focus code
+    if (joinNameEl && !joinNameEl.value.trim()) {
+      joinNameEl.focus();
+    } else {
+      document.getElementById('room-input').focus();
+    }
+  }
+
+  // --- Créer une partie SOLO (hôte + 1 bot) ---
+  async function createSoloGame() {
+    myName = getName();
+    roomCode = Network.generateRoomCode();
+    isHost = true;
+    UI.setConnStatus('connecting', 'Connexion...');
+    try {
+      await Network.initPeer('skyjo' + roomCode);
+    } catch(e) {
+      UI.setConnStatus('', '');
+      UI.toast('Erreur: ' + e.message);
+      return;
+    }
+    UI.setConnStatus('connected', '');
+    myPlayerId = myPeerId;
+    Network.setupHostListeners();
+
+    // Créer un ID unique pour le bot
+    const botId = 'bot-' + Math.random().toString(36).substr(2, 6);
+    const botNames = ['HAL', 'R2D2', 'Wall-E', 'EVA', 'ARIA', 'NOVA', 'ZETA', 'ORION'];
+    const botName = botNames[Math.floor(Math.random() * botNames.length)];
+
+    gameState = {
+      phase: 'lobby',
+      isSolo: true,
+      botDifficulty: 'moyen',
+      players: [
+        { id: myPeerId, name: myName, isHost: true },
+        { id: botId, name: botName, isBot: true }
+      ],
+      round: 0,
+      totalScores: { [myPeerId]: 0, [botId]: 0 }
+    };
+    showLobby();
+    setTimeout(() => setBotDifficulty('moyen'), 50); // init visuel des boutons
+  }
+
+  // --- Choisir la difficulté du bot ---
+  function setBotDifficulty(level) {
+    if (!gameState) return;
+    gameState.botDifficulty = level;
+    // Mettre à jour l'apparence des boutons
+    ['facile', 'moyen', 'fort'].forEach(l => {
+      const btn = document.getElementById('diff-' + l);
+      if (!btn) return;
+      btn.style.opacity = l === level ? '1' : '0.4';
+      btn.style.transform = l === level ? 'scale(1.05)' : 'scale(1)';
+    });
+  }
+
+  // --- Passer du mode solo au mode multi (dans le lobby) ---
+  function switchToMulti() {
+    if (!isHost || !gameState || !gameState.isSolo) return;
+    // Retirer le bot et ouvrir la salle en mode multi
+    gameState.isSolo = false;
+    gameState.players = gameState.players.filter(p => !p.isBot);
+    gameState.players.forEach(p => { gameState.totalScores[p.id] = gameState.totalScores[p.id] || 0; });
+    // Nettoyer les totalScores des bots
+    Object.keys(gameState.totalScores).forEach(id => {
+      if (!gameState.players.find(p => p.id === id)) delete gameState.totalScores[id];
+    });
+    UI.toast('Mode multijoueur activé — Partagez le code !');
+    Render.renderLobby();
+    // Regénérer le QR code
+    generateQR();
+    document.getElementById('lobby-code').textContent = roomCode;
+  }
+
+  // --- Créer une partie MULTI (hôte) ---
+  async function createGame() {
+    myName = getName();
+    roomCode = Network.generateRoomCode();
+    isHost = true;
+    UI.setConnStatus('connecting', '📡 Connexion au serveur...');
+    try {
+      await Network.initPeer('skyjo' + roomCode);
+    } catch(e) {
+      UI.setConnStatus('', '');
+      UI.toast('Erreur : ' + e.message);
+      return;
+    }
+    UI.setConnStatus('connected', '');
+    myPlayerId = myPeerId;
+    Network.setupHostListeners();
+    gameState = {
+      phase: 'lobby',
+      isSolo: false,
+      players: [{ id: myPeerId, name: myName, isHost: true }],
+      round: 0,
+      totalScores: { [myPeerId]: 0 }
+    };
+    showLobby();
+  }
+
+  // --- Rejoindre une partie (client) ---
+  async function joinGame() {
+    myName = getName();
+    const code = document.getElementById('room-input').value.trim().toUpperCase();
+    if (!code) { UI.toast('Entrez un code'); return; }
+    roomCode = code;
+    isHost = false;
+    UI.setConnStatus('connecting', '📡 Connexion au serveur...');
+    try {
+      // Client : ID aleatoire attribue par PeerJS (evite tout conflit d'ID)
+      await Network.initPeer(null);
+    } catch(e) {
+      UI.setConnStatus('', '');
+      UI.toast('Erreur : ' + (e.message || 'connexion impossible'));
+      return;
+    }
+    myPlayerId = myPeerId;
+    UI.setConnStatus('connecting', '🔗 Connexion à l\'hôte...');
+    const hostId = 'skyjo' + roomCode;
+    hostConn = peer.connect(hostId, { reliable: true });
+
+    // Timeout 20s : si WebRTC ne peut pas s'etablir (NAT symetrique, 4G->box)
+    const connTimer = setTimeout(() => {
+      if (!hostConn || !hostConn.open) {
+        UI.setConnStatus('', '');
+        UI.toast("Impossible de joindre l'hôte — vérifiez le code ou réessayez");
+        try { if (hostConn) hostConn.close(); } catch(e) {}
+        try { if (peer) { peer.destroy(); peer = null; } } catch(e) {}
+      }
+    }, 20000);
+
+    hostConn.on('open', () => {
+      clearTimeout(connTimer);
+      UI.setConnStatus('connected', '');
+      reconnectAttempt = 0;
+      hostConn.send({ type: 'join', name: myName, id: myPeerId });
+      hostConn.on('data', (data) => {
+        switch(data.type) {
+          case 'state':
+            gameState = data.state;
+            hideWaitingApproval();
+            Render.fromState();
+            break;
+          case 'pending':
+            showWaitingApproval();
+            break;
+          case 'approved':
+            hideWaitingApproval();
+            UI.toast('✅ Vous avez été accepté !');
+            break;
+          case 'rejected':
+            _rejectedByHost = true;
+            hideWaitingApproval();
+            UI.toast('❌ ' + (data.msg || "Accès refusé par l'hôte"));
+            setTimeout(() => App.backToMenu(), 1500);
+            break;
+          case 'error':  UI.toast(data.msg); break;
+          case 'toast':  UI.toast(data.msg); break;
+          case 'log':    ActionLog.add(data.msg); break;
+          case 'boom':   triggerBoom(); Sound.play('boom'); break;
+        }
+      });
+    });
+    hostConn.on('close', () => {
+      if (_rejectedByHost) { _rejectedByHost = false; return; }
+      if (currentScreen === 'screen-lobby' && !gameState) {
+        hideWaitingApproval();
+        UI.toast('Connexion perdue');
+        App.backToMenu();
+        return;
+      }
+      if (currentScreen !== 'screen-menu') {
+        UI.setConnStatus('reconnecting', 'Reconnexion...');
+        Network.scheduleReconnect();
+      }
+    });
+    hostConn.on('error', (err) => {
+      clearTimeout(connTimer);
+      UI.setConnStatus('', '');
+      const msg = err && err.type ? err.type : String(err);
+      UI.toast('Impossible de joindre l\'hôte (' + msg + ')');
+      console.error('hostConn error:', err);
+    });
+  }
+
+  // --- Lobby ---
+  function showLobby() {
+    UI.showScreen('screen-lobby');
+    document.getElementById('lobby-code').textContent = roomCode;
+    generateQR();
+    Render.renderLobby();
+  }
+
+  function copyCode() {
+    const url = window.location.href.split('?')[0] + '?room=' + roomCode;
+    navigator.clipboard.writeText(url).then(() => UI.toast('Lien copié !')).catch(() => UI.toast(roomCode));
+  }
+
+  function leaveLobby() {
+    if (peer) peer.destroy();
+    peer = null; connections = {}; hostConn = null; gameState = null;
+    backToMenu();
+  }
+
+  function backToMenu() {
+    clearTimeout(reconnectTimer);
+    Bot.clearTimers();
+    if (peer) { peer.destroy(); peer = null; }
+    connections = {}; hostConn = null; gameState = null; isHost = false;
+    reconnectAttempt = 0;
+    UI.setConnStatus('', '');
+    ActionLog.clear();
+    UI.showScreen('screen-menu');
+  }
+
+  // --- Démarrer la partie ---
+  function startGame() {
+    if (!isHost) return;
+    const minPlayers = gameState.isSolo ? 1 : 2;
+    if (gameState.players.length < minPlayers) return;
+    gameState.gameStartTime = Date.now();
+    initRound();
+    // Déclencher le bot si la partie démarre sur son tour
+    setTimeout(() => Bot.maybePlay(), 200);
+    if (!gameState.isSolo) Notif.init();
+  }
+
+  function nextRound() {
+    if (!isHost) return;
+    initRound();
+  }
+
+  function confirmKickPlayer(playerId, playerName) {
+    if (!isHost || !gameState) return;
+    UI.showModal(
+      '✕ Exclure un joueur',
+      'Voulez-vous exclure <strong>' + playerName + '</strong> de la partie ?',
+      [
+        { text: 'Annuler', action: 'UI.closeModal()' },
+        { text: '✕ Exclure', action: "App.kickPlayer('" + playerId + "');UI.closeModal()" }
+      ]
+    );
+  }
+
+  function kickPlayer(playerId) {
+    if (!isHost || !gameState) return;
+    const player = gameState.players.find(p => p.id === playerId);
+    if (!player || player.isHost) return;
+
+    // Compter les clients humains non-hôte restants (hors bots)
+    const humanClients = gameState.players.filter(p => !p.isHost && !p.isBot);
+    const isLastClient = humanClients.length <= 1;
+
+    const conn = connections[playerId];
+    if (conn) {
+      try { conn.send({ type: 'rejected', msg: 'Vous avez été expulsé par l\'hôte' }); } catch(e) {}
+      setTimeout(() => { try { conn.close(); } catch(e) {} }, 400);
+    }
+    delete connections[playerId];
+
+    if (isLastClient) {
+      Object.values(connections).forEach(c => {
+        try { c.send({ type: 'rejected', msg: 'La partie a été dissoute par l\'hôte' }); } catch(e) {}
+        setTimeout(() => { try { c.close(); } catch(e) {} }, 300);
+      });
+      UI.toast(player.name + ' expulsé — retour à l\'accueil');
+      setTimeout(() => App.backToMenu(), 800);
+      return;
+    }
+
+    if (gameState.phase === 'playing' || gameState.phase === 'reveal_initial') {
+      const kickedIndex = gameState.players.findIndex(p => p.id === playerId);
+      gameState.players = gameState.players.filter(p => p.id !== playerId);
+      delete gameState.totalScores[playerId];
+      if (gameState.currentPlayerIndex > kickedIndex) {
+        gameState.currentPlayerIndex--;
+      } else if (gameState.currentPlayerIndex === kickedIndex) {
+        gameState.currentPlayerIndex = gameState.currentPlayerIndex % gameState.players.length;
+        gameState.turnPhase = 'draw';
+        gameState.drawnCard = null;
+        gameState.drawnFrom = null;
+        gameState.drawnByPlayerId = null;
+      }
+      if (gameState.lastRoundTriggeredBy === playerId) {
+        gameState.lastRoundTriggeredBy = null;
+        gameState.lastRoundTurnsLeft = -1;
+      }
+    } else {
+      gameState.players = gameState.players.filter(p => p.id !== playerId);
+      delete gameState.totalScores[playerId];
+    }
+
+    Network.broadcastState();
+    UI.toast(player.name + ' a été expulsé');
+    ActionLog.add('🚫 ' + player.name + ' expulsé');
+    setTimeout(() => Bot.maybePlay(), 100);
+  }
+
+  return { showJoinScreen, createSoloGame, createGame, switchToMulti, setBotDifficulty, joinGame, showLobby, copyCode, leaveLobby, backToMenu, startGame, nextRound, kickPlayer, confirmKickPlayer };
 })();
 
-function showWaitingApproval(){UI.showScreen('screen-lobby');document.getElementById('waiting-approval').style.display='';document.getElementById('lobby-solo-info').style.display='none';document.getElementById('lobby-multi-info').style.display='none';document.getElementById('lobby-players').style.display='none';document.querySelector('#screen-lobby .btn-group').style.display='none';document.getElementById('join-requests-area').style.display='none';const nameEl=document.getElementById('waiting-approval-name');if(nameEl)nameEl.textContent='Salle : '+(roomCode||'');}
-function hideWaitingApproval(){document.getElementById('waiting-approval').style.display='none';document.getElementById('lobby-players').style.display='';document.querySelector('#screen-lobby .btn-group').style.display='';}
-function generateQR(){const url=window.location.href.split('?')[0]+'?room='+roomCode;const container=document.getElementById('qr-container');container.innerHTML='';try{new QRCode(container,{text:url,width:180,height:180,colorDark:'#1c1c1e',colorLight:'#ffffff',correctLevel:QRCode.CorrectLevel.M});}catch(e){container.innerHTML='<p style="color:#333;font-size:.75em;padding:8px;word-break:break-all">'+url+'</p>';}}
-function triggerBoom(){const overlay=document.getElementById('boom-overlay');overlay.innerHTML='';const colors=['#f1c40f','#e74c3c','#e67e22','#9b59b6','#2ecc71','#3498db'];for(let i=0;i<30;i++){const p=document.createElement('div');p.className='boom-particle';const size=6+Math.random()*12;const angle=Math.random()*Math.PI*2;const dist=80+Math.random()*200;p.style.cssText=`width:${size}px;height:${size}px;background:${colors[Math.floor(Math.random()*colors.length)]};left:50%;top:50%;--dx:${Math.cos(angle)*dist}px;--dy:${Math.sin(angle)*dist}px;`;overlay.appendChild(p);}const txt=document.createElement('div');txt.className='boom-text';txt.textContent='💥 BOOM!';overlay.appendChild(txt);setTimeout(()=>{overlay.innerHTML='';},1000);}
 
-window.addEventListener('load',()=>{Notif.checkGranted();const params=new URLSearchParams(window.location.search);const room=params.get('room');if(room){document.getElementById('room-input').value=room;App.showJoinScreen();}Leaderboard.render('menu-leaderboard');});
+// ============================================================
+// HELPERS GLOBAUX — Fonctions restant accessibles globalement
+// ============================================================
+
+function showWaitingApproval() {
+  UI.showScreen('screen-lobby');
+  document.getElementById('waiting-approval').style.display = '';
+  document.getElementById('lobby-solo-info').style.display = 'none';
+  document.getElementById('lobby-multi-info').style.display = 'none';
+  document.getElementById('lobby-players').style.display = 'none';
+  document.querySelector('#screen-lobby .btn-group').style.display = 'none';
+  document.getElementById('join-requests-area').style.display = 'none';
+  const nameEl = document.getElementById('waiting-approval-name');
+  if (nameEl) nameEl.textContent = 'Salle : ' + (roomCode || '');
+}
+
+function hideWaitingApproval() {
+  document.getElementById('waiting-approval').style.display = 'none';
+  document.getElementById('lobby-players').style.display = '';
+  document.querySelector('#screen-lobby .btn-group').style.display = '';
+}
+
+function generateQR() {
+  const url = window.location.href.split('?')[0] + '?room=' + roomCode;
+  const container = document.getElementById('qr-container');
+  container.innerHTML = '';
+  try {
+    new QRCode(container, {
+      text: url, width: 180, height: 180,
+      colorDark: '#1c1c1e', colorLight: '#ffffff',
+      correctLevel: QRCode.CorrectLevel.M
+    });
+  } catch(e) {
+    container.innerHTML = '<p style="color:#333;font-size:.75em;padding:8px;word-break:break-all">' + url + '</p>';
+  }
+}
+
+function triggerBoom() {
+  const overlay = document.getElementById('boom-overlay');
+  overlay.innerHTML = '';
+  const colors = ['#f1c40f','#e74c3c','#e67e22','#9b59b6','#2ecc71','#3498db'];
+  for (let i = 0; i < 30; i++) {
+    const p = document.createElement('div');
+    p.className = 'boom-particle';
+    const size = 6 + Math.random() * 12;
+    const angle = Math.random() * Math.PI * 2;
+    const dist = 80 + Math.random() * 200;
+    p.style.cssText = `width:${size}px;height:${size}px;background:${colors[Math.floor(Math.random() * colors.length)]};left:50%;top:50%;--dx:${Math.cos(angle) * dist}px;--dy:${Math.sin(angle) * dist}px;`;
+    overlay.appendChild(p);
+  }
+  const txt = document.createElement('div');
+  txt.className = 'boom-text';
+  txt.textContent = '💥 BOOM!';
+  overlay.appendChild(txt);
+  setTimeout(() => { overlay.innerHTML = ''; }, 1000);
+}
+
+
+// ============================================================
+// INIT — Démarrage de l'application
+// ============================================================
+window.addEventListener('load', () => {
+  Notif.checkGranted();
+
+  // Auto-join via paramètre URL (QR code)
+  const params = new URLSearchParams(window.location.search);
+  const room = params.get('room');
+  if (room) {
+    document.getElementById('room-input').value = room;
+    App.showJoinScreen(); // focus auto sur le pseudo si vide, sinon sur le code
+  }
+
+  Leaderboard.render('menu-leaderboard');
+});
 </script>
 </body>
 </html>
