@@ -128,9 +128,11 @@ input::placeholder{color:#666}
 .game-status{font-size:.85em;color:#ccc;text-align:center;flex:1}
 .round-info{font-size:.75em;color:#888}
 
-/* --- Action bar --- */
-.action-bar{position:fixed;bottom:0;left:0;right:0;background:rgba(28,28,30,.95);backdrop-filter:blur(10px);padding:12px 16px;display:flex;justify-content:center;gap:10px;border-top:1px solid rgba(255,255,255,.1);z-index:100}
+/* --- Action bar + bottom bar --- */
+.action-bar{position:fixed;bottom:0;left:0;right:0;background:rgba(22,22,26,.97);backdrop-filter:blur(14px);padding:10px 14px;border-top:1px solid rgba(255,255,255,.1);z-index:100}
 .action-bar button{padding:10px 20px;font-size:.85em}
+.bottom-bar-quit{width:100%;max-width:400px;background:rgba(231,76,60,.13);border:1.5px solid rgba(231,76,60,.4);color:#e74c3c;font-size:.88em;font-weight:700;padding:12px 16px;border-radius:12px;cursor:pointer;touch-action:manipulation;min-height:48px;transition:all .2s;letter-spacing:.3px;display:block}
+.bottom-bar-quit:active,.bottom-bar-quit:hover{background:rgba(231,76,60,.32);color:#fff;box-shadow:0 0 12px rgba(231,76,60,.25)}
 
 /* --- Scores screen --- */
 .scores-table{width:100%;max-width:420px;border-collapse:collapse;margin:12px 0}
@@ -213,7 +215,7 @@ input::placeholder{color:#666}
 .modal p{color:#aaa;margin-bottom:16px;font-size:.9em}
 
 /* --- Scrollable game --- */
-.game-content{width:100%;overflow-y:auto;padding-bottom:80px;display:flex;flex-direction:column;align-items:center}
+.game-content{width:100%;overflow-y:auto;padding-bottom:120px;display:flex;flex-direction:column;align-items:center}
 
 /* --- Boom animation --- */
 .boom-overlay{position:fixed;inset:0;pointer-events:none;z-index:150}
@@ -367,7 +369,7 @@ input::placeholder{color:#666}
     <button class="secondary" onclick="App.showJoinScreen()" style="width:100%">🔗 Rejoindre une partie</button>
   </div>
   <div class="leaderboard-box" id="menu-leaderboard" style="margin-top:24px"></div>
-  <button id="reset-lb-btn" onclick="UI.confirmResetLeaderboard()" style="margin-top:8px;background:none;border:1px solid rgba(231,76,60,.3);color:rgba(231,76,60,.5);font-size:.72em;font-weight:600;padding:4px 14px;border-radius:20px;cursor:pointer;min-height:auto;transition:all .2s" onmouseover="this.style.borderColor='rgba(231,76,60,.7)';this.style.color='#e74c3c'" onmouseout="this.style.borderColor='rgba(231,76,60,.3)';this.style.color='rgba(231,76,60,.5)'">🗑 Réinitialiser le classement</button>
+  <button id="reset-lb-btn" onclick="UI.confirmResetLeaderboard()" style="margin-top:10px;background:rgba(231,76,60,.12);border:1.5px solid rgba(231,76,60,.55);color:#e74c3c;font-size:.78em;font-weight:700;padding:8px 18px;border-radius:10px;cursor:pointer;min-height:auto;transition:all .2s;letter-spacing:.2px" onmouseover="this.style.background='rgba(231,76,60,.28)';this.style.borderColor='#e74c3c'" onmouseout="this.style.background='rgba(231,76,60,.12)';this.style.borderColor='rgba(231,76,60,.55)'">🗑 Réinitialiser le classement</button>
 </div>
 
 <!-- SCREEN: JOIN -->
@@ -436,10 +438,7 @@ input::placeholder{color:#666}
   <div class="game-header">
     <div class="round-info" id="round-info">Manche 1</div>
     <div class="game-status" id="game-status">En attente...</div>
-    <div style="display:flex;gap:6px;align-items:center;flex-shrink:0">
-      <button class="secondary" style="padding:6px 10px;font-size:.75em;min-height:36px" onclick="UI.showRules()" title="Règles">?</button>
-      <button class="quit-game-btn" onclick="UI.confirmQuitGame()" title="Quitter la partie">🚪</button>
-    </div>
+    <button class="secondary" style="padding:6px 10px;font-size:.75em;min-height:36px;flex-shrink:0" onclick="UI.showRules()" title="Règles">?</button>
   </div>
   <div class="game-content" id="game-content">
     <div class="piles" id="piles-area"></div>
@@ -447,6 +446,10 @@ input::placeholder{color:#666}
     <div id="action-log"></div>
   </div>
   <div class="action-bar" id="action-bar" style="display:none"></div>
+  <!-- Barre fixe bas : toujours visible en jeu -->
+  <div class="action-bar" id="quit-bar" style="display:none;padding:10px 14px 14px">
+    <button class="bottom-bar-quit" onclick="UI.confirmQuitGame()">🚪 Quitter la partie</button>
+  </div>
 </div>
 
 <!-- SCREEN: ROUND REVEAL -->
@@ -1896,9 +1899,11 @@ const Render = (() => {
       });
     }
 
-    // Action bar
+    // Action bar + quit bar
+    const quitBar = document.getElementById('quit-bar');
     if (isMyTurn && gameState.turnPhase === 'drawn_from_pile') {
       actionBar.style.display = '';
+      quitBar.style.display = 'none';
       actionBar.innerHTML = `
         <div class="action-bar-inner">
           <div class="action-bar-hint">Carte piochée : <strong class="card-badge ${getCardClass(gameState.drawnCard)}">${gameState.drawnCard}</strong></div>
@@ -1906,16 +1911,20 @@ const Render = (() => {
             <button class="action-btn-place" onclick="Handlers.discardDrawn()">🗑️ Défausser &amp; retourner</button>
           </div>
           <div class="action-bar-sub">— ou tapez une carte de votre grille pour la remplacer —</div>
+          <button class="bottom-bar-quit" onclick="UI.confirmQuitGame()">🚪 Quitter la partie</button>
         </div>`;
     } else if (isMyTurn && gameState.turnPhase === 'must_reveal') {
       actionBar.style.display = '';
+      quitBar.style.display = 'none';
       actionBar.innerHTML = `
         <div class="action-bar-inner">
           <div class="action-bar-hint">👆 Tapez une carte <strong>face cachée</strong> pour la retourner</div>
+          <button class="bottom-bar-quit" onclick="UI.confirmQuitGame()">🚪 Quitter la partie</button>
         </div>`;
     } else {
       actionBar.style.display = 'none';
       actionBar.innerHTML = '';
+      quitBar.style.display = '';
     }
   }
 
