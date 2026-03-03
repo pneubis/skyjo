@@ -503,6 +503,7 @@ let myPlayerId = '';
 let currentScreen = 'screen-menu';
 let reconnectTimer = null;
 let reconnectAttempt = 0;
+let _rejectedByHost = false;
 
 
 // ============================================================
@@ -2222,9 +2223,25 @@ const App = (() => {
       reconnectAttempt = 0;
       hostConn.send({ type: 'join', name: myName, id: myPeerId });
       hostConn.on('data', (data) => {
-        // Utiliser handleClientMessage via Network
         switch(data.type) {
-          case 'state':  gameState = data.state; Render.fromState(); break;
+          case 'state':
+            gameState = data.state;
+            hideWaitingApproval();
+            Render.fromState();
+            break;
+          case 'pending':
+            showWaitingApproval();
+            break;
+          case 'approved':
+            hideWaitingApproval();
+            UI.toast('✅ Vous avez été accepté !');
+            break;
+          case 'rejected':
+            _rejectedByHost = true;
+            hideWaitingApproval();
+            UI.toast('❌ ' + (data.msg || "Accès refusé par l'hôte"));
+            setTimeout(() => App.backToMenu(), 1500);
+            break;
           case 'error':  UI.toast(data.msg); break;
           case 'toast':  UI.toast(data.msg); break;
           case 'log':    ActionLog.add(data.msg); break;
@@ -2233,6 +2250,13 @@ const App = (() => {
       });
     });
     hostConn.on('close', () => {
+      if (_rejectedByHost) { _rejectedByHost = false; return; }
+      if (currentScreen === 'screen-lobby' && !gameState) {
+        hideWaitingApproval();
+        UI.toast('Connexion perdue');
+        App.backToMenu();
+        return;
+      }
       if (currentScreen !== 'screen-menu') {
         UI.setConnStatus('reconnecting', 'Reconnexion...');
         Network.scheduleReconnect();
@@ -2242,13 +2266,6 @@ const App = (() => {
       UI.toast('Impossible de rejoindre');
       console.error(err);
     });
-    setTimeout(() => {
-      if (currentScreen !== 'screen-lobby') {
-        UI.showScreen('screen-lobby');
-        document.getElementById('lobby-code').textContent = roomCode;
-        generateQR();
-      }
-    }, 1000);
   }
 
   // --- Lobby ---
