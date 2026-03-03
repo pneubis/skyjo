@@ -327,9 +327,9 @@ input::placeholder{color:#666}
 <!-- SCREEN: MENU -->
 <div class="screen active" id="screen-menu">
   <h1>SKYJO</h1>
-  <p class="subtitle">
-    Jeu de cartes multijoueur V1.2.1
-    <button onclick="UI.showRules()" style="background:none;border:1px solid rgba(255,255,255,.25);color:#aaa;font-size:.72em;font-weight:600;padding:2px 9px;border-radius:20px;cursor:pointer;margin-left:8px;min-height:auto;vertical-align:middle;transition:all .2s" onmouseover="this.style.borderColor='rgba(255,255,255,.55)';this.style.color='#fff'" onmouseout="this.style.borderColor='rgba(255,255,255,.25)';this.style.color='#aaa'">ⓘ règles</button>
+  <p style="font-size:.6em;color:rgba(255,255,255,.25);letter-spacing:2px;margin:-6px 0 8px;font-weight:500">v1.3.5</p>
+  <p class="subtitle" style="margin-top:0">
+    <button onclick="UI.showRules()" style="background:none;border:1px solid rgba(255,255,255,.25);color:#aaa;font-size:.8em;font-weight:600;padding:3px 12px;border-radius:20px;cursor:pointer;min-height:auto;transition:all .2s" onmouseover="this.style.borderColor='rgba(255,255,255,.55)';this.style.color='#fff'" onmouseout="this.style.borderColor='rgba(255,255,255,.25)';this.style.color='#aaa'">ⓘ Règles</button>
   </p>
   <div style="margin:12px 0;width:100%;max-width:320px">
     <input type="text" id="player-name" placeholder="Votre pseudo" maxlength="12" autocomplete="off">
@@ -347,6 +347,7 @@ input::placeholder{color:#666}
 <!-- SCREEN: JOIN -->
 <div class="screen" id="screen-join">
   <h1>SKYJO</h1>
+  <p style="font-size:.6em;color:rgba(255,255,255,.25);letter-spacing:2px;margin:-6px 0 8px;font-weight:500">v1.3.5</p>
   <h2 id="join-screen-title">Rejoindre une partie</h2>
   <div style="width:100%;max-width:320px;display:flex;flex-direction:column;gap:10px">
     <input type="text" id="join-name" placeholder="Votre pseudo" maxlength="12" autocomplete="off"
@@ -873,7 +874,8 @@ const ActionLog = (() => {
 const Network = (() => {
 
   // ── CONFIGURATION RESEAU ────────────────────────────────────────────
-  // TURN freeturn (gratuit, fiable) priorite, openrelay en secours.
+  // Mode cloud PeerJS (sans host/port explicite = serveur officiel geré par PeerJS Inc.)
+  // + ICE : STUN Google + TURN freestun public pour traversee NAT
   const ICE_CONFIG = {
     iceServers: [
       { urls: 'stun:stun.l.google.com:19302' },
@@ -882,56 +884,45 @@ const Network = (() => {
       { urls: 'stun:stun3.l.google.com:19302' },
       { urls: 'stun:stun4.l.google.com:19302' },
       { urls: 'stun:stun.cloudflare.com:3478' },
-      { urls: 'turn:freeturn.net:3478',                      username: 'free',             credential: 'free'             },
-      { urls: 'turns:freeturn.net:5349',                     username: 'free',             credential: 'free'             },
-      { urls: 'turn:openrelay.metered.ca:80',                username: 'openrelayproject', credential: 'openrelayproject' },
-      { urls: 'turn:openrelay.metered.ca:443',               username: 'openrelayproject', credential: 'openrelayproject' },
-      { urls: 'turn:openrelay.metered.ca:443?transport=tcp', username: 'openrelayproject', credential: 'openrelayproject' },
-      { urls: 'turn:openrelay.metered.ca:80?transport=tcp',  username: 'openrelayproject', credential: 'openrelayproject' },
+      { urls: 'stun:freestun.net:3479' },
+      { urls: 'turn:freestun.net:3479',  username: 'free', credential: 'free' },
+      { urls: 'turns:freestun.net:5350', username: 'free', credential: 'free' },
     ],
     iceCandidatePoolSize: 10,
-    iceTransportPolicy: 'all',
   };
 
-  // Broker PeerJS officiel configure explicitement (host+port+path).
-  // ATTENTION : les IDs ne doivent PAS contenir de tirets (rejet silencieux).
-  function makePeerOptions() {
-    return {
-      host: '0.peerjs.com',
-      port: 443,
-      path: '/',
-      secure: true,
-      config: ICE_CONFIG,
-      debug: 0,
-      pingInterval: 5000,
-    };
-  }
-
+  // initPeer : id=null => ID aleatoire attribue par le serveur (pour les clients)
   function initPeer(id) {
     if (peer) { try { peer.destroy(); } catch(e) {} peer = null; }
     return new Promise(function(resolve, reject) {
       var settled = false;
       function done(err, pid) {
-        if (settled) return; settled = true;
-        clearTimeout(timer);
+        if (settled) return; settled = true; clearTimeout(timer);
         if (err) reject(err); else { myPeerId = pid; resolve(pid); }
       }
       var timer = setTimeout(function() {
-        done(new Error('Delai depasse — verifiez votre connexion internet'));
-        try { if (peer) peer.destroy(); } catch(e) {}
-      }, 20000);
-      var opts = makePeerOptions();
-      peer = id ? new Peer(id, opts) : new Peer(opts);
-      peer.on('open',  function(pid) { done(null, pid); });
+        done(new Error('Serveur PeerJS inaccessible (timeout 15s)'));
+        try { if (peer) { peer.destroy(); peer = null; } } catch(e) {}
+      }, 15000);
+      try {
+        // Sans host/port : utilise le CDN PeerJS officiel (plus stable)
+        var opts = { config: ICE_CONFIG, debug: 1 };
+        peer = id ? new Peer(id, opts) : new Peer(opts);
+      } catch(e) { done(new Error(e.message)); return; }
+      peer.on('open', function(pid) {
+        UI.setConnStatus('connecting', '📡 Connecté au serveur');
+        done(null, pid);
+      });
       peer.on('error', function(err) {
-        console.warn('Peer error', err.type, err.message);
+        console.warn('PeerJS error:', err.type, err.message);
         if (err.type === 'unavailable-id') {
-          done(new Error('Code deja utilise — relancez'));
-        } else if (['network','server-error','socket-error','socket-closed'].indexOf(err.type) >= 0) {
-          console.warn('Broker unreachable:', err.type);
+          done(new Error('Code déjà utilisé — relancez'));
         } else {
-          done(new Error('Erreur reseau : ' + err.type));
+          done(new Error('Erreur réseau (' + err.type + ') — vérifiez votre connexion'));
         }
+      });
+      peer.on('disconnected', function() {
+        if (!settled) peer.reconnect();
       });
     });
   }
@@ -2230,12 +2221,12 @@ const App = (() => {
     myName = getName();
     roomCode = Network.generateRoomCode();
     isHost = true;
-    UI.setConnStatus('connecting', 'Connexion...');
+    UI.setConnStatus('connecting', '📡 Connexion au serveur...');
     try {
       await Network.initPeer('skyjo' + roomCode);
     } catch(e) {
       UI.setConnStatus('', '');
-      UI.toast('Erreur: ' + e.message);
+      UI.toast('Erreur : ' + e.message);
       return;
     }
     UI.setConnStatus('connected', '');
@@ -2258,9 +2249,9 @@ const App = (() => {
     if (!code) { UI.toast('Entrez un code'); return; }
     roomCode = code;
     isHost = false;
-    UI.setConnStatus('connecting', 'Connexion...');
+    UI.setConnStatus('connecting', '📡 Connexion au serveur...');
     try {
-      // Client: ID aleatoire attribue par le broker (fiable, evite conflits d'ID)
+      // Client : ID aleatoire attribue par PeerJS (evite tout conflit d'ID)
       await Network.initPeer(null);
     } catch(e) {
       UI.setConnStatus('', '');
@@ -2268,8 +2259,9 @@ const App = (() => {
       return;
     }
     myPlayerId = myPeerId;
+    UI.setConnStatus('connecting', '🔗 Connexion à l\'hôte...');
     const hostId = 'skyjo' + roomCode;
-    hostConn = peer.connect(hostId, { reliable: true, serialization: 'json' });
+    hostConn = peer.connect(hostId, { reliable: true });
 
     // Timeout 20s : si WebRTC ne peut pas s'etablir (NAT symetrique, 4G->box)
     const connTimer = setTimeout(() => {
@@ -2327,8 +2319,11 @@ const App = (() => {
       }
     });
     hostConn.on('error', (err) => {
-      UI.toast('Impossible de rejoindre');
-      console.error(err);
+      clearTimeout(connTimer);
+      UI.setConnStatus('', '');
+      const msg = err && err.type ? err.type : String(err);
+      UI.toast('Impossible de joindre l\'hôte (' + msg + ')');
+      console.error('hostConn error:', err);
     });
   }
 
