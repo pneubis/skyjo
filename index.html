@@ -1909,9 +1909,9 @@ const Render = (() => {
             const val = gameState.hands[p.id][r][c];
             const lrp = gameState.lastRevealedPosition;
             const isLastRevealed = lrp && lrp.playerId === p.id && lrp.row === r && lrp.col === c;
-            const wasHidden = isAdversary && gameState.hiddenAtEndOfRound &&
+            const wasHidden = gameState.hiddenAtEndOfRound &&
               (gameState.hiddenAtEndOfRound[p.id] || []).some(pos => pos.r === r && pos.c === c);
-            // Halo doré : carte last-revealed du gagnant OU toute carte encore cachée d'un adversaire en fin de manche
+            // Halo doré : carte last-revealed OU toute carte encore cachée en fin de manche (tous joueurs)
             const glowClass = isLastRevealed ? ' last-revealed' : (wasHidden ? ' last-revealed' : '');
             gridHtml += `<div class="mini-card ${getCardClass(val)}${glowClass}">${val}</div>`;
           }
