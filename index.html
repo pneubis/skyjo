@@ -456,7 +456,7 @@ window.addEventListener('appinstalled', () => {
 <!-- ============================================================
      SPLASH SCREEN — Écran de démarrage (5s)
      ============================================================ -->
-<div id="splash-screen">
+<div id="splash-screen" onclick="UI._doFullscreen()" ontouchstart="UI._doFullscreen()">
   <div class="splash-logo-wrap">
     <div class="splash-title">SKYJO</div>
     <div class="splash-cards-row">
@@ -904,19 +904,7 @@ const UI = (() => {
     document.getElementById(id).classList.add('active');
     currentScreen = id;
     if (id === 'screen-menu') Leaderboard.render('menu-leaderboard');
-    // Plein écran automatique dès qu'on entre en jeu
-    if (id === 'screen-game' && window._autoFullscreenOnGame && !isIOS) {
-      const isFs = !!(document.fullscreenElement || document.webkitFullscreenElement);
-      if (!isFs) {
-        const el = document.documentElement;
-        const req = el.requestFullscreen || el.webkitRequestFullscreen || el.mozRequestFullScreen;
-        if (req) req.call(el).then(() => {
-          try { screen.orientation?.lock?.('portrait'); } catch(e) {}
-          const btn = document.getElementById('fullscreen-btn');
-          if (btn) { btn.textContent = '✕'; btn.title = 'Quitter le plein écran'; }
-        }).catch(() => {});
-      }
-    }
+    if (id === 'screen-game') _doFullscreen();
   }
 
   function toast(msg) {
@@ -959,6 +947,20 @@ const UI = (() => {
   }
 
   // --- Fullscreen ---
+  function _doFullscreen() {
+    if (isIOS) return;
+    const isFs = !!(document.fullscreenElement || document.webkitFullscreenElement);
+    if (isFs) return;
+    const el = document.documentElement;
+    const req = el.requestFullscreen || el.webkitRequestFullscreen || el.mozRequestFullScreen;
+    if (!req) return;
+    req.call(el).then(() => {
+      try { screen.orientation?.lock?.('portrait'); } catch(e) {}
+      const btn = document.getElementById('fullscreen-btn');
+      if (btn) { btn.textContent = '✕'; btn.title = 'Quitter le plein écran'; }
+    }).catch(() => {});
+  }
+
   function toggleFullscreen() {
     const btn = document.getElementById('fullscreen-btn');
     if (isIOS) {
@@ -1059,7 +1061,7 @@ const UI = (() => {
     );
   }
 
-  return { showScreen, toast, showModal, closeModal, showRules, toggleFullscreen, closeFsTip, setConnStatus, confirmResetLeaderboard, resetLeaderboard, confirmQuitGame };
+  return { showScreen, toast, showModal, closeModal, showRules, toggleFullscreen, _doFullscreen, closeFsTip, setConnStatus, confirmResetLeaderboard, resetLeaderboard, confirmQuitGame };
 })();
 
 
@@ -2756,23 +2758,6 @@ window.addEventListener('load', () => {
 
   // Demande le plein écran natif au lancement
   const el = document.documentElement;
-  // Plein écran automatique au lancement
-  function autoFullscreen() {
-    if (isIOS) return; // iOS géré différemment
-    const isFs = !!(document.fullscreenElement || document.webkitFullscreenElement);
-    if (isFs) return;
-    const el2 = document.documentElement;
-    const req = el2.requestFullscreen || el2.webkitRequestFullscreen || el2.mozRequestFullScreen;
-    if (req) {
-      req.call(el2).then(() => {
-        try { screen.orientation?.lock?.('portrait'); } catch(e) {}
-        const btn = document.getElementById('fullscreen-btn');
-        if (btn) { btn.textContent = '✕'; btn.title = 'Quitter le plein écran'; }
-      }).catch(() => {});
-    }
-  }
-  autoFullscreen();
-  // Relancer si l'utilisateur quitte le plein écran et revient en jeu
   window._autoFullscreenOnGame = true;
 
   setTimeout(() => {
