@@ -2,7 +2,13 @@
 <html lang="fr">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, maximum-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, maximum-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#1c1c1e">
+<meta name="mobile-web-app-capable" content="true">
+<meta name="apple-mobile-web-app-capable" content="true">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Skyjo">
+<link rel="manifest" id="pwa-manifest">
 <title>Skyjo Multijoueur</title>
 <link rel="icon" href="https://public-frontend-cos.metadl.com/mgx/img/favicon_atoms.ico" type="image/x-icon">
 <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
@@ -12,7 +18,7 @@
    STYLES — SKYJO MULTIJOUEUR
    ============================================================ */
 *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
-body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;background:#1c1c1e;color:#fff;min-height:100vh;overflow-x:hidden;user-select:none}
+body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;background:#1c1c1e;color:#fff;min-height:100vh;min-height:100dvh;overflow-x:hidden;user-select:none}
 .screen{display:none;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;padding:16px}
 .screen.active{display:flex}
 h1{font-size:2.2em;font-weight:700;margin-bottom:8px;background:linear-gradient(135deg,#9b59b6,#3498db);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
@@ -310,6 +316,7 @@ input::placeholder{color:#666}
 #splash-screen{
   position:fixed;top:0;left:0;width:100%;height:100%;
   min-height:100dvh;
+  padding-top:env(safe-area-inset-top);
   background:#1c1c1e;
   display:flex;flex-direction:column;align-items:center;justify-content:center;
   z-index:9999;
@@ -372,6 +379,77 @@ input::placeholder{color:#666}
 @keyframes splashBar{from{width:0%}to{width:100%}}
 @keyframes splashFadeIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
 </style>
+
+<script>
+// ── PWA Manifest inline ──────────────────────────────────────────
+(function() {
+  const iconSvg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><rect width="512" height="512" rx="80" fill="#1c1c1e"/><rect x="40" y="40" width="190" height="270" rx="28" fill="#27ae60"/><rect x="282" y="40" width="190" height="270" rx="28" fill="#e02020"/><rect x="40" y="202" width="190" height="270" rx="28" fill="#0098d4"/><rect x="282" y="202" width="190" height="270" rx="28" fill="#f5c800"/><text x="135" y="198" text-anchor="middle" font-family="Arial Black" font-weight="900" font-size="100" fill="white">-2</text><text x="377" y="198" text-anchor="middle" font-family="Arial Black" font-weight="900" font-size="100" fill="white">12</text><text x="135" y="425" text-anchor="middle" font-family="Arial Black" font-weight="900" font-size="100" fill="white">5</text><text x="377" y="425" text-anchor="middle" font-family="Arial Black" font-weight="900" font-size="100" fill="#1c1c1e">8</text></svg>`;
+  const iconB64 = 'data:image/svg+xml;base64,' + btoa(iconSvg);
+  const manifest = {
+    name: 'Skyjo Multijoueur',
+    short_name: 'Skyjo',
+    description: 'Jeu de cartes Skyjo multijoueur en ligne',
+    start_url: './',
+    display: 'fullscreen',
+    background_color: '#1c1c1e',
+    theme_color: '#1c1c1e',
+    orientation: 'any',
+    icons: [
+      { src: iconB64, sizes: '192x192', type: 'image/svg+xml', purpose: 'any maskable' },
+      { src: iconB64, sizes: '512x512', type: 'image/svg+xml', purpose: 'any maskable' }
+    ]
+  };
+  const blob = new Blob([JSON.stringify(manifest)], { type: 'application/manifest+json' });
+  document.getElementById('pwa-manifest').href = URL.createObjectURL(blob);
+})();
+
+// ── Service Worker ───────────────────────────────────────────────
+if ('serviceWorker' in navigator) {
+  const sw = `
+    const CACHE = 'skyjo-v1.4.2';
+    self.addEventListener('install', e => {
+      e.waitUntil(
+        caches.open(CACHE).then(c => c.addAll(['./'])).catch(() => {})
+      );
+      self.skipWaiting();
+    });
+    self.addEventListener('activate', () => clients.claim());
+    self.addEventListener('fetch', e => {
+      e.respondWith(
+        caches.match(e.request).then(r => r || fetch(e.request)).catch(() => caches.match('./'))
+      );
+    });
+  `;
+  const swBlob = new Blob([sw], { type: 'application/javascript' });
+  const swUrl = URL.createObjectURL(swBlob);
+  navigator.serviceWorker.register(swUrl).catch(() => {});
+}
+
+// ── Install prompt (Android / Brave / Chrome) ────────────────────
+let _deferredPrompt = null;
+window.addEventListener('beforeinstallprompt', e => {
+  e.preventDefault();
+  _deferredPrompt = e;
+  // Affiche un bouton discret dans le coin
+  const btn = document.createElement('button');
+  btn.id = 'pwa-install-btn';
+  btn.textContent = '📲 Installer';
+  btn.style.cssText = 'position:fixed;bottom:80px;right:12px;z-index:600;background:rgba(155,89,182,.85);color:#fff;border:none;padding:8px 14px;border-radius:20px;font-size:.78em;font-weight:700;cursor:pointer;backdrop-filter:blur(10px);box-shadow:0 4px 16px rgba(155,89,182,.4);transition:opacity .3s;';
+  btn.onclick = async () => {
+    _deferredPrompt.prompt();
+    const { outcome } = await _deferredPrompt.userChoice;
+    _deferredPrompt = null;
+    btn.remove();
+  };
+  document.body.appendChild(btn);
+  // Auto-disparaît après 8s
+  setTimeout(() => { if (btn.parentNode) btn.style.opacity = '0'; setTimeout(() => btn.remove(), 300); }, 8000);
+});
+window.addEventListener('appinstalled', () => {
+  const btn = document.getElementById('pwa-install-btn');
+  if (btn) btn.remove();
+});
+</script>
 </head>
 <body>
 
@@ -388,7 +466,7 @@ input::placeholder{color:#666}
       <div class="splash-card">8</div>
       <div class="splash-card">12</div>
     </div>
-    <div class="splash-version">v1.4.1</div>
+    <div class="splash-version">v1.4.2</div>
     <div class="splash-tagline">crédits : claude.ai · @Pneubis</div>
   </div>
   <div class="splash-progress"><div class="splash-progress-bar"></div></div>
@@ -442,7 +520,7 @@ input::placeholder{color:#666}
 <!-- SCREEN: MENU -->
 <div class="screen active" id="screen-menu">
   <h1>SKYJO</h1>
-  <p style="font-size:.85em;color:rgba(255,255,255,.45);letter-spacing:3px;margin:-4px 0 10px;font-weight:600">v1.4.1</p>
+  <p style="font-size:.85em;color:rgba(255,255,255,.45);letter-spacing:3px;margin:-4px 0 10px;font-weight:600">v1.4.2</p>
   <p class="subtitle" style="margin-top:0">
     <button onclick="UI.showRules()" style="background:none;border:1px solid rgba(255,255,255,.25);color:#aaa;font-size:.8em;font-weight:600;padding:3px 12px;border-radius:20px;cursor:pointer;min-height:auto;transition:all .2s" onmouseover="this.style.borderColor='rgba(255,255,255,.55)';this.style.color='#fff'" onmouseout="this.style.borderColor='rgba(255,255,255,.25)';this.style.color='#aaa'">ⓘ Règles</button>
   </p>
@@ -462,7 +540,7 @@ input::placeholder{color:#666}
 <!-- SCREEN: JOIN -->
 <div class="screen" id="screen-join">
   <h1>SKYJO</h1>
-  <p style="font-size:.85em;color:rgba(255,255,255,.45);letter-spacing:3px;margin:-4px 0 10px;font-weight:600">v1.4.1</p>
+  <p style="font-size:.85em;color:rgba(255,255,255,.45);letter-spacing:3px;margin:-4px 0 10px;font-weight:600">v1.4.2</p>
   <h2 id="join-screen-title">Rejoindre une partie</h2>
   <div style="width:100%;max-width:320px;display:flex;flex-direction:column;gap:10px">
     <input type="text" id="join-name" placeholder="Votre pseudo" maxlength="12" autocomplete="off"
