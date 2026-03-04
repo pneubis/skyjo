@@ -38,7 +38,7 @@ input::placeholder{color:#666}
 .card-row{display:flex;gap:4px;justify-content:center}
 
 /* --- Cards --- */
-.card{width:62px;height:86px;border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:2.5em;font-weight:900;cursor:pointer;transition:all .2s;position:relative;border:2px solid rgba(255,255,255,.18);letter-spacing:-1px}
+.card{width:62px;height:86px;border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:2.5em;font-weight:900;cursor:pointer;transition:transform .2s,box-shadow .2s,opacity .2s;position:relative;border:2px solid rgba(255,255,255,.18);letter-spacing:-1px;will-change:transform;-webkit-font-smoothing:antialiased}
 .card:active{transform:scale(.95)}
 
 /* --- Card flip animation --- */
@@ -53,7 +53,7 @@ input::placeholder{color:#666}
 .card.face-down{background-image:url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 52 72'><defs><linearGradient id='bg' x1='0%' y1='0%' x2='100%' y2='100%'><stop offset='0%' style='stop-color:%231565c0'/><stop offset='100%' style='stop-color:%230a3d8f'/></linearGradient><pattern id='d' x='0' y='0' width='8' height='8' patternUnits='userSpaceOnUse'><polygon points='4,0.5 7.5,4 4,7.5 0.5,4' fill='none' stroke='rgba(255,255,255,0.07)' stroke-width='0.5'/></pattern></defs><rect width='52' height='72' rx='5' ry='5' fill='url(%23bg)'/><rect width='52' height='72' rx='5' ry='5' fill='url(%23d)'/><rect x='2.5' y='2.5' width='47' height='67' rx='4' ry='4' fill='none' stroke='rgba(255,255,255,0.25)' stroke-width='1'/><rect x='4' y='4' width='44' height='64' rx='3' ry='3' fill='none' stroke='rgba(255,255,255,0.1)' stroke-width='0.5'/><g transform='translate(26,36) rotate(-35)'><text font-family='Arial Black,Arial,sans-serif' font-size='13' font-weight='900' fill='rgba(255,255,255,0.18)' text-anchor='middle' dominant-baseline='middle' letter-spacing='1'>SKYJO</text></g><g transform='translate(26,36) rotate(-35)'><text font-family='Arial Black,Arial,sans-serif' font-size='12' font-weight='900' fill='rgba(255,255,255,0.9)' text-anchor='middle' dominant-baseline='middle' letter-spacing='1' stroke='rgba(0,50,150,0.4)' stroke-width='0.3'>SKYJO</text></g><circle cx='26' cy='36' r='14' fill='none' stroke='rgba(255,255,255,0.15)' stroke-width='1'/><circle cx='7' cy='7' r='1.5' fill='rgba(255,255,255,0.25)'/><circle cx='45' cy='7' r='1.5' fill='rgba(255,255,255,0.25)'/><circle cx='7' cy='65' r='1.5' fill='rgba(255,255,255,0.25)'/><circle cx='45' cy='65' r='1.5' fill='rgba(255,255,255,0.25)'/></svg>");background-size:cover;background-position:center;color:transparent;cursor:pointer;border-color:rgba(30,100,200,0.5)}
 .card.face-down::before,.card.face-down::after{content:none}
 .card.eliminated{opacity:0;pointer-events:none;transform:scale(0)}
-.card.selectable{animation:pulse 1s infinite;box-shadow:0 0 14px rgba(155,89,182,.7)}
+.card.selectable{animation:pulse .8s infinite;box-shadow:0 0 14px rgba(155,89,182,.7)}
 .card.highlight{box-shadow:0 0 16px rgba(255,255,255,.5)}
 @keyframes pulse{0%,100%{box-shadow:0 0 8px rgba(155,89,182,.4)}50%{box-shadow:0 0 20px rgba(155,89,182,.9)}}
 
@@ -66,15 +66,15 @@ input::placeholder{color:#666}
 .card.val-9,.card.val-10,.card.val-11,.card.val-12{background:#e02020;color:#fff;text-shadow:0 2px 7px rgba(0,0,0,.65);border-color:rgba(255,255,255,.15)}
 
 /* --- Piles --- */
-.piles{display:flex;gap:20px;align-items:center;justify-content:center;margin:12px 0;flex-shrink:0}
+.piles{display:flex;gap:20px;align-items:center;justify-content:center;margin:12px 0;flex-shrink:0;contain:layout style}
 .pile{display:flex;flex-direction:column;align-items:center;gap:6px}
 .pile-label{font-size:.75em;color:#888;text-transform:uppercase;letter-spacing:1px}
 .pile .card{width:66px;height:92px;font-size:2.6em}
 
 /* --- Player areas --- */
-.players-area{width:100%;max-width:700px;display:flex;flex-direction:column;gap:12px;padding:8px;overflow-y:auto;flex:1;min-height:0;padding-bottom:130px}
+.players-area{width:100%;max-width:700px;display:flex;flex-direction:column;gap:12px;padding:8px;overflow-y:auto;flex:1;min-height:0;padding-bottom:130px;contain:content}
 /* Fond neutre par défaut */
-.player-zone{background:rgba(255,255,255,.05);border-radius:12px;padding:10px;border:2px solid transparent;transition:border-color .3s}
+.player-zone{background:rgba(255,255,255,.05);border-radius:12px;padding:10px;border:2px solid transparent;transition:border-color .3s,background .3s,box-shadow .3s;transform:translateZ(0)}
 /* Palette de couleurs par joueur — fond doux pour ne pas écraser les cartes */
 .player-zone.pcolor-0{background:rgba(52,152,219,.10);border-color:rgba(52,152,219,.25)}   /* bleu   */
 .player-zone.pcolor-1{background:rgba(46,204,113,.10);border-color:rgba(46,204,113,.25)}   /* vert   */
@@ -222,7 +222,7 @@ input::placeholder{color:#666}
 .modal p{color:#aaa;margin-bottom:16px;font-size:.9em}
 
 /* --- Scrollable game --- */
-.game-content{width:100%;flex:1;overflow:hidden;display:flex;flex-direction:column;align-items:center;min-height:0}
+.game-content{width:100%;flex:1;overflow:hidden;display:flex;flex-direction:column;align-items:center;min-height:0;contain:strict}
 
 /* --- Boom animation --- */
 .boom-overlay{position:fixed;inset:0;pointer-events:none;z-index:150}
@@ -406,7 +406,7 @@ input::placeholder{color:#666}
 // ── Service Worker ───────────────────────────────────────────────
 if ('serviceWorker' in navigator) {
   const sw = `
-    const CACHE = 'skyjo-v1.4.3';
+    const CACHE = 'skyjo-v1.4.4';
     self.addEventListener('install', e => {
       e.waitUntil(
         caches.open(CACHE).then(c => c.addAll(['./'])).catch(() => {})
@@ -466,7 +466,7 @@ window.addEventListener('appinstalled', () => {
       <div class="splash-card">8</div>
       <div class="splash-card">12</div>
     </div>
-    <div class="splash-version">v1.4.3</div>
+    <div class="splash-version">v1.4.4</div>
     <div class="splash-tagline">crédits : claude.ai · @Pneubis</div>
   </div>
   <div class="splash-progress"><div class="splash-progress-bar"></div></div>
@@ -520,7 +520,7 @@ window.addEventListener('appinstalled', () => {
 <!-- SCREEN: MENU -->
 <div class="screen active" id="screen-menu">
   <h1>SKYJO</h1>
-  <p style="font-size:.85em;color:rgba(255,255,255,.45);letter-spacing:3px;margin:-4px 0 10px;font-weight:600">v1.4.3</p>
+  <p style="font-size:.85em;color:rgba(255,255,255,.45);letter-spacing:3px;margin:-4px 0 10px;font-weight:600">v1.4.4</p>
   <p class="subtitle" style="margin-top:0">
     <button onclick="UI.showRules()" style="background:none;border:1px solid rgba(255,255,255,.25);color:#aaa;font-size:.8em;font-weight:600;padding:3px 12px;border-radius:20px;cursor:pointer;min-height:auto;transition:all .2s" onmouseover="this.style.borderColor='rgba(255,255,255,.55)';this.style.color='#fff'" onmouseout="this.style.borderColor='rgba(255,255,255,.25)';this.style.color='#aaa'">ⓘ Règles</button>
   </p>
@@ -540,7 +540,7 @@ window.addEventListener('appinstalled', () => {
 <!-- SCREEN: JOIN -->
 <div class="screen" id="screen-join">
   <h1>SKYJO</h1>
-  <p style="font-size:.85em;color:rgba(255,255,255,.45);letter-spacing:3px;margin:-4px 0 10px;font-weight:600">v1.4.3</p>
+  <p style="font-size:.85em;color:rgba(255,255,255,.45);letter-spacing:3px;margin:-4px 0 10px;font-weight:600">v1.4.4</p>
   <h2 id="join-screen-title">Rejoindre une partie</h2>
   <div style="width:100%;max-width:320px;display:flex;flex-direction:column;gap:10px">
     <input type="text" id="join-name" placeholder="Votre pseudo" maxlength="12" autocomplete="off"
@@ -610,8 +610,9 @@ window.addEventListener('appinstalled', () => {
   </div>
   <div class="game-content" id="game-content">
     <div class="piles" id="piles-area"></div>
-    <div class="players-area" id="players-area"></div>
-    <div id="action-log"></div>
+    <div class="players-area" id="players-area">
+      <div id="action-log"></div>
+    </div>
   </div>
   <div class="action-bar" id="action-bar" style="display:none"></div>
   <!-- Barre fixe bas : toujours visible en jeu -->
@@ -621,7 +622,7 @@ window.addEventListener('appinstalled', () => {
 </div>
 
 <!-- SCREEN: ROUND REVEAL -->
-<div class="screen" id="screen-round-reveal" style="justify-content:flex-start;padding-top:20px">
+<div class="screen" id="screen-round-reveal" style="justify-content:flex-start;padding-top:calc(6px + env(safe-area-inset-top, 0px))">
   <h2 style="margin-bottom:4px">📊 Fin de la manche</h2>
   <p class="subtitle" style="margin-bottom:12px" id="reveal-subtitle"></p>
   <div class="reveal-summary" id="reveal-summary"></div>
@@ -629,7 +630,7 @@ window.addEventListener('appinstalled', () => {
 </div>
 
 <!-- SCREEN: ROUND SCORES -->
-<div class="screen" id="screen-round-scores" style="justify-content:flex-start;padding-top:24px">
+<div class="screen" id="screen-round-scores" style="justify-content:flex-start;padding-top:calc(6px + env(safe-area-inset-top, 0px))">
   <div class="score-screen-content">
     <h2 style="margin-bottom:2px;align-self:flex-start">Scores — Manche</h2>
     <p class="subtitle" style="margin-bottom:4px;align-self:flex-start" id="round-scores-subtitle"></p>
@@ -643,7 +644,7 @@ window.addEventListener('appinstalled', () => {
 </div>
 
 <!-- SCREEN: FINAL SCORES -->
-<div class="screen" id="screen-final-scores" style="justify-content:flex-start;padding-top:24px">
+<div class="screen" id="screen-final-scores" style="justify-content:flex-start;padding-top:calc(6px + env(safe-area-inset-top, 0px))">
   <div class="score-screen-content">
     <h1 style="margin-bottom:6px">🏆 Fin de partie</h1>
     <div id="final-winner-banner" class="winner-banner" style="width:100%"></div>
@@ -1879,7 +1880,7 @@ const Render = (() => {
       /* falls through */
       case 'playing':
         UI.showScreen('screen-game');
-        renderGame();
+        scheduleRender();
         break;
       case 'round_reveal':
         UI.showScreen('screen-round-reveal');
@@ -1939,6 +1940,17 @@ const Render = (() => {
 
   // Suivi des cartes déjà révélées pour détecter les nouvelles révélations (animation flip)
   const _revealedKeys = new Set();
+
+  // RAF scheduler — évite les renders multiples dans le même frame
+  let _renderPending = false;
+  function scheduleRender() {
+    if (_renderPending) return;
+    _renderPending = true;
+    requestAnimationFrame(() => {
+      _renderPending = false;
+      renderGame();
+    });
+  }
 
   function renderGame() {
     const pilesArea = document.getElementById('piles-area');
@@ -2006,7 +2018,11 @@ const Render = (() => {
       }
       pilesHtml += '</div>';
     }
-    pilesArea.innerHTML = pilesHtml;
+    // DOM diffing : ne réécrire les piles que si le contenu a changé
+    if (pilesArea.dataset.lastHtml !== pilesHtml) {
+      pilesArea.dataset.lastHtml = pilesHtml;
+      pilesArea.innerHTML = pilesHtml;
+    }
 
     // Joueurs (mon joueur en premier)
     const orderedPlayers = [...gameState.players].sort((a, b) => {
@@ -2059,7 +2075,20 @@ const Render = (() => {
       }
       playersHtml += '</div></div>';
     });
-    playersArea.innerHTML = playersHtml;
+    // DOM diffing : ne réécrire les joueurs que si le contenu a changé
+    if (playersArea.dataset.lastHtml !== playersHtml) {
+      playersArea.dataset.lastHtml = playersHtml;
+      // Sauvegarder la position de scroll avant la réécriture
+      const scrollTop = playersArea.scrollTop;
+      const actionLogEl = playersArea.querySelector('#action-log');
+      const actionLogHtml = actionLogEl ? actionLogEl.innerHTML : '';
+      playersArea.innerHTML = playersHtml;
+      // Réinjecter l'action log (il est géré séparément)
+      const newLog = playersArea.querySelector('#action-log');
+      if (newLog && actionLogHtml) newLog.innerHTML = actionLogHtml;
+      // Restaurer la position de scroll
+      playersArea.scrollTop = scrollTop;
+    }
 
     // Rendre les cartes révélées cliquables pour placement
     if (isMyTurn && (gameState.turnPhase === 'drawn_from_pile' || gameState.turnPhase === 'place_mandatory')) {
