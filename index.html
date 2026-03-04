@@ -66,13 +66,13 @@ input::placeholder{color:#666}
 .card.val-9,.card.val-10,.card.val-11,.card.val-12{background:#e02020;color:#fff;text-shadow:0 2px 7px rgba(0,0,0,.65);border-color:rgba(255,255,255,.15)}
 
 /* --- Piles --- */
-.piles{display:flex;gap:20px;align-items:center;justify-content:center;margin:12px 0}
+.piles{display:flex;gap:20px;align-items:center;justify-content:center;margin:12px 0;flex-shrink:0}
 .pile{display:flex;flex-direction:column;align-items:center;gap:6px}
 .pile-label{font-size:.75em;color:#888;text-transform:uppercase;letter-spacing:1px}
 .pile .card{width:66px;height:92px;font-size:2.6em}
 
 /* --- Player areas --- */
-.players-area{width:100%;max-width:700px;display:flex;flex-direction:column;gap:12px;padding:8px}
+.players-area{width:100%;max-width:700px;display:flex;flex-direction:column;gap:12px;padding:8px;overflow-y:auto;flex:1;min-height:0;padding-bottom:130px}
 /* Fond neutre par défaut */
 .player-zone{background:rgba(255,255,255,.05);border-radius:12px;padding:10px;border:2px solid transparent;transition:border-color .3s}
 /* Palette de couleurs par joueur — fond doux pour ne pas écraser les cartes */
@@ -130,7 +130,7 @@ input::placeholder{color:#666}
 .copy-btn{font-size:.8em;padding:8px 16px;margin-top:4px}
 
 /* --- Game header --- */
-.game-header{width:100%;max-width:700px;display:flex;flex-direction:column;align-items:center;padding:calc(6px + env(safe-area-inset-top, 0px)) 12px 8px;background:rgba(255,255,255,.05);border-radius:12px;margin-bottom:8px;gap:4px}
+.game-header{width:100%;max-width:700px;display:flex;flex-direction:column;align-items:center;padding:calc(6px + env(safe-area-inset-top, 0px)) 12px 8px;background:rgba(255,255,255,.05);border-radius:12px;margin-bottom:8px;gap:4px;flex-shrink:0}
 .game-header-top{width:100%;display:flex;justify-content:space-between;align-items:center}
 .game-status{font-size:.85em;color:#ccc;text-align:center;flex:1}
 .round-info{font-size:1em;font-weight:700;color:rgba(255,255,255,.3);letter-spacing:2px;text-align:left;text-transform:uppercase;padding-left:max(12px, env(safe-area-inset-left, 0px));width:100%}
@@ -222,7 +222,7 @@ input::placeholder{color:#666}
 .modal p{color:#aaa;margin-bottom:16px;font-size:.9em}
 
 /* --- Scrollable game --- */
-.game-content{width:100%;overflow-y:auto;padding-bottom:120px;display:flex;flex-direction:column;align-items:center}
+.game-content{width:100%;flex:1;overflow:hidden;display:flex;flex-direction:column;align-items:center;min-height:0}
 
 /* --- Boom animation --- */
 .boom-overlay{position:fixed;inset:0;pointer-events:none;z-index:150}
@@ -406,7 +406,7 @@ input::placeholder{color:#666}
 // ── Service Worker ───────────────────────────────────────────────
 if ('serviceWorker' in navigator) {
   const sw = `
-    const CACHE = 'skyjo-v1.4.2';
+    const CACHE = 'skyjo-v1.4.3';
     self.addEventListener('install', e => {
       e.waitUntil(
         caches.open(CACHE).then(c => c.addAll(['./'])).catch(() => {})
@@ -466,7 +466,7 @@ window.addEventListener('appinstalled', () => {
       <div class="splash-card">8</div>
       <div class="splash-card">12</div>
     </div>
-    <div class="splash-version">v1.4.2</div>
+    <div class="splash-version">v1.4.3</div>
     <div class="splash-tagline">crédits : claude.ai · @Pneubis</div>
   </div>
   <div class="splash-progress"><div class="splash-progress-bar"></div></div>
@@ -520,7 +520,7 @@ window.addEventListener('appinstalled', () => {
 <!-- SCREEN: MENU -->
 <div class="screen active" id="screen-menu">
   <h1>SKYJO</h1>
-  <p style="font-size:.85em;color:rgba(255,255,255,.45);letter-spacing:3px;margin:-4px 0 10px;font-weight:600">v1.4.2</p>
+  <p style="font-size:.85em;color:rgba(255,255,255,.45);letter-spacing:3px;margin:-4px 0 10px;font-weight:600">v1.4.3</p>
   <p class="subtitle" style="margin-top:0">
     <button onclick="UI.showRules()" style="background:none;border:1px solid rgba(255,255,255,.25);color:#aaa;font-size:.8em;font-weight:600;padding:3px 12px;border-radius:20px;cursor:pointer;min-height:auto;transition:all .2s" onmouseover="this.style.borderColor='rgba(255,255,255,.55)';this.style.color='#fff'" onmouseout="this.style.borderColor='rgba(255,255,255,.25)';this.style.color='#aaa'">ⓘ Règles</button>
   </p>
@@ -540,7 +540,7 @@ window.addEventListener('appinstalled', () => {
 <!-- SCREEN: JOIN -->
 <div class="screen" id="screen-join">
   <h1>SKYJO</h1>
-  <p style="font-size:.85em;color:rgba(255,255,255,.45);letter-spacing:3px;margin:-4px 0 10px;font-weight:600">v1.4.2</p>
+  <p style="font-size:.85em;color:rgba(255,255,255,.45);letter-spacing:3px;margin:-4px 0 10px;font-weight:600">v1.4.3</p>
   <h2 id="join-screen-title">Rejoindre une partie</h2>
   <div style="width:100%;max-width:320px;display:flex;flex-direction:column;gap:10px">
     <input type="text" id="join-name" placeholder="Votre pseudo" maxlength="12" autocomplete="off"
@@ -599,7 +599,7 @@ window.addEventListener('appinstalled', () => {
 </div>
 
 <!-- SCREEN: GAME -->
-<div class="screen" id="screen-game" style="justify-content:flex-start;padding-top:0">
+<div class="screen" id="screen-game" style="justify-content:flex-start;padding-top:0;height:100dvh;overflow:hidden;flex-direction:column;">
   <div class="game-header">
     <div class="round-info" id="round-info">Manche 1</div>
     <div class="game-header-top">
