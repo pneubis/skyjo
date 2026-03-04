@@ -2,408 +2,233 @@
 <html lang="fr">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, viewport-fit=cover">
-
-<!-- PWA Meta -->
-<meta name="theme-color" content="#1a1035" media="(prefers-color-scheme: dark)">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="theme-color" content="#1a1035">
 <meta name="mobile-web-app-capable" content="true">
 <meta name="apple-mobile-web-app-capable" content="true">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Skyjo">
-<meta name="application-name" content="Skyjo">
-<meta name="description" content="Skyjo Multijoueur — Jouez en ligne avec vos amis">
-
 <title>Skyjo</title>
 
-<!-- Apple touch icons (inline SVG → base64) -->
-<link rel="apple-touch-icon" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxODAgMTgwIj48cmVjdCB3aWR0aD0iMTgwIiBoZWlnaHQ9IjE4MCIgcng9IjM2IiBmaWxsPSIjMWExMDM1Ii8+PHJlY3QgeD0iMjQiIHk9IjI0IiB3aWR0aD0iNjAiIGhlaWdodD0iODQiIHJ4PSIxMCIgZmlsbD0iI2ZmZiIgb3BhY2l0eT0iLjk1Ii8+PHJlY3QgeD0iOTYiIHk9IjI0IiB3aWR0aD0iNjAiIGhlaWdodD0iODQiIHJ4PSIxMCIgZmlsbD0iI2ZmNWQ1ZCIgb3BhY2l0eT0iLjk1Ii8+PHJlY3QgeD0iMjQiIHk9Ijc2IiB3aWR0aD0iNjAiIGhlaWdodD0iODAiIHJ4PSIxMCIgZmlsbD0iIzVkYjVmZiIgb3BhY2l0eT0iLjk1Ii8+PHJlY3QgeD0iOTYiIHk9Ijc2IiB3aWR0aD0iNjAiIGhlaWdodD0iODAiIHJ4PSIxMCIgZmlsbD0iIzZkZmY5MyIgb3BhY2l0eT0iLjk1Ii8+PHRleHQgeD0iOTAiIHk9IjE2NiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC1mYW1pbHk9IidHZW9yZ2lhJyxzZXJpZiIgZm9udC13ZWlnaHQ9IjcwMCIgZm9udC1zaXplPSIyMiIgZmlsbD0id2hpdGUiIGxldHRlci1zcGFjaW5nPSI0Ij5TS1lKTzwvdGV4dD48L3N2Zz4=">
+<!-- Apple touch icon -->
+<link rel="apple-touch-icon" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxODAgMTgwIj48cmVjdCB3aWR0aD0iMTgwIiBoZWlnaHQ9IjE4MCIgcng9IjM2IiBmaWxsPSIjMWExMDM1Ii8+PHJlY3QgeD0iMjAiIHk9IjIwIiB3aWR0aD0iNjQiIGhlaWdodD0iOTAiIHJ4PSIxMCIgZmlsbD0iI2ZmZiIvPjxyZWN0IHg9Ijk2IiB5PSIyMCIgd2lkdGg9IjY0IiBoZWlnaHQ9IjkwIiByeD0iMTAiIGZpbGw9IiNmZjVkNWQiLz48cmVjdCB4PSIyMCIgeT0iNzAiIHdpZHRoPSI2NCIgaGVpZ2h0PSI5MCIgcng9IjEwIiBmaWxsPSIjNWRiNWZmIi8+PHJlY3QgeD0iOTYiIHk9IjcwIiB3aWR0aD0iNjQiIGhlaWdodD0iOTAiIHJ4PSIxMCIgZmlsbD0iIzZkZmY5MyIvPjx0ZXh0IHg9IjUyIiB5PSI3NSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC1mYW1pbHk9Ikdlb3JnaWEiIGZvbnQtd2VpZ2h0PSI3MDAiIGZvbnQtc2l6ZT0iMjgiIGZpbGw9IiMxYTEwMzUiPi0yPC90ZXh0Pjx0ZXh0IHg9IjEyOCIgeT0iNzUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZvbnQtZmFtaWx5PSJHZW9yZ2lhIiBmb250LXdlaWdodD0iNzAwIiBmb250LXNpemU9IjI4IiBmaWxsPSJ3aGl0ZSI+ODwvdGV4dD48dGV4dCB4PSI1MiIgeT0iMTQ1IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmb250LWZhbWlseT0iR2VvcmdpYSIgZm9udC13ZWlnaHQ9IjcwMCIgZm9udC1zaXplPSIyOCIgZmlsbD0id2hpdGUiPjU8L3RleHQ+PHRleHQgeD0iMTI4IiB5PSIxNDUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZvbnQtZmFtaWx5PSJHZW9yZ2lhIiBmb250LXdlaWdodD0iNzAwIiBmb250LXNpemU9IjI4IiBmaWxsPSIjMWExMDM1Ij4wPC90ZXh0Pjwvc3ZnPg==">
 
-<!-- PWA Manifest — inline via data URI -->
-<link rel="manifest" id="manifest-placeholder">
+<link rel="manifest" id="pwa-manifest">
 
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { width: 100%; height: 100%; background: #1a1035; }
 
-  :root {
-    --bg: #1a1035;
-    --accent: #7c5cfc;
-    --accent2: #ff5d5d;
-    --text: #f0ecff;
-    --muted: #8b7fc0;
-  }
-
-  html {
-    height: 100%;
-    background: var(--bg);
-  }
-  body {
-    width: 100%;
-    /* dvh fills the full viewport on Android including behind status bar */
-    height: 100dvh;
-    background: var(--bg);
-    overflow: hidden;
-    font-family: 'Georgia', serif;
-    margin: 0;
-  }
-
-  /* ── SPLASH / LOADER ── */
   #splash {
-    position: fixed; inset: 0; z-index: 200;
-    background: var(--bg);
+    position: fixed; inset: 0;
+    background: #1a1035;
     display: flex; flex-direction: column;
     align-items: center; justify-content: center;
-    gap: 24px;
-    transition: opacity 0.5s, visibility 0.5s;
+    gap: 28px;
+    font-family: Georgia, serif;
   }
-  #splash.hidden { opacity: 0; visibility: hidden; }
 
-  .splash-cards {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 10px;
-    width: 100px;
-    animation: float 3s ease-in-out infinite;
+  .cards {
+    display: grid; grid-template-columns: 1fr 1fr;
+    gap: 10px; width: 96px;
+    animation: float 2.5s ease-in-out infinite;
   }
-  @keyframes float { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-8px)} }
+  @keyframes float { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-10px)} }
 
-  .splash-card {
-    height: 56px;
-    border-radius: 8px;
+  .card {
+    height: 58px; border-radius: 9px;
     display: flex; align-items: center; justify-content: center;
-    font-size: 22px;
-    font-weight: 700;
-    color: #fff;
-    box-shadow: 0 4px 20px rgba(0,0,0,0.4);
+    font-size: 22px; font-weight: 700;
+    box-shadow: 0 6px 20px rgba(0,0,0,0.5);
   }
-  .c1 { background: #fff; color: #1a1035; }
-  .c2 { background: #ff5d5d; }
-  .c3 { background: #5db5ff; }
-  .c4 { background: #6dff93; color: #1a1035; }
+  .ca { background: #fff; color: #1a1035; }
+  .cb { background: #ff5d5d; color: #fff; }
+  .cc { background: #5db5ff; color: #fff; }
+  .cd { background: #6dff93; color: #1a1035; }
 
-  .splash-title {
-    font-size: 32px;
-    font-weight: 700;
-    letter-spacing: 8px;
-    text-transform: uppercase;
-    color: var(--text);
+  h1 {
+    font-size: 36px; letter-spacing: 8px;
+    text-transform: uppercase; color: #f0ecff;
   }
 
-  .splash-loader {
-    width: 48px; height: 3px;
+  .loader {
+    width: 56px; height: 3px;
     background: rgba(255,255,255,0.1);
-    border-radius: 3px;
-    overflow: hidden;
+    border-radius: 3px; overflow: hidden;
   }
-  .splash-loader::after {
-    content: '';
-    display: block;
-    height: 100%;
-    width: 40%;
-    background: var(--accent);
-    border-radius: 3px;
-    animation: load 1.2s ease-in-out infinite;
+  .loader::after {
+    content: ''; display: block; height: 100%; width: 40%;
+    background: #7c5cfc; border-radius: 3px;
+    animation: slide 1s ease-in-out infinite;
   }
-  @keyframes load { 0%{transform:translateX(-150%)} 100%{transform:translateX(350%)} }
+  @keyframes slide { 0%{transform:translateX(-200%)} 100%{transform:translateX(500%)} }
 
-  /* ── INSTALL BANNER ── */
-  #install-bar {
-    position: fixed;
-    bottom: 0; left: 0; right: 0;
-    z-index: 150;
-    display: none;
-    align-items: center;
-    gap: 14px;
-    padding: 16px 20px calc(16px + env(safe-area-inset-bottom));
-    background: rgba(20, 12, 50, 0.97);
-    backdrop-filter: blur(20px);
-    border-top: 1px solid rgba(124, 92, 252, 0.3);
-    box-shadow: 0 -8px 40px rgba(0,0,0,0.6);
-    animation: slideUp 0.35s cubic-bezier(0.34,1.56,0.64,1) both;
-  }
-  @keyframes slideUp { from{transform:translateY(100%)} to{transform:translateY(0)} }
-
-  .install-icon {
-    width: 52px; height: 52px;
-    background: var(--accent);
-    border-radius: 12px;
-    display: flex; align-items: center; justify-content: center;
-    font-size: 26px;
-    flex-shrink: 0;
-    box-shadow: 0 4px 16px rgba(124,92,252,0.5);
-  }
-  .install-text { flex: 1; }
-  .install-text strong {
-    display: block;
-    font-size: 15px;
-    font-weight: 700;
-    color: var(--text);
-    letter-spacing: 0.5px;
-    margin-bottom: 3px;
-  }
-  .install-text span {
-    font-size: 12px;
-    color: var(--muted);
-    font-family: -apple-system, sans-serif;
-  }
-  .install-btn {
-    background: var(--accent);
-    color: #fff;
-    border: none;
-    padding: 12px 22px;
-    border-radius: 30px;
-    font-family: -apple-system, sans-serif;
-    font-weight: 700;
-    font-size: 14px;
+  .launch-btn {
+    margin-top: 8px;
+    background: #7c5cfc; color: #fff;
+    border: none; padding: 16px 40px;
+    border-radius: 50px;
+    font-family: Georgia, serif;
+    font-size: 18px; font-weight: 700;
+    letter-spacing: 2px;
     cursor: pointer;
-    flex-shrink: 0;
-    box-shadow: 0 4px 16px rgba(124,92,252,0.4);
+    box-shadow: 0 6px 28px rgba(124,92,252,0.5);
     transition: transform 0.15s, box-shadow 0.15s;
-  }
-  .install-btn:active { transform: scale(0.96); }
-  .install-close {
-    background: none; border: none;
-    color: var(--muted);
-    font-size: 20px;
-    cursor: pointer;
-    padding: 6px;
-    flex-shrink: 0;
-    line-height: 1;
-  }
-
-  /* iOS instructions banner */
-  #ios-bar {
-    position: fixed;
-    bottom: 0; left: 0; right: 0;
-    z-index: 150;
     display: none;
-    flex-direction: column;
-    gap: 12px;
-    padding: 20px 20px calc(20px + env(safe-area-inset-bottom));
-    background: rgba(20, 12, 50, 0.97);
+  }
+  .launch-btn:active { transform: scale(0.96); }
+
+  /* Install banner */
+  #install-bar {
+    position: fixed; bottom: 0; left: 0; right: 0;
+    display: none; align-items: center; gap: 14px;
+    padding: 16px 20px 28px;
+    background: rgba(15, 8, 40, 0.98);
     backdrop-filter: blur(20px);
     border-top: 1px solid rgba(124,92,252,0.3);
-    text-align: center;
-    animation: slideUp 0.35s ease both;
+    z-index: 999;
+    animation: up 0.3s ease both;
   }
-  #ios-bar strong { color: var(--text); font-size: 15px; display: block; margin-bottom: 4px; }
-  #ios-bar span { color: var(--muted); font-size: 13px; font-family: -apple-system, sans-serif; line-height: 1.5; }
-  #ios-bar button {
-    background: var(--accent);
-    color: #fff; border: none;
-    padding: 10px 24px; border-radius: 30px;
-    font-weight: 700; font-size: 13px;
-    cursor: pointer; align-self: center;
-    font-family: -apple-system, sans-serif;
+  @keyframes up { from{transform:translateY(100%)} to{transform:translateY(0)} }
+  .ib-icon {
+    width: 50px; height: 50px; border-radius: 12px;
+    background: #7c5cfc; display: flex; align-items: center;
+    justify-content: center; font-size: 24px; flex-shrink: 0;
   }
-
-  /* ── IFRAME ── */
-  #game-frame {
-    position: fixed;
-    /* Push iframe behind the status bar using negative top offset */
-    top: -env(safe-area-inset-top, 0px);
-    left: 0; right: 0;
-    bottom: 0;
-    /* Extra height to compensate for the negative top */
-    width: 100%;
-    height: calc(100% + env(safe-area-inset-top, 0px));
-    border: none;
-    background: var(--bg);
-    transition: height 0.3s, bottom 0.3s;
+  .ib-text { flex: 1; }
+  .ib-text strong { display: block; color: #f0ecff; font-size: 15px; margin-bottom: 3px; font-family: Georgia, serif; }
+  .ib-text span { color: #8b7fc0; font-size: 12px; font-family: sans-serif; }
+  .ib-btn {
+    background: #7c5cfc; color: #fff; border: none;
+    padding: 11px 20px; border-radius: 30px;
+    font-weight: 700; font-size: 14px; cursor: pointer;
+    font-family: sans-serif; flex-shrink: 0;
+  }
+  .ib-close {
+    background: none; border: none; color: #8b7fc0;
+    font-size: 20px; cursor: pointer; flex-shrink: 0;
   }
 </style>
 </head>
 <body>
 
-<!-- Splash screen -->
 <div id="splash">
-  <div class="splash-cards">
-    <div class="splash-card c1">-2</div>
-    <div class="splash-card c2">8</div>
-    <div class="splash-card c3">5</div>
-    <div class="splash-card c4">0</div>
+  <div class="cards">
+    <div class="card ca">-2</div>
+    <div class="card cb">8</div>
+    <div class="card cc">5</div>
+    <div class="card cd">0</div>
   </div>
-  <div class="splash-title">Skyjo</div>
-  <div class="splash-loader"></div>
+  <h1>Skyjo</h1>
+  <div class="loader" id="loader"></div>
+  <button class="launch-btn" id="launch-btn" onclick="goToGame()">▶ Jouer</button>
 </div>
 
-<!-- Install bar (Android/Brave) -->
 <div id="install-bar">
-  <div class="install-icon">🃏</div>
-  <div class="install-text">
+  <div class="ib-icon">🃏</div>
+  <div class="ib-text">
     <strong>Installer Skyjo</strong>
     <span>Ajouter à l'écran d'accueil</span>
   </div>
-  <button class="install-btn" id="install-btn">Installer</button>
-  <button class="install-close" onclick="dismissInstall()">✕</button>
+  <button class="ib-btn" id="ib-install-btn">Installer</button>
+  <button class="ib-close" onclick="dismissInstall()">✕</button>
 </div>
-
-<!-- iOS install instructions -->
-<div id="ios-bar">
-  <div>
-    <strong>📲 Installer sur iPhone</strong>
-    <span>Appuyez sur <b>□↑</b> (Partager) puis <b>"Sur l'écran d'accueil"</b></span>
-  </div>
-  <button onclick="document.getElementById('ios-bar').style.display='none'">OK compris</button>
-</div>
-
-<!-- Game iframe -->
-<iframe
-  id="game-frame"
-  src="https://pneubis.github.io/skyjo"
-  allow="fullscreen; notifications"
-  allowfullscreen
-></iframe>
 
 <script>
-// ── MANIFEST inline ──────────────────────────────────────────────
+const GAME_URL = 'https://pneubis.github.io/skyjo';
+
+// ── MANIFEST (inline blob) ───────────────────────────────────────
+const iconSvg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><rect width="512" height="512" rx="96" fill="#1a1035"/><rect x="50" y="50" width="180" height="250" rx="28" fill="#fff"/><rect x="282" y="50" width="180" height="250" rx="28" fill="#ff5d5d"/><rect x="50" y="212" width="180" height="250" rx="28" fill="#5db5ff"/><rect x="282" y="212" width="180" height="250" rx="28" fill="#6dff93"/><text x="140" y="192" text-anchor="middle" font-family="Georgia" font-weight="700" font-size="90" fill="#1a1035">-2</text><text x="372" y="192" text-anchor="middle" font-family="Georgia" font-weight="700" font-size="90" fill="white">8</text><text x="140" y="415" text-anchor="middle" font-family="Georgia" font-weight="700" font-size="90" fill="white">5</text><text x="372" y="415" text-anchor="middle" font-family="Georgia" font-weight="700" font-size="90" fill="#1a1035">0</text></svg>`;
+const iconUrl = 'data:image/svg+xml;base64,' + btoa(iconSvg);
+
 const manifest = {
   name: "Skyjo Multijoueur",
   short_name: "Skyjo",
-  description: "Jouez au Skyjo en ligne avec vos amis",
-  start_url: "./",
-  display: "fullscreen",
+  description: "Jouez au Skyjo en ligne",
+  // ← clé du plein écran : start_url pointe vers le JEU directement
+  start_url: GAME_URL,
+  display: "standalone",       // standalone = plein écran sans barre navigateur
   background_color: "#1a1035",
   theme_color: "#1a1035",
   orientation: "any",
   icons: [
-    {
-      src: "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxOTIgMTkyIj48cmVjdCB3aWR0aD0iMTkyIiBoZWlnaHQ9IjE5MiIgcng9IjM4IiBmaWxsPSIjMWExMDM1Ii8+PHJlY3QgeD0iMjAiIHk9IjIwIiB3aWR0aD0iNjgiIGhlaWdodD0iOTYiIHJ4PSIxMiIgZmlsbD0iI2ZmZiIvPjxyZWN0IHg9IjEwNCIgeT0iMjAiIHdpZHRoPSI2OCIgaGVpZ2h0PSI5NiIgcng9IjEyIiBmaWxsPSIjZmY1ZDVkIi8+PHJlY3QgeD0iMjAiIHk9Ijc2IiB3aWR0aD0iNjgiIGhlaWdodD0iOTYiIHJ4PSIxMiIgZmlsbD0iIzVkYjVmZiIvPjxyZWN0IHg9IjEwNCIgeT0iNzYiIHdpZHRoPSI2OCIgaGVpZ2h0PSI5NiIgcng9IjEyIiBmaWxsPSIjNmRmZjkzIi8+PHRleHQgeD0iNTQiIHk9IjczIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmb250LWZhbWlseT0iR2VvcmdpYSIgZm9udC13ZWlnaHQ9IjcwMCIgZm9udC1zaXplPSIzMiIgZmlsbD0iIzFhMTAzNSI+LTI8L3RleHQ+PHRleHQgeD0iMTM4IiB5PSI3MyIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC1mYW1pbHk9Ikdlb3JnaWEiIGZvbnQtd2VpZ2h0PSI3MDAiIGZvbnQtc2l6ZT0iMzIiIGZpbGw9IndoaXRlIj44PC90ZXh0Pjx0ZXh0IHg9IjU0IiB5PSIxNjAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZvbnQtZmFtaWx5PSJHZW9yZ2lhIiBmb250LXdlaWdodD0iNzAwIiBmb250LXNpemU9IjMyIiBmaWxsPSJ3aGl0ZSI+NTwvdGV4dD48dGV4dCB4PSIxMzgiIHk9IjE2MCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC1mYW1pbHk9Ikdlb3JnaWEiIGZvbnQtd2VpZ2h0PSI3MDAiIGZvbnQtc2l6ZT0iMzIiIGZpbGw9IiMxYTEwMzUiPjA8L3RleHQ+PC9zdmc+",
-      sizes: "192x192",
-      type: "image/svg+xml",
-      purpose: "any maskable"
-    },
-    {
-      src: "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA1MTIgNTEyIj48cmVjdCB3aWR0aD0iNTEyIiBoZWlnaHQ9IjUxMiIgcng9IjEwMCIgZmlsbD0iIzFhMTAzNSIvPjxyZWN0IHg9IjUwIiB5PSI1MCIgd2lkdGg9IjE4MCIgaGVpZ2h0PSIyNTYiIHJ4PSIyOCIgZmlsbD0iI2ZmZiIvPjxyZWN0IHg9IjI4MiIgeT0iNTAiIHdpZHRoPSIxODAiIGhlaWdodD0iMjU2IiByeD0iMjgiIGZpbGw9IiNmZjVkNWQiLz48cmVjdCB4PSI1MCIgeT0iMjA2IiB3aWR0aD0iMTgwIiBoZWlnaHQ9IjI1NiIgcng9IjI4IiBmaWxsPSIjNWRiNWZmIi8+PHJlY3QgeD0iMjgyIiB5PSIyMDYiIHdpZHRoPSIxODAiIGhlaWdodD0iMjU2IiByeD0iMjgiIGZpbGw9IiM2ZGZmOTMiLz48dGV4dCB4PSIxNDAiIHk9IjE5OCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC1mYW1pbHk9Ikdlb3JnaWEiIGZvbnQtd2VpZ2h0PSI3MDAiIGZvbnQtc2l6ZT0iOTYiIGZpbGw9IiMxYTEwMzUiPi0yPC90ZXh0Pjx0ZXh0IHg9IjM3MiIgeT0iMTk4IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmb250LWZhbWlseT0iR2VvcmdpYSIgZm9udC13ZWlnaHQ9IjcwMCIgZm9udC1zaXplPSI5NiIgZmlsbD0id2hpdGUiPjg8L3RleHQ+PHRleHQgeD0iMTQwIiB5PSI0MjAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZvbnQtZmFtaWx5PSJHZW9yZ2lhIiBmb250LXdlaWdodD0iNzAwIiBmb250LXNpemU9Ijk2IiBmaWxsPSJ3aGl0ZSI+NTwvdGV4dD48dGV4dCB4PSIzNzIiIHk9IjQyMCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC1mYW1pbHk9Ikdlb3JnaWEiIGZvbnQtd2VpZ2h0PSI3MDAiIGZvbnQtc2l6ZT0iOTYiIGZpbGw9IiMxYTEwMzUiPjA8L3RleHQ+PC9zdmc+",
-      sizes: "512x512",
-      type: "image/svg+xml",
-      purpose: "any maskable"
-    }
+    { src: iconUrl, sizes: "192x192", type: "image/svg+xml", purpose: "any maskable" },
+    { src: iconUrl, sizes: "512x512", type: "image/svg+xml", purpose: "any maskable" }
   ]
 };
-const manifestBlob = new Blob([JSON.stringify(manifest)], { type: 'application/manifest+json' });
-document.getElementById('manifest-placeholder').href = URL.createObjectURL(manifestBlob);
+const mBlob = new Blob([JSON.stringify(manifest)], { type: 'application/manifest+json' });
+document.getElementById('pwa-manifest').href = URL.createObjectURL(mBlob);
 
 // ── SERVICE WORKER ───────────────────────────────────────────────
 if ('serviceWorker' in navigator) {
   const sw = `
-    const CACHE = 'skyjo-pwa-v1';
-    self.addEventListener('install', e => self.skipWaiting());
-    self.addEventListener('activate', e => clients.claim());
+    self.addEventListener('install', () => self.skipWaiting());
+    self.addEventListener('activate', () => clients.claim());
     self.addEventListener('fetch', e => {
-      e.respondWith(
-        fetch(e.request).catch(() => caches.match(e.request))
-      );
+      e.respondWith(fetch(e.request).catch(() => caches.match(e.request)));
     });
   `;
   const swBlob = new Blob([sw], { type: 'application/javascript' });
   navigator.serviceWorker.register(URL.createObjectURL(swBlob)).catch(() => {});
 }
 
-// ── SPLASH → hide when iframe loaded ────────────────────────────
-const frame = document.getElementById('game-frame');
-const splash = document.getElementById('splash');
-
-let splashHidden = false;
-function hideSplash() {
-  if (splashHidden) return;
-  splashHidden = true;
-  splash.classList.add('hidden');
+// ── REDIRECT ─────────────────────────────────────────────────────
+// Si déjà lancé comme PWA installée → aller direct au jeu
+const isStandalone = window.matchMedia('(display-mode: standalone)').matches
+                  || window.navigator.standalone === true;
+if (isStandalone) {
+  window.location.replace(GAME_URL);
 }
 
-frame.addEventListener('load', () => setTimeout(hideSplash, 600));
-setTimeout(hideSplash, 4000); // fallback
+// Sinon : afficher le splash puis proposer de lancer
+function goToGame() {
+  window.location.href = GAME_URL;
+}
 
-// ── INSTALL PROMPT (Android/Brave/Chrome) ───────────────────────
+// Après 2s : montrer le bouton "Jouer" si pas encore redirigé
+setTimeout(() => {
+  document.getElementById('loader').style.display = 'none';
+  document.getElementById('launch-btn').style.display = 'block';
+}, 1800);
+
+// ── INSTALL PROMPT ───────────────────────────────────────────────
 let deferredPrompt = null;
-const installBar = document.getElementById('install-bar');
-const installBtn = document.getElementById('install-btn');
 
 window.addEventListener('beforeinstallprompt', e => {
   e.preventDefault();
   deferredPrompt = e;
   setTimeout(() => {
-    installBar.style.display = 'flex';
-    // Push iframe up to make room for install bar, keeping status bar coverage
-    frame.style.bottom = '90px';
-    frame.style.height = 'calc(100% + env(safe-area-inset-top, 0px) - 90px)';
-  }, 1500);
+    document.getElementById('install-bar').style.display = 'flex';
+  }, 1000);
 });
 
-installBtn.addEventListener('click', async () => {
+document.getElementById('ib-install-btn').addEventListener('click', async () => {
   if (!deferredPrompt) return;
   deferredPrompt.prompt();
   const { outcome } = await deferredPrompt.userChoice;
   deferredPrompt = null;
   dismissInstall();
-  if (outcome === 'accepted') showToast('🃏 Skyjo installé !');
 });
 
 window.addEventListener('appinstalled', () => {
   dismissInstall();
-  showToast('🎉 Skyjo ajouté à l\'écran d\'accueil !');
 });
 
 function dismissInstall() {
-  installBar.style.display = 'none';
-  frame.style.bottom = '0';
-  frame.style.height = 'calc(100% + env(safe-area-inset-top, 0px))';
+  document.getElementById('install-bar').style.display = 'none';
 }
 
-// ── iOS detection ────────────────────────────────────────────────
+// ── iOS hint ─────────────────────────────────────────────────────
 const isIos = /iphone|ipad|ipod/i.test(navigator.userAgent);
-const isInStandalone = window.navigator.standalone === true;
-if (isIos && !isInStandalone) {
+if (isIos && !window.navigator.standalone) {
+  // Réutilise la barre install avec un message iOS
   setTimeout(() => {
-    document.getElementById('ios-bar').style.display = 'flex';
-    frame.style.height = 'calc(100% - 110px)';
-  }, 2000);
-}
-
-// ── Toast helper ─────────────────────────────────────────────────
-
-// ── REQUEST NATIVE FULLSCREEN on first interaction ───────────────
-function requestFullscreen() {
-  const el = document.documentElement;
-  const rfs = el.requestFullscreen || el.webkitRequestFullscreen || el.mozRequestFullScreen || el.msRequestFullscreen;
-  if (rfs) {
-    rfs.call(el).catch(() => {});
-  }
-  // Android immersive mode via screen.orientation lock
-  if (screen.orientation && screen.orientation.lock) {
-    screen.orientation.lock('any').catch(() => {});
-  }
-}
-// Trigger fullscreen on first user interaction (required by browsers)
-let fsRequested = false;
-document.addEventListener('click', () => {
-  if (!fsRequested) { fsRequested = true; requestFullscreen(); }
-}, { once: false });
-document.addEventListener('touchstart', () => {
-  if (!fsRequested) { fsRequested = true; requestFullscreen(); }
-}, { once: false });
-// Try immediately in case already in PWA standalone mode
-if (window.matchMedia('(display-mode: standalone)').matches || 
-    window.matchMedia('(display-mode: fullscreen)').matches) {
-  requestFullscreen();
-}
-
-function showToast(msg) {
-  const t = document.createElement('div');
-  t.textContent = msg;
-  Object.assign(t.style, {
-    position: 'fixed', bottom: '100px', left: '50%',
-    transform: 'translateX(-50%)',
-    background: '#7c5cfc', color: '#fff',
-    padding: '12px 24px', borderRadius: '30px',
-    fontFamily: '-apple-system, sans-serif',
-    fontWeight: '700', fontSize: '14px',
-    zIndex: '9999', whiteSpace: 'nowrap',
-    boxShadow: '0 4px 24px rgba(124,92,252,0.5)',
-    transition: 'opacity 0.4s',
-  });
-  document.body.appendChild(t);
-  setTimeout(() => { t.style.opacity = '0'; setTimeout(() => t.remove(), 400); }, 2500);
+    const bar = document.getElementById('install-bar');
+    bar.querySelector('.ib-text strong').textContent = 'Installer sur iPhone';
+    bar.querySelector('.ib-text span').textContent = 'Appuyez sur □↑ puis "Sur l\'écran d\'accueil"';
+    bar.querySelector('.ib-btn').style.display = 'none';
+    bar.style.display = 'flex';
+  }, 1000);
 }
 </script>
 </body>
