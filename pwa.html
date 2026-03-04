@@ -2,9 +2,10 @@
 <html lang="fr">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, viewport-fit=cover">
 
 <!-- PWA Meta -->
+<meta name="theme-color" content="#1a1035" media="(prefers-color-scheme: dark)">
 <meta name="theme-color" content="#1a1035">
 <meta name="mobile-web-app-capable" content="true">
 <meta name="apple-mobile-web-app-capable" content="true">
@@ -32,11 +33,18 @@
     --muted: #8b7fc0;
   }
 
-  html, body {
-    width: 100%; height: 100%;
+  html {
+    height: 100%;
+    background: var(--bg);
+  }
+  body {
+    width: 100%;
+    /* dvh fills the full viewport on Android including behind status bar */
+    height: 100dvh;
     background: var(--bg);
     overflow: hidden;
     font-family: 'Georgia', serif;
+    margin: 0;
   }
 
   /* ── SPLASH / LOADER ── */
@@ -192,12 +200,16 @@
   /* ── IFRAME ── */
   #game-frame {
     position: fixed;
-    inset: 0;
-    width: 100%; height: 100%;
+    /* Push iframe behind the status bar using negative top offset */
+    top: -env(safe-area-inset-top, 0px);
+    left: 0; right: 0;
+    bottom: 0;
+    /* Extra height to compensate for the negative top */
+    width: 100%;
+    height: calc(100% + env(safe-area-inset-top, 0px));
     border: none;
     background: var(--bg);
-    /* Padding bottom for install bar if shown */
-    transition: height 0.3s;
+    transition: height 0.3s, bottom 0.3s;
   }
 </style>
 </head>
@@ -250,7 +262,7 @@ const manifest = {
   short_name: "Skyjo",
   description: "Jouez au Skyjo en ligne avec vos amis",
   start_url: "./",
-  display: "standalone",
+  display: "fullscreen",
   background_color: "#1a1035",
   theme_color: "#1a1035",
   orientation: "any",
@@ -312,8 +324,9 @@ window.addEventListener('beforeinstallprompt', e => {
   deferredPrompt = e;
   setTimeout(() => {
     installBar.style.display = 'flex';
-    // Shrink iframe so bar doesn't cover content
-    frame.style.height = 'calc(100% - 90px)';
+    // Push iframe up to make room for install bar, keeping status bar coverage
+    frame.style.bottom = '90px';
+    frame.style.height = 'calc(100% + env(safe-area-inset-top, 0px) - 90px)';
   }, 1500);
 });
 
@@ -333,7 +346,8 @@ window.addEventListener('appinstalled', () => {
 
 function dismissInstall() {
   installBar.style.display = 'none';
-  frame.style.height = '100%';
+  frame.style.bottom = '0';
+  frame.style.height = 'calc(100% + env(safe-area-inset-top, 0px))';
 }
 
 // ── iOS detection ────────────────────────────────────────────────
@@ -347,6 +361,33 @@ if (isIos && !isInStandalone) {
 }
 
 // ── Toast helper ─────────────────────────────────────────────────
+
+// ── REQUEST NATIVE FULLSCREEN on first interaction ───────────────
+function requestFullscreen() {
+  const el = document.documentElement;
+  const rfs = el.requestFullscreen || el.webkitRequestFullscreen || el.mozRequestFullScreen || el.msRequestFullscreen;
+  if (rfs) {
+    rfs.call(el).catch(() => {});
+  }
+  // Android immersive mode via screen.orientation lock
+  if (screen.orientation && screen.orientation.lock) {
+    screen.orientation.lock('any').catch(() => {});
+  }
+}
+// Trigger fullscreen on first user interaction (required by browsers)
+let fsRequested = false;
+document.addEventListener('click', () => {
+  if (!fsRequested) { fsRequested = true; requestFullscreen(); }
+}, { once: false });
+document.addEventListener('touchstart', () => {
+  if (!fsRequested) { fsRequested = true; requestFullscreen(); }
+}, { once: false });
+// Try immediately in case already in PWA standalone mode
+if (window.matchMedia('(display-mode: standalone)').matches || 
+    window.matchMedia('(display-mode: fullscreen)').matches) {
+  requestFullscreen();
+}
+
 function showToast(msg) {
   const t = document.createElement('div');
   t.textContent = msg;
