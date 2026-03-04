@@ -130,10 +130,10 @@ input::placeholder{color:#666}
 .copy-btn{font-size:.8em;padding:8px 16px;margin-top:4px}
 
 /* --- Game header --- */
-.game-header{width:100%;max-width:700px;display:flex;flex-direction:column;align-items:center;padding:6px 12px 8px;background:rgba(255,255,255,.05);border-radius:12px;margin-bottom:8px;gap:4px}
+.game-header{width:100%;max-width:700px;display:flex;flex-direction:column;align-items:center;padding:calc(6px + env(safe-area-inset-top, 0px)) 12px 8px;background:rgba(255,255,255,.05);border-radius:12px;margin-bottom:8px;gap:4px}
 .game-header-top{width:100%;display:flex;justify-content:space-between;align-items:center}
 .game-status{font-size:.85em;color:#ccc;text-align:center;flex:1}
-.round-info{font-size:1em;font-weight:700;color:rgba(255,255,255,.3);letter-spacing:2px;text-align:center;text-transform:uppercase}
+.round-info{font-size:1em;font-weight:700;color:rgba(255,255,255,.3);letter-spacing:2px;text-align:left;text-transform:uppercase;padding-left:max(12px, env(safe-area-inset-left, 0px));width:100%}
 
 /* --- Action bar + bottom bar --- */
 .action-bar{position:fixed;bottom:0;left:0;right:0;background:rgba(22,22,26,.97);backdrop-filter:blur(14px);padding:10px 14px;border-top:1px solid rgba(255,255,255,.1);z-index:100}
@@ -599,7 +599,7 @@ window.addEventListener('appinstalled', () => {
 </div>
 
 <!-- SCREEN: GAME -->
-<div class="screen" id="screen-game" style="justify-content:flex-start;padding-top:8px">
+<div class="screen" id="screen-game" style="justify-content:flex-start;padding-top:0">
   <div class="game-header">
     <div class="round-info" id="round-info">Manche 1</div>
     <div class="game-header-top">
@@ -904,6 +904,19 @@ const UI = (() => {
     document.getElementById(id).classList.add('active');
     currentScreen = id;
     if (id === 'screen-menu') Leaderboard.render('menu-leaderboard');
+    // Plein écran automatique dès qu'on entre en jeu
+    if (id === 'screen-game' && window._autoFullscreenOnGame && !isIOS) {
+      const isFs = !!(document.fullscreenElement || document.webkitFullscreenElement);
+      if (!isFs) {
+        const el = document.documentElement;
+        const req = el.requestFullscreen || el.webkitRequestFullscreen || el.mozRequestFullScreen;
+        if (req) req.call(el).then(() => {
+          try { screen.orientation?.lock?.('portrait'); } catch(e) {}
+          const btn = document.getElementById('fullscreen-btn');
+          if (btn) { btn.textContent = '✕'; btn.title = 'Quitter le plein écran'; }
+        }).catch(() => {});
+      }
+    }
   }
 
   function toast(msg) {
@@ -2743,8 +2756,24 @@ window.addEventListener('load', () => {
 
   // Demande le plein écran natif au lancement
   const el = document.documentElement;
-  if (el.requestFullscreen) el.requestFullscreen().catch(()=>{});
-  else if (el.webkitRequestFullscreen) el.webkitRequestFullscreen();
+  // Plein écran automatique au lancement
+  function autoFullscreen() {
+    if (isIOS) return; // iOS géré différemment
+    const isFs = !!(document.fullscreenElement || document.webkitFullscreenElement);
+    if (isFs) return;
+    const el2 = document.documentElement;
+    const req = el2.requestFullscreen || el2.webkitRequestFullscreen || el2.mozRequestFullScreen;
+    if (req) {
+      req.call(el2).then(() => {
+        try { screen.orientation?.lock?.('portrait'); } catch(e) {}
+        const btn = document.getElementById('fullscreen-btn');
+        if (btn) { btn.textContent = '✕'; btn.title = 'Quitter le plein écran'; }
+      }).catch(() => {});
+    }
+  }
+  autoFullscreen();
+  // Relancer si l'utilisateur quitte le plein écran et revient en jeu
+  window._autoFullscreenOnGame = true;
 
   setTimeout(() => {
     splash.classList.add('fade-out');
