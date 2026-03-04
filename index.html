@@ -2078,15 +2078,13 @@ const Render = (() => {
     // DOM diffing : ne réécrire les joueurs que si le contenu a changé
     if (playersArea.dataset.lastHtml !== playersHtml) {
       playersArea.dataset.lastHtml = playersHtml;
-      // Sauvegarder la position de scroll avant la réécriture
       const scrollTop = playersArea.scrollTop;
-      const actionLogEl = playersArea.querySelector('#action-log');
-      const actionLogHtml = actionLogEl ? actionLogEl.innerHTML : '';
+      // Sauvegarder le nœud action-log avant réécriture
+      const actionLogEl = document.getElementById('action-log');
       playersArea.innerHTML = playersHtml;
-      // Réinjecter l'action log (il est géré séparément)
-      const newLog = playersArea.querySelector('#action-log');
-      if (newLog && actionLogHtml) newLog.innerHTML = actionLogHtml;
-      // Restaurer la position de scroll
+      // Réinjecter le nœud action-log (le vrai nœud, pas juste le HTML)
+      if (actionLogEl) playersArea.appendChild(actionLogEl);
+      else { const l = document.createElement('div'); l.id = 'action-log'; playersArea.appendChild(l); }
       playersArea.scrollTop = scrollTop;
     }
 
