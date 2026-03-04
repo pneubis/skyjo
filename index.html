@@ -124,9 +124,10 @@ input::placeholder{color:#666}
 .copy-btn{font-size:.8em;padding:8px 16px;margin-top:4px}
 
 /* --- Game header --- */
-.game-header{width:100%;max-width:700px;display:flex;justify-content:space-between;align-items:center;padding:8px 12px;background:rgba(255,255,255,.05);border-radius:12px;margin-bottom:8px}
+.game-header{width:100%;max-width:700px;display:flex;flex-direction:column;align-items:center;padding:6px 12px 8px;background:rgba(255,255,255,.05);border-radius:12px;margin-bottom:8px;gap:4px}
+.game-header-top{width:100%;display:flex;justify-content:space-between;align-items:center}
 .game-status{font-size:.85em;color:#ccc;text-align:center;flex:1}
-.round-info{font-size:.75em;color:#888}
+.round-info{font-size:1em;font-weight:700;color:rgba(255,255,255,.3);letter-spacing:2px;text-align:center;text-transform:uppercase}
 
 /* --- Action bar + bottom bar --- */
 .action-bar{position:fixed;bottom:0;left:0;right:0;background:rgba(22,22,26,.97);backdrop-filter:blur(14px);padding:10px 14px;border-top:1px solid rgba(255,255,255,.1);z-index:100}
@@ -522,9 +523,12 @@ input::placeholder{color:#666}
 <!-- SCREEN: GAME -->
 <div class="screen" id="screen-game" style="justify-content:flex-start;padding-top:8px">
   <div class="game-header">
-    <button class="secondary" style="padding:6px 10px;font-size:.75em;min-height:36px;flex-shrink:0" onclick="UI.showRules()" title="Règles">?</button>
-    <div class="game-status" id="game-status">En attente...</div>
     <div class="round-info" id="round-info">Manche 1</div>
+    <div class="game-header-top">
+      <button class="secondary" style="padding:6px 10px;font-size:.75em;min-height:36px;flex-shrink:0" onclick="UI.showRules()" title="Règles">?</button>
+      <div class="game-status" id="game-status">En attente...</div>
+      <div style="width:36px;flex-shrink:0"></div>
+    </div>
   </div>
   <div class="game-content" id="game-content">
     <div class="piles" id="piles-area"></div>
