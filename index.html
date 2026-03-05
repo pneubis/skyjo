@@ -413,7 +413,7 @@ input::placeholder{color:#666}
 // ── Service Worker ───────────────────────────────────────────────
 if ('serviceWorker' in navigator) {
   const sw = `
-    const CACHE = 'skyjo-v1.4.8';
+    const CACHE = 'skyjo-v1.4.9';
     self.addEventListener('install', e => {
       e.waitUntil(
         caches.open(CACHE).then(c => c.addAll(['./'])).catch(() => {})
@@ -450,7 +450,7 @@ if ('serviceWorker' in navigator) {
       <div class="splash-card">8</div>
       <div class="splash-card">12</div>
     </div>
-    <div class="splash-version">v1.4.8</div>
+    <div class="splash-version">v1.4.9</div>
     <div class="splash-tagline">crédits : claude.ai · @Pneubis</div>
   </div>
   <div class="splash-progress"><div class="splash-progress-bar"></div></div>
@@ -497,7 +497,7 @@ if ('serviceWorker' in navigator) {
 <!-- SCREEN: MENU -->
 <div class="screen active" id="screen-menu">
   <h1>SKYJO</h1>
-  <p style="font-size:.85em;color:rgba(255,255,255,.45);letter-spacing:3px;margin:-4px 0 10px;font-weight:600">v1.4.8</p>
+  <p style="font-size:.85em;color:rgba(255,255,255,.45);letter-spacing:3px;margin:-4px 0 10px;font-weight:600">v1.4.9</p>
   <p class="subtitle" style="margin-top:0">
     <button onclick="UI.showRules()" style="background:none;border:1px solid rgba(255,255,255,.25);color:#aaa;font-size:.8em;font-weight:600;padding:3px 12px;border-radius:20px;cursor:pointer;min-height:auto;transition:all .2s" onmouseover="this.style.borderColor='rgba(255,255,255,.55)';this.style.color='#fff'" onmouseout="this.style.borderColor='rgba(255,255,255,.25)';this.style.color='#aaa'">ⓘ Règles</button>
     <button onclick="UI.showOptions()" style="background:none;border:1px solid rgba(155,89,182,.35);color:rgba(155,89,182,.8);font-size:.8em;font-weight:600;padding:3px 12px;border-radius:20px;cursor:pointer;min-height:auto;transition:all .2s;margin-left:8px" onmouseover="this.style.borderColor='rgba(155,89,182,.8)';this.style.color='#bb86fc'" onmouseout="this.style.borderColor='rgba(155,89,182,.35)';this.style.color='rgba(155,89,182,.8)'">⚙️ Options</button>
@@ -521,7 +521,7 @@ if ('serviceWorker' in navigator) {
 <!-- SCREEN: JOIN -->
 <div class="screen" id="screen-join">
   <h1>SKYJO</h1>
-  <p style="font-size:.85em;color:rgba(255,255,255,.45);letter-spacing:3px;margin:-4px 0 10px;font-weight:600">v1.4.8</p>
+  <p style="font-size:.85em;color:rgba(255,255,255,.45);letter-spacing:3px;margin:-4px 0 10px;font-weight:600">v1.4.9</p>
   <h2 id="join-screen-title">Rejoindre une partie</h2>
   <div style="width:100%;max-width:320px;display:flex;flex-direction:column;gap:10px">
     <input type="text" id="join-name" placeholder="Votre pseudo" maxlength="12" autocomplete="off"
@@ -529,7 +529,9 @@ if ('serviceWorker' in navigator) {
       oninput="document.getElementById('player-name').value=this.value">
     <input type="text" id="room-input" placeholder="Code de la salle" maxlength="6" autocomplete="off"
       style="text-transform:uppercase;text-align:center;font-size:1.4em;letter-spacing:4px"
-      onkeydown="if(event.key==='Enter')App.joinGame()">
+      onkeydown="if(event.key==='Enter')App.joinGame()"
+      oninput="App.checkRoomStatus(this.value)">
+    <div id="room-status-badge" style="display:none;padding:7px 14px;border-radius:10px;font-size:.82em;font-weight:700;text-align:center;transition:all .3s;letter-spacing:.3px"></div>
   </div>
   <div class="btn-group" style="flex-direction:column;width:100%;max-width:320px">
     <button onclick="App.joinGame()" style="width:100%">✅ Rejoindre</button>
@@ -1187,6 +1189,14 @@ const Network = (() => {
   // --- Hôte : réception des messages ---
   function handleHostMessage(conn, data) {
     switch(data.type) {
+      case 'status_check': {
+        const status = !gameState ? 'unknown'
+          : gameState.phase !== 'lobby' ? 'playing'
+          : gameState.players.length >= MAX_PLAYERS ? 'full'
+          : 'open';
+        try { conn.send({ type: 'status_response', status }); } catch(e) {}
+        break;
+      }
       case 'join':
         if (!gameState) { conn.send({ type: 'error', msg: 'Salle non prête, réessayez' }); return; }
         if (gameState.phase !== 'lobby') {
@@ -1194,8 +1204,7 @@ const Network = (() => {
         }
         if (gameState.players.length >= MAX_PLAYERS) {
           conn.send({ type: 'error', msg: 'Salle pleine' }); return;
-        }
-        // Mettre la demande en attente d'approbation de l'hôte
+        }        // Mettre la demande en attente d'approbation de l'hôte
         pendingRequests[conn.peer] = { conn, name: data.name };
         conn.send({ type: 'pending', msg: "En attente d'approbation…" });
         renderJoinRequests();
@@ -2527,7 +2536,101 @@ const App = (() => {
     showLobby();
   }
 
-  // --- Rejoindre une partie (client) ---
+  // --- Vérification statut salle (avant de rejoindre) ---
+  let _checkRoomPeer = null;
+  let _checkRoomTimer = null;
+
+  function checkRoomStatus(val) {
+    const badge = document.getElementById('room-status-badge');
+    if (!badge) return;
+    const code = val.trim().toUpperCase();
+    if (code.length < 6) { badge.style.display = 'none'; return; }
+
+    // Annuler vérif précédente
+    clearTimeout(_checkRoomTimer);
+    if (_checkRoomPeer) { try { _checkRoomPeer.destroy(); } catch(e) {} _checkRoomPeer = null; }
+
+    badge.style.display = '';
+    badge.style.background = 'rgba(255,255,255,.07)';
+    badge.style.border = '1.5px solid rgba(255,255,255,.15)';
+    badge.style.color = '#aaa';
+    badge.textContent = '⏳ Vérification...';
+
+    _checkRoomTimer = setTimeout(async () => {
+      try {
+        const { Peer } = await new Promise((res, rej) => {
+          const s = document.createElement('script');
+          s.src = 'https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js';
+          s.onload = () => res(window);
+          s.onerror = rej;
+          // PeerJS déjà chargé
+          if (window.Peer) { res(window); return; }
+          document.head.appendChild(s);
+        });
+        _checkRoomPeer = new Peer();
+        await new Promise((res, rej) => {
+          _checkRoomPeer.on('open', res);
+          _checkRoomPeer.on('error', rej);
+          setTimeout(rej, 8000);
+        });
+        const conn = _checkRoomPeer.connect('skyjo' + code, { reliable: true });
+        let answered = false;
+        conn.on('open', () => {
+          conn.send({ type: 'status_check' });
+          setTimeout(() => {
+            if (!answered) {
+              answered = true;
+              showRoomBadge('green', '🟢 Salle disponible — en attente de joueurs');
+              try { _checkRoomPeer.destroy(); } catch(e) {} _checkRoomPeer = null;
+            }
+          }, 2000);
+        });
+        conn.on('data', (data) => {
+          if (answered) return;
+          answered = true;
+          if (data.type === 'status_response') {
+            if (data.status === 'playing') showRoomBadge('red', '🔴 Partie en cours — salle occupée');
+            else if (data.status === 'full') showRoomBadge('red', '🔴 Salle pleine');
+            else showRoomBadge('green', '🟢 Salle disponible — en attente de joueurs');
+          }
+          try { _checkRoomPeer.destroy(); } catch(e) {} _checkRoomPeer = null;
+        });
+        conn.on('error', () => {
+          if (!answered) { answered = true; showRoomBadge('gray', '⚪ Salle introuvable'); }
+          try { _checkRoomPeer.destroy(); } catch(e) {} _checkRoomPeer = null;
+        });
+        setTimeout(() => {
+          if (!answered) { answered = true; showRoomBadge('gray', '⚪ Salle introuvable'); }
+          try { if (_checkRoomPeer) { _checkRoomPeer.destroy(); _checkRoomPeer = null; } } catch(e) {}
+        }, 10000);
+      } catch(e) {
+        showRoomBadge('gray', '⚪ Impossible de vérifier');
+        try { if (_checkRoomPeer) { _checkRoomPeer.destroy(); _checkRoomPeer = null; } } catch(e) {}
+      }
+    }, 600);
+  }
+
+  function showRoomBadge(color, text) {
+    const badge = document.getElementById('room-status-badge');
+    if (!badge) return;
+    badge.style.display = '';
+    badge.textContent = text;
+    if (color === 'green') {
+      badge.style.background = 'rgba(39,174,96,.15)';
+      badge.style.border = '1.5px solid rgba(39,174,96,.5)';
+      badge.style.color = '#2ecc71';
+    } else if (color === 'red') {
+      badge.style.background = 'rgba(231,76,60,.13)';
+      badge.style.border = '1.5px solid rgba(231,76,60,.5)';
+      badge.style.color = '#e74c3c';
+    } else {
+      badge.style.background = 'rgba(255,255,255,.06)';
+      badge.style.border = '1.5px solid rgba(255,255,255,.15)';
+      badge.style.color = '#888';
+    }
+  }
+
+
   async function joinGame() {
     myName = getName();
     const code = document.getElementById('room-input').value.trim().toUpperCase();
@@ -2736,7 +2839,7 @@ const App = (() => {
     setTimeout(() => Bot.maybePlay(), 100);
   }
 
-  return { showJoinScreen, createSoloGame, createGame, switchToMulti, setBotDifficulty, joinGame, showLobby, copyCode, leaveLobby, backToMenu, startGame, nextRound, kickPlayer, confirmKickPlayer };
+  return { showJoinScreen, createSoloGame, createGame, switchToMulti, setBotDifficulty, joinGame, showLobby, copyCode, leaveLobby, backToMenu, startGame, nextRound, kickPlayer, confirmKickPlayer, checkRoomStatus };
 })();
 App._targetScore = END_SCORE; // score cible par défaut
 
