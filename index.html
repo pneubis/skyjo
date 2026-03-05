@@ -508,7 +508,10 @@ if ('serviceWorker' in navigator) {
   <div class="btn-group" style="margin-top:8px;flex-direction:column;width:100%;max-width:320px">
     <button onclick="App.createSoloGame()" style="background:linear-gradient(135deg,#27ae60,#2ecc71);width:100%;color:#fff;font-weight:700;text-shadow:0 1px 4px rgba(0,0,0,.4)">🤖 Solo (vs Bot)</button>
     <button onclick="App.createGame()" style="width:100%">👥 Créer une partie</button>
-    <button class="secondary" onclick="App.showJoinScreen()" style="width:100%">🔗 Rejoindre une partie</button>
+    <button id="join-btn" class="secondary" onclick="App.showJoinScreen()" style="width:100%">🔗 Rejoindre une partie</button>
+  </div>
+  <div id="game-in-progress-banner" style="display:none;margin-top:10px;width:100%;max-width:320px;background:rgba(231,76,60,.1);border:1.5px solid rgba(231,76,60,.4);border-radius:10px;padding:8px 14px;text-align:center;font-size:.8em;color:#e74c3c;font-weight:600">
+    ⚠️ Une partie est déjà en cours sur ce code
   </div>
   <div class="leaderboard-box" id="menu-leaderboard" style="margin-top:24px"></div>
   <button id="reset-lb-btn" onclick="UI.confirmResetLeaderboard()" style="margin-top:10px;background:rgba(231,76,60,.12);border:1.5px solid rgba(231,76,60,.55);color:#e74c3c;font-size:.78em;font-weight:700;padding:8px 18px;border-radius:10px;cursor:pointer;min-height:auto;transition:all .2s;letter-spacing:.2px" onmouseover="this.style.background='rgba(231,76,60,.28)';this.style.borderColor='#e74c3c'" onmouseout="this.style.background='rgba(231,76,60,.12)';this.style.borderColor='rgba(231,76,60,.55)'">🗑 Réinitialiser le classement</button>
@@ -882,7 +885,7 @@ const UI = (() => {
     document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
     document.getElementById(id).classList.add('active');
     currentScreen = id;
-    if (id === 'screen-menu') Leaderboard.render('menu-leaderboard');
+    if (id === 'screen-menu') { Leaderboard.render('menu-leaderboard'); UI.resetJoinButton(); }
     if (id === 'screen-game') _doFullscreen();
     // Bouton quitter uniquement visible en jeu
     const quitBtn = document.getElementById('fullscreen-btn');
@@ -1049,7 +1052,33 @@ const UI = (() => {
     );
   }
 
-  return { showScreen, toast, showModal, closeModal, showRules, toggleFullscreen, _doFullscreen, closeFsTip, setConnStatus, confirmResetLeaderboard, resetLeaderboard, confirmQuitGame, closeApp, showOptions, setTargetScore };
+  function showGameInProgressWarning() {
+    const btn = document.getElementById('join-btn');
+    const banner = document.getElementById('game-in-progress-banner');
+    if (btn) {
+      btn.disabled = true;
+      btn.style.opacity = '0.4';
+      btn.style.cursor = 'not-allowed';
+      btn.textContent = '🔒 Rejoindre une partie';
+    }
+    if (banner) banner.style.display = '';
+    // Réactiver après 15s
+    setTimeout(() => resetJoinButton(), 15000);
+  }
+
+  function resetJoinButton() {
+    const btn = document.getElementById('join-btn');
+    const banner = document.getElementById('game-in-progress-banner');
+    if (btn) {
+      btn.disabled = false;
+      btn.style.opacity = '';
+      btn.style.cursor = '';
+      btn.textContent = '🔗 Rejoindre une partie';
+    }
+    if (banner) banner.style.display = 'none';
+  }
+
+  return { showScreen, toast, showModal, closeModal, showRules, toggleFullscreen, _doFullscreen, closeFsTip, setConnStatus, confirmResetLeaderboard, resetLeaderboard, confirmQuitGame, closeApp, showOptions, setTargetScore, showGameInProgressWarning, resetJoinButton };
 })();
 
 
@@ -2554,7 +2583,15 @@ const App = (() => {
             UI.toast('❌ ' + (data.msg || "Accès refusé par l'hôte"));
             setTimeout(() => App.backToMenu(), 1500);
             break;
-          case 'error':  UI.toast(data.msg); break;
+          case 'error':
+            if (data.msg && data.msg.includes('en cours')) {
+              UI.toast('⚠️ ' + data.msg);
+              UI.showGameInProgressWarning();
+              setTimeout(() => App.backToMenu(), 1200);
+            } else {
+              UI.toast(data.msg);
+            }
+            break;
           case 'toast':  UI.toast(data.msg); break;
           case 'log':    ActionLog.add(data.msg); break;
           case 'boom':   triggerBoom(); Sound.play('boom'); break;
