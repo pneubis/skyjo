@@ -906,7 +906,7 @@ const UI = (() => {
     if (id === 'screen-game') _doFullscreen();
     // Bouton quitter uniquement visible en jeu
     const quitBtn = document.getElementById('fullscreen-btn');
-    if (quitBtn) quitBtn.style.display = (id === 'screen-game') ? '' : 'none';
+    if (quitBtn) quitBtn.style.display = (id === 'screen-game') ? 'block' : 'none';
     // Log-bar only visible during game
     const logBar = document.getElementById('log-bar');
     if (logBar) logBar.style.display = (id === 'screen-game') ? '' : 'none';
