@@ -72,7 +72,7 @@ input::placeholder{color:#666}
 .pile .card{width:66px;height:92px;font-size:2.6em}
 
 /* --- Player areas --- */
-.players-area{width:100%;max-width:700px;display:flex;flex-direction:column;gap:12px;padding:8px;overflow-y:auto;flex:1;min-height:0;padding-bottom:130px;contain:content}
+.players-area{width:100%;max-width:700px;display:flex;flex-direction:column;gap:12px;padding:8px;overflow-y:auto;flex:1;min-height:0;padding-bottom:80px;contain:content}
 /* Fond neutre par défaut */
 .player-zone{background:rgba(255,255,255,.05);border-radius:12px;padding:10px;border:2px solid transparent;transition:border-color .3s,background .3s,box-shadow .3s;transform:translateZ(0)}
 /* Palette de couleurs par joueur — fond doux pour ne pas écraser les cartes */
@@ -269,8 +269,8 @@ input::placeholder{color:#666}
 }
 
 /* --- Fullscreen button --- */
-#fullscreen-btn{position:fixed;top:calc(18px + env(safe-area-inset-top, 0px));right:14px;z-index:500;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);color:rgba(255,255,255,.35);border-radius:8px;padding:5px 8px;font-size:.85em;cursor:pointer;backdrop-filter:blur(6px);min-height:28px;min-width:28px;line-height:1;transition:all .25s;box-shadow:none}
-#fullscreen-btn:hover,#fullscreen-btn:active{background:rgba(155,89,182,.5);color:#fff;border-color:rgba(155,89,182,.6);box-shadow:0 2px 8px rgba(0,0,0,.3)}
+#fullscreen-btn{position:fixed;top:calc(10px + env(safe-area-inset-top, 0px));right:10px;z-index:500;background:rgba(231,76,60,.12);border:1px solid rgba(231,76,60,.35);color:rgba(231,76,60,.75);border-radius:8px;padding:5px 9px;font-size:.9em;cursor:pointer;backdrop-filter:blur(6px);min-height:32px;min-width:32px;line-height:1;transition:all .25s;box-shadow:none}
+#fullscreen-btn:hover,#fullscreen-btn:active{background:rgba(231,76,60,.35);color:#fff;border-color:rgba(231,76,60,.8);box-shadow:0 2px 8px rgba(231,76,60,.25)}
 
 /* --- iOS fullscreen tip --- */
 #fs-tip{position:fixed;bottom:70px;left:50%;transform:translateX(-50%);background:rgba(28,28,30,.97);color:#fff;padding:14px 20px;border-radius:14px;font-size:.82em;z-index:600;text-align:center;max-width:300px;display:none;border:1px solid rgba(155,89,182,.4);box-shadow:0 4px 20px rgba(0,0,0,.5)}
@@ -287,9 +287,9 @@ input::placeholder{color:#666}
 #conn-status.reconnecting{display:block;background:rgba(231,76,60,.2);color:#e74c3c;border:1px solid rgba(231,76,60,.4);animation:reconnectBlink 1.2s infinite}
 #conn-status.connected{display:none}
 
-/* --- Action log --- */
-#action-log{width:100%;max-width:700px;padding:0 8px 4px;pointer-events:none}
-.log-entry{background:rgba(255,255,255,.04);border-left:2px solid rgba(155,89,182,.5);padding:3px 10px;border-radius:0 6px 6px 0;font-size:.72em;color:#888;margin-bottom:3px;animation:logSlide .3s ease-out}
+/* --- Action log (barre fixe basse) --- */
+#action-log{width:100%;max-width:700px;padding:0;pointer-events:none;margin:0 auto}
+.log-entry{background:rgba(255,255,255,.04);border-left:2px solid rgba(155,89,182,.5);padding:3px 10px;border-radius:0 6px 6px 0;font-size:.72em;color:#888;margin-bottom:2px;animation:logSlide .3s ease-out}
 @keyframes logSlide{from{opacity:0;transform:translateX(-10px)}to{opacity:1;transform:translateX(0)}}
 
 /* --- Join request banner (hôte) --- */
@@ -482,8 +482,8 @@ window.addEventListener('appinstalled', () => {
 <!-- Toast -->
 <div class="toast" id="toast"></div>
 
-<!-- Fullscreen Button -->
-<button id="fullscreen-btn" onclick="UI.toggleFullscreen()" title="Plein écran">⛶</button>
+<!-- Quit Game Button (top right) -->
+<button id="fullscreen-btn" onclick="UI.confirmQuitGame()" title="Quitter la partie" style="color:rgba(231,76,60,.65);border-color:rgba(231,76,60,.3)">✕</button>
 
 <!-- iOS Fullscreen Tip -->
 <div id="fs-tip">
@@ -610,14 +610,12 @@ window.addEventListener('appinstalled', () => {
   </div>
   <div class="game-content" id="game-content">
     <div class="piles" id="piles-area"></div>
-    <div class="players-area" id="players-area">
-      <div id="action-log"></div>
-    </div>
+    <div class="players-area" id="players-area"></div>
   </div>
   <div class="action-bar" id="action-bar" style="display:none"></div>
-  <!-- Barre fixe bas : toujours visible en jeu -->
-  <div class="action-bar" id="quit-bar" style="display:none;padding:10px 14px 14px">
-    <button class="bottom-bar-quit" onclick="UI.confirmQuitGame()">🚪 Quitter la partie</button>
+  <!-- Historique des actions en barre fixe basse -->
+  <div id="log-bar" style="display:none;position:fixed;bottom:0;left:0;right:0;z-index:99;background:rgba(18,18,22,.92);backdrop-filter:blur(10px);border-top:1px solid rgba(255,255,255,.07);padding:6px 12px 8px">
+    <div id="action-log"></div>
   </div>
 </div>
 
@@ -638,7 +636,7 @@ window.addEventListener('appinstalled', () => {
     <div class="duration-badge" id="round-duration" style="display:none">⏱ <strong id="round-duration-value"></strong></div>
     <div class="btn-group" style="margin-top:16px;width:100%;justify-content:center">
       <button id="next-round-btn" onclick="App.nextRound()">Manche suivante →</button>
-      <button class="quit-game-btn" onclick="UI.confirmQuitGame()" style="min-height:48px;padding:12px 20px;font-size:.9em">🚪 Quitter la partie</button>
+      <button class="quit-game-btn" onclick="UI.confirmQuitGame()" style="min-height:48px;padding:12px 20px;font-size:.9em">✕ Quitter la partie</button>
     </div>
   </div>
 </div>
@@ -906,6 +904,9 @@ const UI = (() => {
     currentScreen = id;
     if (id === 'screen-menu') Leaderboard.render('menu-leaderboard');
     if (id === 'screen-game') _doFullscreen();
+    // Log-bar only visible during game
+    const logBar = document.getElementById('log-bar');
+    if (logBar) logBar.style.display = (id === 'screen-game') ? '' : 'none';
   }
 
   function toast(msg) {
@@ -947,7 +948,7 @@ const UI = (() => {
     `, [{ text: 'Compris !', action: 'UI.closeModal()' }]);
   }
 
-  // --- Fullscreen ---
+  // --- Fullscreen (auto au lancement de partie) ---
   function _doFullscreen() {
     if (isIOS) return;
     const isFs = !!(document.fullscreenElement || document.webkitFullscreenElement);
@@ -957,41 +958,16 @@ const UI = (() => {
     if (!req) return;
     req.call(el).then(() => {
       try { screen.orientation?.lock?.('portrait'); } catch(e) {}
-      const btn = document.getElementById('fullscreen-btn');
-      if (btn) { btn.textContent = '✕'; btn.title = 'Quitter le plein écran'; }
     }).catch(() => {});
   }
 
   function toggleFullscreen() {
-    const btn = document.getElementById('fullscreen-btn');
-    if (isIOS) {
-      const tip = document.getElementById('fs-tip');
-      tip.style.display = tip.style.display === 'block' ? 'none' : 'block';
-      return;
-    }
-    const isFs = !!(document.fullscreenElement || document.webkitFullscreenElement || document.mozFullScreenElement);
-    if (!isFs) {
-      const el = document.documentElement;
-      const req = el.requestFullscreen || el.webkitRequestFullscreen || el.mozRequestFullScreen || el.msRequestFullscreen;
-      if (req) {
-        req.call(el).then(() => {
-          btn.textContent = '✕';
-          btn.title = 'Quitter le plein écran';
-          try { screen.orientation?.lock?.('portrait'); } catch(e) {}
-        }).catch(() => toast('Plein écran non disponible'));
-      } else {
-        toast('Plein écran non supporté sur ce navigateur');
-      }
-    } else {
-      const exit = document.exitFullscreen || document.webkitExitFullscreen || document.mozCancelFullScreen;
-      if (exit) exit.call(document);
-      btn.textContent = '⛶';
-      btn.title = 'Plein écran';
-    }
+    // Fullscreen désactivé — le bouton est maintenant le bouton Quitter
   }
 
   function closeFsTip() {
-    document.getElementById('fs-tip').style.display = 'none';
+    const tip = document.getElementById('fs-tip');
+    if (tip) tip.style.display = 'none';
   }
 
   function setConnStatus(status, msg) {
@@ -1000,30 +976,8 @@ const UI = (() => {
     el.textContent = msg || '';
   }
 
-  // Sync fullscreen button icon
-  ['fullscreenchange', 'webkitfullscreenchange', 'mozfullscreenchange'].forEach(ev => {
-    document.addEventListener(ev, () => {
-      const btn = document.getElementById('fullscreen-btn');
-      const isFs = !!(document.fullscreenElement || document.webkitFullscreenElement || document.mozFullScreenElement);
-      btn.textContent = isFs ? '✕' : '⛶';
-      btn.title = isFs ? 'Quitter le plein écran' : 'Plein écran';
-    });
-  });
-
-  // iOS: icône différente + tip automatique
-  window.addEventListener('load', () => {
-    if (isIOS) {
-      const btn = document.getElementById('fullscreen-btn');
-      btn.textContent = '📱';
-      btn.title = 'Plein écran (aide)';
-      if (!localStorage.getItem('skyjo_fs_tip_shown')) {
-        setTimeout(() => {
-          document.getElementById('fs-tip').style.display = 'block';
-          localStorage.setItem('skyjo_fs_tip_shown', '1');
-        }, 1500);
-      }
-    }
-  });
+  // iOS: tip si besoin (plein écran natif non supporté)
+  window.addEventListener('load', () => {});
 
   // Interception du bouton retour / fermeture d'onglet
   window.addEventListener('beforeunload', (e) => {
@@ -1053,11 +1007,11 @@ const UI = (() => {
 
   function confirmQuitGame() {
     showModal(
-      '🚪 Quitter la partie ?',
+      'Quitter la partie ?',
       'Vous allez abandonner la partie en cours. Les autres joueurs seront informés.',
       [
         { text: 'Continuer à jouer', action: 'UI.closeModal()' },
-        { text: '🚪 Quitter', action: 'UI.closeModal();App.backToMenu()' }
+        { text: '✕ Quitter', action: 'UI.closeModal();App.backToMenu()' }
       ]
     );
   }
@@ -2079,12 +2033,7 @@ const Render = (() => {
     if (playersArea.dataset.lastHtml !== playersHtml) {
       playersArea.dataset.lastHtml = playersHtml;
       const scrollTop = playersArea.scrollTop;
-      // Sauvegarder le nœud action-log avant réécriture
-      const actionLogEl = document.getElementById('action-log');
       playersArea.innerHTML = playersHtml;
-      // Réinjecter le nœud action-log (le vrai nœud, pas juste le HTML)
-      if (actionLogEl) playersArea.appendChild(actionLogEl);
-      else { const l = document.createElement('div'); l.id = 'action-log'; playersArea.appendChild(l); }
       playersArea.scrollTop = scrollTop;
     }
 
@@ -2109,11 +2058,11 @@ const Render = (() => {
       });
     }
 
-    // Action bar + quit bar
-    const quitBar = document.getElementById('quit-bar');
+    // Action bar + log bar
+    const logBar = document.getElementById('log-bar');
     if (isMyTurn && gameState.turnPhase === 'drawn_from_pile') {
       actionBar.style.display = '';
-      quitBar.style.display = 'none';
+      if (logBar) logBar.style.display = 'none';
       actionBar.innerHTML = `
         <div class="action-bar-inner">
           <div class="action-bar-hint">Carte piochée : <strong class="card-badge ${getCardClass(gameState.drawnCard)}">${gameState.drawnCard}</strong></div>
@@ -2121,20 +2070,18 @@ const Render = (() => {
             <button class="action-btn-place" onclick="Handlers.discardDrawn()">🗑️ Défausser &amp; retourner</button>
           </div>
           <div class="action-bar-sub">— ou tapez une carte de votre grille pour la remplacer —</div>
-          <button class="bottom-bar-quit" onclick="UI.confirmQuitGame()">🚪 Quitter la partie</button>
         </div>`;
     } else if (isMyTurn && gameState.turnPhase === 'must_reveal') {
       actionBar.style.display = '';
-      quitBar.style.display = 'none';
+      if (logBar) logBar.style.display = 'none';
       actionBar.innerHTML = `
         <div class="action-bar-inner">
           <div class="action-bar-hint">👆 Tapez une carte <strong>face cachée</strong> pour la retourner</div>
-          <button class="bottom-bar-quit" onclick="UI.confirmQuitGame()">🚪 Quitter la partie</button>
         </div>`;
     } else {
       actionBar.style.display = 'none';
       actionBar.innerHTML = '';
-      quitBar.style.display = '';
+      if (logBar) logBar.style.display = '';
     }
   }
 
@@ -2147,8 +2094,8 @@ const Render = (() => {
     const actionsEl = document.getElementById('reveal-actions');
     if (actionsEl) {
       actionsEl.innerHTML = isHost
-        ? '<button onclick="Render.showRoundScoreTable()">Voir les scores →</button><button class="quit-game-btn" style="min-height:44px;padding:10px 18px;font-size:.85em" onclick="UI.confirmQuitGame()">🚪 Quitter</button>'
-        : '<div style="color:#888;font-size:.85em;padding:8px">⏳ En attente de l\'hôte...</div><button class="quit-game-btn" style="min-height:44px;padding:10px 18px;font-size:.85em;margin-top:8px" onclick="UI.confirmQuitGame()">🚪 Quitter</button>';
+        ? '<button onclick="Render.showRoundScoreTable()">Voir les scores →</button><button class="quit-game-btn" style="min-height:44px;padding:10px 18px;font-size:.85em" onclick="UI.confirmQuitGame()">✕ Quitter</button>'
+        : '<div style="color:#888;font-size:.85em;padding:8px">⏳ En attente de l\'hôte...</div><button class="quit-game-btn" style="min-height:44px;padding:10px 18px;font-size:.85em;margin-top:8px" onclick="UI.confirmQuitGame()">✕ Quitter</button>';
     }
     const summary = document.getElementById('reveal-summary');
     const sorted = [...gameState.players].sort((a, b) =>
