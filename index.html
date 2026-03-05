@@ -38,7 +38,7 @@ input::placeholder{color:#666}
 .card-row{display:flex;gap:4px;justify-content:center}
 
 /* --- Cards --- */
-.card{width:62px;height:86px;border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:2.5em;font-weight:900;cursor:pointer;transition:transform .2s,box-shadow .2s,opacity .2s;position:relative;border:2px solid rgba(255,255,255,.18);letter-spacing:-1px;will-change:transform;-webkit-font-smoothing:antialiased}
+.card{width:62px;height:86px;border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:2.5em;font-weight:900;cursor:pointer;transition:transform .2s,box-shadow .2s,opacity .2s;position:relative;border:2px solid rgba(255,255,255,.18);letter-spacing:-1px;-webkit-font-smoothing:antialiased}
 .card:active{transform:scale(.95)}
 
 /* --- Card flip animation --- */
@@ -49,11 +49,11 @@ input::placeholder{color:#666}
   50%{transform:rotateY(90deg)}
   100%{transform:rotateY(0deg)}
 }
-.card.flipping{animation:cardFlip .35s ease-in-out}
+.card.flipping{animation:cardFlip .22s ease-in-out}
 .card.face-down{background-image:url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 52 72'><defs><linearGradient id='bg' x1='0%' y1='0%' x2='100%' y2='100%'><stop offset='0%' style='stop-color:%231565c0'/><stop offset='100%' style='stop-color:%230a3d8f'/></linearGradient><pattern id='d' x='0' y='0' width='8' height='8' patternUnits='userSpaceOnUse'><polygon points='4,0.5 7.5,4 4,7.5 0.5,4' fill='none' stroke='rgba(255,255,255,0.07)' stroke-width='0.5'/></pattern></defs><rect width='52' height='72' rx='5' ry='5' fill='url(%23bg)'/><rect width='52' height='72' rx='5' ry='5' fill='url(%23d)'/><rect x='2.5' y='2.5' width='47' height='67' rx='4' ry='4' fill='none' stroke='rgba(255,255,255,0.25)' stroke-width='1'/><rect x='4' y='4' width='44' height='64' rx='3' ry='3' fill='none' stroke='rgba(255,255,255,0.1)' stroke-width='0.5'/><g transform='translate(26,36) rotate(-35)'><text font-family='Arial Black,Arial,sans-serif' font-size='13' font-weight='900' fill='rgba(255,255,255,0.18)' text-anchor='middle' dominant-baseline='middle' letter-spacing='1'>SKYJO</text></g><g transform='translate(26,36) rotate(-35)'><text font-family='Arial Black,Arial,sans-serif' font-size='12' font-weight='900' fill='rgba(255,255,255,0.9)' text-anchor='middle' dominant-baseline='middle' letter-spacing='1' stroke='rgba(0,50,150,0.4)' stroke-width='0.3'>SKYJO</text></g><circle cx='26' cy='36' r='14' fill='none' stroke='rgba(255,255,255,0.15)' stroke-width='1'/><circle cx='7' cy='7' r='1.5' fill='rgba(255,255,255,0.25)'/><circle cx='45' cy='7' r='1.5' fill='rgba(255,255,255,0.25)'/><circle cx='7' cy='65' r='1.5' fill='rgba(255,255,255,0.25)'/><circle cx='45' cy='65' r='1.5' fill='rgba(255,255,255,0.25)'/></svg>");background-size:cover;background-position:center;color:transparent;cursor:pointer;border-color:rgba(30,100,200,0.5)}
 .card.face-down::before,.card.face-down::after{content:none}
 .card.eliminated{opacity:0;pointer-events:none;transform:scale(0)}
-.card.selectable{animation:pulse .8s infinite;box-shadow:0 0 14px rgba(155,89,182,.7)}
+.card.selectable{animation:pulse 1.2s infinite;box-shadow:0 0 10px rgba(155,89,182,.6)}
 .card.highlight{box-shadow:0 0 16px rgba(255,255,255,.5)}
 @keyframes pulse{0%,100%{box-shadow:0 0 8px rgba(155,89,182,.4)}50%{box-shadow:0 0 20px rgba(155,89,182,.9)}}
 
@@ -74,7 +74,7 @@ input::placeholder{color:#666}
 /* --- Player areas --- */
 .players-area{width:100%;max-width:700px;display:flex;flex-direction:column;gap:8px;padding:4px 8px;overflow-y:auto;flex:1;min-height:0;padding-bottom:60px;contain:content}
 /* Fond neutre par défaut */
-.player-zone{background:rgba(255,255,255,.05);border-radius:12px;padding:10px;border:2px solid transparent;transition:border-color .3s,background .3s,box-shadow .3s;transform:translateZ(0)}
+.player-zone{background:rgba(255,255,255,.05);border-radius:12px;padding:10px;border:2px solid transparent;transition:border-color .2s,background .2s}
 /* Palette de couleurs par joueur — fond doux pour ne pas écraser les cartes */
 .player-zone.pcolor-0{background:rgba(52,152,219,.10);border-color:rgba(52,152,219,.25)}   /* bleu   */
 .player-zone.pcolor-1{background:rgba(46,204,113,.10);border-color:rgba(46,204,113,.25)}   /* vert   */
@@ -413,7 +413,7 @@ input::placeholder{color:#666}
 // ── Service Worker ───────────────────────────────────────────────
 if ('serviceWorker' in navigator) {
   const sw = `
-    const CACHE = 'skyjo-v1.5.0';
+    const CACHE = 'skyjo-v1.5.1';
     self.addEventListener('install', e => {
       e.waitUntil(
         caches.open(CACHE).then(c => c.addAll(['./'])).catch(() => {})
@@ -450,7 +450,7 @@ if ('serviceWorker' in navigator) {
       <div class="splash-card">8</div>
       <div class="splash-card">12</div>
     </div>
-    <div class="splash-version">v1.5.0</div>
+    <div class="splash-version">v1.5.1</div>
     <div class="splash-tagline">crédits : claude.ai · @Pneubis</div>
   </div>
   <div class="splash-progress"><div class="splash-progress-bar"></div></div>
@@ -497,7 +497,7 @@ if ('serviceWorker' in navigator) {
 <!-- SCREEN: MENU -->
 <div class="screen active" id="screen-menu">
   <h1>SKYJO</h1>
-  <p style="font-size:.85em;color:rgba(255,255,255,.45);letter-spacing:3px;margin:-4px 0 10px;font-weight:600">v1.5.0</p>
+  <p style="font-size:.85em;color:rgba(255,255,255,.45);letter-spacing:3px;margin:-4px 0 10px;font-weight:600">v1.5.1</p>
   <p class="subtitle" style="margin-top:0">
     <button onclick="UI.showRules()" style="background:none;border:1px solid rgba(255,255,255,.25);color:#aaa;font-size:.8em;font-weight:600;padding:3px 12px;border-radius:20px;cursor:pointer;min-height:auto;transition:all .2s" onmouseover="this.style.borderColor='rgba(255,255,255,.55)';this.style.color='#fff'" onmouseout="this.style.borderColor='rgba(255,255,255,.25)';this.style.color='#aaa'">ⓘ Règles</button>
     <button onclick="UI.showOptions()" style="background:none;border:1px solid rgba(155,89,182,.35);color:rgba(155,89,182,.8);font-size:.8em;font-weight:600;padding:3px 12px;border-radius:20px;cursor:pointer;min-height:auto;transition:all .2s;margin-left:8px" onmouseover="this.style.borderColor='rgba(155,89,182,.8)';this.style.color='#bb86fc'" onmouseout="this.style.borderColor='rgba(155,89,182,.35)';this.style.color='rgba(155,89,182,.8)'">⚙️ Options</button>
@@ -521,7 +521,7 @@ if ('serviceWorker' in navigator) {
 <!-- SCREEN: JOIN -->
 <div class="screen" id="screen-join">
   <h1>SKYJO</h1>
-  <p style="font-size:.85em;color:rgba(255,255,255,.45);letter-spacing:3px;margin:-4px 0 10px;font-weight:600">v1.5.0</p>
+  <p style="font-size:.85em;color:rgba(255,255,255,.45);letter-spacing:3px;margin:-4px 0 10px;font-weight:600">v1.5.1</p>
   <h2 id="join-screen-title">Rejoindre une partie</h2>
   <div style="width:100%;max-width:320px;display:flex;flex-direction:column;gap:10px">
     <input type="text" id="join-name" placeholder="Votre pseudo" maxlength="12" autocomplete="off"
@@ -1337,10 +1337,13 @@ const Network = (() => {
   }
 
   function broadcastState() {
-    broadcast({ type: 'state', state: gameState });
+    // Envoyer le state sans le deck (inutile côté client, réduit la taille des messages)
+    const stateForClients = Object.assign({}, gameState);
+    delete stateForClients.deck;
+    broadcast({ type: 'state', state: stateForClients });
     Render.fromState();
     // Déclencher le bot si c'est son tour
-    setTimeout(() => Bot.maybePlay(), 80);
+    setTimeout(() => Bot.maybePlay(), 50);
   }
 
   function broadcastToast(msg) {
@@ -1695,7 +1698,7 @@ function handleDisconnect(peerId) {
 const Bot = (() => {
 
   // Délai simulé pour rendre le bot crédible (ms)
-  const THINK_DELAY = { facile: 1200, moyen: 900, fort: 600 };
+  const THINK_DELAY = { facile: 800, moyen: 550, fort: 300 };
 
   let botTimers = [];
 
@@ -1736,7 +1739,7 @@ const Bot = (() => {
         handlePlayerAction(bot.id, { type: 'reveal', row: pick.r, col: pick.c });
         // Si le bot doit encore retourner une 2e carte, on reboucle après un délai
         if ((gameState.initialReveals[bot.id] || 0) < 2) {
-          setTimeout(() => maybePlay(), 50);
+          requestAnimationFrame(() => maybePlay());
         }
       }
       return;
@@ -1983,27 +1986,29 @@ const Render = (() => {
     const actionBar = document.getElementById('action-bar');
     const statusEl = document.getElementById('game-status');
     const roundEl = document.getElementById('round-info');
+    // Cache pour éviter les mises à jour DOM inutiles
+    const _setIfChanged = (el, val) => { if (el && el.textContent !== val) el.textContent = val; };
 
-    const ts = gameState.targetScore || END_SCORE; roundEl.textContent = 'Manche ' + gameState.round + '  ·  🎯 ' + ts;
+    const ts = gameState.targetScore || END_SCORE; _setIfChanged(roundEl, 'Manche ' + gameState.round + '  ·  🎯 ' + ts);
     const isMyTurn = gameState.phase === 'playing' &&
       gameState.players[gameState.currentPlayerIndex]?.id === myPlayerId;
 
     // Status text
     if (gameState.phase === 'reveal_initial') {
       const myReveals = gameState.initialReveals[myPlayerId] || 0;
-      statusEl.textContent = myReveals < 2 ? 'Retournez ' + (2 - myReveals) + ' carte(s)' : 'En attente des autres joueurs...';
+      _setIfChanged(statusEl, myReveals < 2 ? 'Retournez ' + (2 - myReveals) + ' carte(s)' : 'En attente des autres joueurs...');
     } else if (gameState.phase === 'playing') {
       const cp = gameState.players[gameState.currentPlayerIndex];
       if (isMyTurn) {
         switch(gameState.turnPhase) {
-          case 'draw':            statusEl.textContent = 'Piochez une carte'; break;
-          case 'drawn_from_pile': statusEl.textContent = '📌 Placez le ' + gameState.drawnCard + ' OU défaussez-le'; break;
-          case 'place_mandatory': statusEl.textContent = '📌 Vous DEVEZ placer le ' + gameState.drawnCard; break;
-          case 'must_reveal':     statusEl.textContent = '👆 Retournez une carte face cachée'; break;
-          default:                statusEl.textContent = 'À vous de jouer';
+          case 'draw':            _setIfChanged(statusEl, 'Piochez une carte'); break;
+          case 'drawn_from_pile': _setIfChanged(statusEl, '📌 Placez le ' + gameState.drawnCard + ' OU défaussez-le'); break;
+          case 'place_mandatory': _setIfChanged(statusEl, '📌 Vous DEVEZ placer le ' + gameState.drawnCard); break;
+          case 'must_reveal':     _setIfChanged(statusEl, '👆 Retournez une carte face cachée'); break;
+          default:                _setIfChanged(statusEl, 'À vous de jouer');
         }
       } else {
-        statusEl.textContent = 'Tour de ' + (cp.disconnected ? cp.name + ' ⚠️ (déco)' : cp.name);
+        _setIfChanged(statusEl, 'Tour de ' + (cp.disconnected ? cp.name + ' ⚠️ (déco)' : cp.name));
         if (gameState.drawnCard !== null && gameState.drawnByPlayerId) {
           if (gameState.turnPhase === 'drawn_from_pile') statusEl.textContent += ' — a pioché un ' + gameState.drawnCard;
           else if (gameState.turnPhase === 'place_mandatory') statusEl.textContent += ' — doit placer le ' + gameState.drawnCard;
@@ -2836,7 +2841,7 @@ const App = (() => {
     Network.broadcastState();
     UI.toast(player.name + ' a été expulsé');
     ActionLog.add('🚫 ' + player.name + ' expulsé');
-    setTimeout(() => Bot.maybePlay(), 100);
+    requestAnimationFrame(() => Bot.maybePlay());
   }
 
   return { showJoinScreen, createSoloGame, createGame, switchToMulti, setBotDifficulty, joinGame, showLobby, copyCode, leaveLobby, backToMenu, startGame, nextRound, kickPlayer, confirmKickPlayer, checkRoomStatus };
