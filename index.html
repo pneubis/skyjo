@@ -2585,9 +2585,12 @@ const App = (() => {
             break;
           case 'error':
             if (data.msg && data.msg.includes('en cours')) {
+              _rejectedByHost = true;
               UI.toast('⚠️ ' + data.msg);
               UI.showGameInProgressWarning();
-              setTimeout(() => App.backToMenu(), 1200);
+              try { if (hostConn) hostConn.close(); } catch(e) {}
+              try { if (peer) { peer.destroy(); peer = null; } } catch(e) {}
+              App.backToMenu();
             } else {
               UI.toast(data.msg);
             }
