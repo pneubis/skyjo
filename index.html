@@ -269,7 +269,7 @@ input::placeholder{color:#666}
 }
 
 /* --- Fullscreen button --- */
-#fullscreen-btn{position:fixed;top:calc(10px + env(safe-area-inset-top, 0px));right:10px;z-index:500;background:rgba(231,76,60,.12);border:1px solid rgba(231,76,60,.35);color:rgba(231,76,60,.75);border-radius:8px;padding:5px 9px;font-size:.9em;cursor:pointer;backdrop-filter:blur(6px);min-height:32px;min-width:32px;line-height:1;transition:all .25s;box-shadow:none}
+#fullscreen-btn{position:fixed;top:calc(10px + env(safe-area-inset-top, 0px));right:10px;z-index:500;background:rgba(231,76,60,.12);border:1px solid rgba(231,76,60,.35);color:rgba(231,76,60,.75);border-radius:8px;padding:5px 9px;font-size:.9em;cursor:pointer;backdrop-filter:blur(6px);min-height:32px;min-width:32px;line-height:1;transition:all .25s;box-shadow:none;display:none}
 #fullscreen-btn:hover,#fullscreen-btn:active{background:rgba(231,76,60,.35);color:#fff;border-color:rgba(231,76,60,.8);box-shadow:0 2px 8px rgba(231,76,60,.25)}
 
 /* --- iOS fullscreen tip --- */
@@ -288,9 +288,9 @@ input::placeholder{color:#666}
 #conn-status.connected{display:none}
 
 /* --- Action log (barre fixe basse) --- */
-#action-log{width:100%;max-width:700px;padding:0;pointer-events:none;margin:0 auto}
-.log-entry{background:rgba(255,255,255,.04);border-left:2px solid rgba(155,89,182,.5);padding:3px 10px;border-radius:0 6px 6px 0;font-size:.72em;color:#888;margin-bottom:2px;animation:logSlide .3s ease-out}
-@keyframes logSlide{from{opacity:0;transform:translateX(-10px)}to{opacity:1;transform:translateX(0)}}
+#action-log{width:100%;max-width:700px;padding:0;pointer-events:none;margin:0 auto;overflow:hidden;max-height:calc(2 * 1.4em + 4px)}
+.log-entry{background:transparent;border-left:2px solid rgba(155,89,182,.3);padding:2px 8px;border-radius:0 4px 4px 0;font-size:.68em;color:#666;margin-bottom:1px;animation:logSlide .3s ease-out;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+@keyframes logSlide{from{opacity:0;transform:translateX(-8px)}to{opacity:1;transform:translateX(0)}}
 
 /* --- Join request banner (hôte) --- */
 .join-request{background:rgba(41,128,185,.12);border:1px solid rgba(41,128,185,.4);border-radius:10px;padding:10px 12px;margin-bottom:8px;display:flex;align-items:center;gap:8px;animation:requestSlide .3s ease-out}
@@ -483,7 +483,7 @@ window.addEventListener('appinstalled', () => {
 <div class="toast" id="toast"></div>
 
 <!-- Quit Game Button (top right) -->
-<button id="fullscreen-btn" onclick="UI.confirmQuitGame()" title="Quitter la partie" style="color:rgba(231,76,60,.65);border-color:rgba(231,76,60,.3)">✕</button>
+<button id="fullscreen-btn" onclick="UI.confirmQuitGame()" title="Quitter la partie">✕</button>
 
 <!-- iOS Fullscreen Tip -->
 <div id="fs-tip">
@@ -614,7 +614,7 @@ window.addEventListener('appinstalled', () => {
   </div>
   <div class="action-bar" id="action-bar" style="display:none"></div>
   <!-- Historique des actions en barre fixe basse -->
-  <div id="log-bar" style="display:none;position:fixed;bottom:0;left:0;right:0;z-index:99;background:rgba(18,18,22,.92);backdrop-filter:blur(10px);border-top:1px solid rgba(255,255,255,.07);padding:6px 12px 8px">
+  <div id="log-bar" style="display:none;position:fixed;bottom:0;left:0;right:0;z-index:99;background:rgba(18,18,22,.7);backdrop-filter:blur(6px);border-top:1px solid rgba(255,255,255,.04);padding:3px 12px 5px;overflow:hidden">
     <div id="action-log"></div>
   </div>
 </div>
@@ -686,7 +686,7 @@ const COLS = 4;
 const MAX_PLAYERS = 8;
 const END_SCORE = 100;
 const RECONNECT_TIMEOUT_MS = 15000; // 15s avant d'abandonner la reconnexion
-const MAX_LOG_ENTRIES = 5;
+const MAX_LOG_ENTRIES = 2;
 
 
 // ============================================================
@@ -904,6 +904,9 @@ const UI = (() => {
     currentScreen = id;
     if (id === 'screen-menu') Leaderboard.render('menu-leaderboard');
     if (id === 'screen-game') _doFullscreen();
+    // Bouton quitter uniquement visible en jeu
+    const quitBtn = document.getElementById('fullscreen-btn');
+    if (quitBtn) quitBtn.style.display = (id === 'screen-game') ? '' : 'none';
     // Log-bar only visible during game
     const logBar = document.getElementById('log-bar');
     if (logBar) logBar.style.display = (id === 'screen-game') ? '' : 'none';
