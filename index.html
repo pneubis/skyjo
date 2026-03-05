@@ -289,8 +289,8 @@ input::placeholder{color:#666}
 #conn-status.connected{display:none}
 
 /* --- Action log (barre fixe basse) --- */
-#action-log{width:100%;max-width:700px;padding:0;pointer-events:none;margin:0 auto;overflow:hidden;max-height:calc(2 * 1.4em + 4px)}
-.log-entry{background:transparent;border-left:2px solid rgba(155,89,182,.3);padding:2px 8px;border-radius:0 4px 4px 0;font-size:.68em;color:#666;margin-bottom:1px;animation:logSlide .3s ease-out;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#action-log{width:100%;max-width:700px;padding:0;pointer-events:none;margin:0 auto;overflow:hidden;max-height:calc(2 * 1.4em + 4px);text-align:center}
+.log-entry{background:transparent;padding:1px 0;font-size:.68em;color:#666;margin-bottom:1px;animation:logSlide .3s ease-out;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-align:center}
 @keyframes logSlide{from{opacity:0;transform:translateX(-8px)}to{opacity:1;transform:translateX(0)}}
 
 /* --- Join request banner (hôte) --- */
@@ -615,7 +615,7 @@ window.addEventListener('appinstalled', () => {
   </div>
   <div class="action-bar" id="action-bar" style="display:none"></div>
   <!-- Historique des actions en barre fixe basse -->
-  <div id="log-bar" style="display:none;position:fixed;bottom:0;left:0;right:0;z-index:99;background:rgba(18,18,22,.7);backdrop-filter:blur(6px);border-top:1px solid rgba(255,255,255,.04);padding:3px 12px 5px;overflow:hidden">
+  <div id="log-bar" style="display:none;position:fixed;bottom:0;left:0;right:0;z-index:99;background:rgba(18,18,22,.7);backdrop-filter:blur(6px);border-top:1px solid rgba(255,255,255,.04);padding:3px 12px 5px;overflow:hidden;display:none;align-items:center;justify-content:center">
     <div id="action-log"></div>
   </div>
 </div>
