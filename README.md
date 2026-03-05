@@ -1,4 +1,4 @@
-# Jeu de type Skyjo complet en un seul fichier index.html autonome (HTML5 + CSS + JavaScript) jouable sur PC et smartphone
+# Jeu de type Skyjo complet en un seul fichier index.html autonome (HTML5 + CSS + JavaScript) jouable entre PC et smartphone
 
 ## 1.Implémenter toutes les règles officielles de Skyjo : 150 cartes (-2 à 12), distribution de 12 cartes par joueur (grille 3x4), pioche/défausse, retournement de cartes, élimination de colonnes identiques, calcul des scores, fin de manche et fin de partie (100 points)
 ## 2.Multijoueur en temps réel via PeerJS (WebRTC peer-to-peer, pas besoin de serveur) - jusqu'à 8 joueurs
@@ -12,4 +12,4 @@ Jeu interopérable entre smartphone/pc/mac, quelque soit l'OS.
 
 Plusieurs améliorations UI, jouabilité, modes de jeu, sécurité, connexion, résolution de bugs.
 
-Version actuelle V1.2.1
+Version actuelle V1.5.1
