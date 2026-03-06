@@ -7,7 +7,6 @@ const server = require('http').createServer(app);
 app.get('/', (req, res) => res.send('Skyjo PeerJS Server OK'));
 
 const peerServer = ExpressPeerServer(server, {
-  path: '/',
   allow_discovery: true
 });
 
