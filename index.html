@@ -1253,7 +1253,7 @@ const Network = (() => {
         // Sécurité : on enregistre conn.peer comme clé, pas le data.id envoyé
         conn.on('data', (data) => handleHostMessage(conn, data));
       });
-      conn.on('close', () => handleDisconnect(conn.peer));
+      conn.on('close', () => onnect(conn.peer));
       conn.on('error', (e) => console.warn('conn error', e));
     });
   }
@@ -1754,6 +1754,27 @@ function handleDisconnect(peerId) {
     if (player) {
       player.disconnected = true;
       Network.broadcastToast(player.name + ' s\'est déconnecté');
+
+      // Si c'est le tour du joueur déconnecté, passer au suivant automatiquement
+      if (gameState.phase === 'playing') {
+        const cp = gameState.players[gameState.currentPlayerIndex];
+        if (cp && cp.id === peerId) {
+          let next = (gameState.currentPlayerIndex + 1) % gameState.players.length;
+          let safety = 0;
+          while (gameState.players[next].disconnected && safety < gameState.players.length) {
+            next = (next + 1) % gameState.players.length;
+            safety++;
+          }
+          gameState.currentPlayerIndex = next;
+          gameState.turnPhase = 'draw';
+          gameState.drawnCard = null;
+          gameState.drawnFrom = null;
+          gameState.drawnByPlayerId = null;
+          Network.broadcastToast('Tour passé automatiquement');
+          setTimeout(() => { try { Bot.maybePlay(); } catch(e) {} }, 300);
+        }
+      }
+
       Network.broadcastState();
     }
   }
