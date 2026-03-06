@@ -1653,9 +1653,10 @@ function endTurn() {
       gameState.lastRoundTurnsLeft = gameState.players.length - 1;
       Network.broadcastToast(getPlayerName(playerId) + ' a tout révélé ! Dernier tour !');
       ActionLog.add('🔔 Dernier tour déclenché par ' + getPlayerName(playerId));
+      // Ne pas décrémenter ce tour-ci : le déclencheur vient de finir son tour,
+      // les autres joueurs ont chacun un tour complet devant eux.
     }
-  }
-  if (gameState.lastRoundTriggeredBy !== null) {
+  } else {
     gameState.lastRoundTurnsLeft--;
     if (gameState.lastRoundTurnsLeft <= 0) { endRound(); return; }
   }
