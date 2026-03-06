@@ -2756,7 +2756,7 @@ const App = (() => {
         await new Promise((res, rej) => {
           _checkRoomPeer.on('open', res);
           _checkRoomPeer.on('error', rej);
-          setTimeout(rej, 8000);
+          setTimeout(rej, 15000);
         });
         const conn = _checkRoomPeer.connect('skyjo' + code, { reliable: true });
         let answered = false;
@@ -2780,14 +2780,19 @@ const App = (() => {
           }
           try { _checkRoomPeer.destroy(); } catch(e) {} _checkRoomPeer = null;
         });
-        conn.on('error', () => {
-          if (!answered) { answered = true; showRoomBadge('gray', '⚪ Salle introuvable'); }
-          try { _checkRoomPeer.destroy(); } catch(e) {} _checkRoomPeer = null;
-        });
+        conn.on('error', (err) => {
+  console.warn('checkRoom conn error:', err);
+  if (!answered) {
+    answered = true;
+    // Peer non trouvé = salle inexistante ou hôte pas encore connecté
+    showRoomBadge('gray', '⚪ Salle introuvable');
+  }
+  try { _checkRoomPeer.destroy(); } catch(e) {} _checkRoomPeer = null;
+});
         setTimeout(() => {
           if (!answered) { answered = true; showRoomBadge('gray', '⚪ Salle introuvable'); }
           try { if (_checkRoomPeer) { _checkRoomPeer.destroy(); _checkRoomPeer = null; } } catch(e) {}
-        }, 10000);
+        }, 15000);
       } catch(e) {
         showRoomBadge('gray', '⚪ Impossible de vérifier');
         try { if (_checkRoomPeer) { _checkRoomPeer.destroy(); _checkRoomPeer = null; } } catch(e) {}
