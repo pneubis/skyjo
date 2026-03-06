@@ -1181,8 +1181,12 @@ const ActionLog = (() => {
 const Network = (() => {
 
   // ── CONFIGURATION RESEAU ────────────────────────────────────────────
-  // Mode cloud PeerJS (sans host/port explicite = serveur officiel geré par PeerJS Inc.)
-  // + ICE : STUN Google + TURN freestun public pour traversee NAT
+  // Serveur de signalement : Cloudflare Worker (remplace le CDN PeerJS public)
+  // ⚠️  Remplacez VOTRE_WORKER par le sous-domaine réel de votre Worker Cloudflare
+  //     ex: "skyjo-peer.mon-compte.workers.dev"
+  const PEER_SERVER_HOST = 'https://skyjo-peer-server.pneubis.workers.dev/';
+  const PEER_SERVER_PATH = '/peerjs';
+
   const ICE_CONFIG = {
     iceServers: [
       { urls: 'stun:stun.l.google.com:19302' },
@@ -1212,8 +1216,15 @@ const Network = (() => {
         try { if (peer) { peer.destroy(); peer = null; } } catch(e) {}
       }, 15000);
       try {
-        // Sans host/port : utilise le CDN PeerJS officiel (plus stable)
-        var opts = { config: ICE_CONFIG, debug: 1 };
+        // Cloudflare Worker comme serveur de signalement PeerJS
+        var opts = {
+          host: PEER_SERVER_HOST,
+          port: 443,
+          path: PEER_SERVER_PATH,
+          secure: true,
+          config: ICE_CONFIG,
+          debug: 1
+        };
         peer = id ? new Peer(id, opts) : new Peer(opts);
       } catch(e) { done(new Error(e.message)); return; }
       peer.on('open', function(pid) {
@@ -2715,7 +2726,7 @@ const App = (() => {
           if (window.Peer) { res(window); return; }
           document.head.appendChild(s);
         });
-        _checkRoomPeer = new Peer();
+        _checkRoomPeer = new Peer({ host: PEER_SERVER_HOST, port: 443, path: PEER_SERVER_PATH, secure: true });
         await new Promise((res, rej) => {
           _checkRoomPeer.on('open', res);
           _checkRoomPeer.on('error', rej);
