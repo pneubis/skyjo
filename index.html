@@ -1272,6 +1272,7 @@ const Network = (() => {
       case 'join':
         if (!gameState) { conn.send({ type: 'error', msg: 'Salle non prête, réessayez' }); return; }
         if (gameState.phase !== 'lobby') {
+          // Vérifier si ce joueur (même nom) était déjà dans la partie et s'est déconnecté
           const disconnectedPlayer = gameState.players.find(p => p.disconnected && (p.id === data.id || p.name === data.name));
           if (disconnectedPlayer) {
             connections[disconnectedPlayer.id] = conn;
