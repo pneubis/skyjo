@@ -103,6 +103,67 @@ input::placeholder{color:#666}
 .player-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;padding:0 4px}
 .player-name{font-weight:600;font-size:.9em}
 .player-score{font-size:.85em;color:#888}
+
+/* --- Compact players list (3+ joueurs) --- */
+.compact-players-list{width:100%;display:flex;flex-direction:column;gap:6px;margin-top:4px}
+.compact-player-row{
+  display:flex;align-items:center;gap:10px;
+  padding:9px 12px;border-radius:10px;
+  background:rgba(255,255,255,.05);border:2px solid transparent;
+  transition:all .25s;
+}
+.compact-player-row.pcolor-0{background:rgba(52,152,219,.08);border-color:rgba(52,152,219,.2)}
+.compact-player-row.pcolor-1{background:rgba(46,204,113,.08);border-color:rgba(46,204,113,.2)}
+.compact-player-row.pcolor-2{background:rgba(230,126,34,.08);border-color:rgba(230,126,34,.2)}
+.compact-player-row.pcolor-3{background:rgba(155,89,182,.08);border-color:rgba(155,89,182,.2)}
+.compact-player-row.pcolor-4{background:rgba(231,76,60,.08);border-color:rgba(231,76,60,.2)}
+.compact-player-row.pcolor-5{background:rgba(241,196,15,.08);border-color:rgba(241,196,15,.2)}
+.compact-player-row.pcolor-6{background:rgba(26,188,156,.08);border-color:rgba(26,188,156,.2)}
+.compact-player-row.pcolor-7{background:rgba(236,112,99,.08);border-color:rgba(236,112,99,.2)}
+.compact-player-row.current-turn.pcolor-0{background:rgba(52,152,219,.2);border-color:rgba(52,152,219,.7);box-shadow:0 0 10px rgba(52,152,219,.25)}
+.compact-player-row.current-turn.pcolor-1{background:rgba(46,204,113,.2);border-color:rgba(46,204,113,.7);box-shadow:0 0 10px rgba(46,204,113,.25)}
+.compact-player-row.current-turn.pcolor-2{background:rgba(230,126,34,.2);border-color:rgba(230,126,34,.7);box-shadow:0 0 10px rgba(230,126,34,.25)}
+.compact-player-row.current-turn.pcolor-3{background:rgba(155,89,182,.2);border-color:rgba(155,89,182,.7);box-shadow:0 0 10px rgba(155,89,182,.25)}
+.compact-player-row.current-turn.pcolor-4{background:rgba(231,76,60,.2);border-color:rgba(231,76,60,.7);box-shadow:0 0 10px rgba(231,76,60,.25)}
+.compact-player-row.current-turn.pcolor-5{background:rgba(241,196,15,.2);border-color:rgba(241,196,15,.7);box-shadow:0 0 10px rgba(241,196,15,.25)}
+.compact-player-row.current-turn.pcolor-6{background:rgba(26,188,156,.2);border-color:rgba(26,188,156,.7);box-shadow:0 0 10px rgba(26,188,156,.25)}
+.compact-player-row.current-turn.pcolor-7{background:rgba(236,112,99,.2);border-color:rgba(236,112,99,.7);box-shadow:0 0 10px rgba(236,112,99,.25)}
+.compact-player-avatar{
+  width:32px;height:32px;border-radius:50%;
+  display:flex;align-items:center;justify-content:center;
+  font-weight:800;font-size:.95em;color:#fff;flex-shrink:0;
+  text-shadow:0 1px 3px rgba(0,0,0,.5);
+}
+.pcolor-0 .compact-player-avatar{background:rgba(52,152,219,.6)}
+.pcolor-1 .compact-player-avatar{background:rgba(46,204,113,.6)}
+.pcolor-2 .compact-player-avatar{background:rgba(230,126,34,.6)}
+.pcolor-3 .compact-player-avatar{background:rgba(155,89,182,.6)}
+.pcolor-4 .compact-player-avatar{background:rgba(231,76,60,.6)}
+.pcolor-5 .compact-player-avatar{background:rgba(241,196,15,.6)}
+.pcolor-6 .compact-player-avatar{background:rgba(26,188,156,.6)}
+.pcolor-7 .compact-player-avatar{background:rgba(236,112,99,.6)}
+.compact-player-info{flex:1;min-width:0}
+.compact-player-name{font-weight:600;font-size:.88em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.compact-player-scores{font-size:.74em;color:#888;margin-top:1px}
+.compact-player-scores strong{color:#bb86fc}
+.compact-turn-dot{
+  width:8px;height:8px;border-radius:50%;background:#f1c40f;flex-shrink:0;
+  box-shadow:0 0 6px rgba(241,196,15,.8);
+  animation:turnDotPulse 1s ease-in-out infinite;
+}
+@keyframes turnDotPulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.5;transform:scale(.7)}}
+.compact-mini-cards{display:flex;gap:3px;flex-shrink:0}
+.compact-mini-card{
+  width:20px;height:28px;border-radius:4px;
+  display:flex;align-items:center;justify-content:center;
+  font-size:.6em;font-weight:900;color:#fff;
+  border:1px solid rgba(255,255,255,.15);
+  text-shadow:0 1px 3px rgba(0,0,0,.6);
+}
+.compact-mini-card.face-down{
+  background-image:url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 28'><rect width='20' height='28' rx='3' fill='%231565c0'/></svg>");
+  background-size:cover;color:transparent;
+}
 .player-badge{font-size:.7em;padding:2px 8px;border-radius:20px;background:rgba(155,89,182,.3);color:#bb86fc}
 .turn-indicator{font-size:.7em;color:#f1c40f;font-weight:600}
 
@@ -2054,23 +2115,59 @@ const Render = (() => {
       pilesArea.innerHTML = pilesHtml;
     }
 
-    // Joueurs (mon joueur en premier)
+    // Joueurs — moi en premier, puis joueur suivant dans la rotation, puis les autres
+    const currentPlayerIndex = gameState.phase === 'playing' ? gameState.currentPlayerIndex : -1;
+    const currentPlayerId = currentPlayerIndex >= 0
+      ? gameState.players[currentPlayerIndex]?.id
+      : null;
+
+    // Joueur suivant dans l'ordre du tour (après moi, peu importe qui joue actuellement)
+    const myIndex = gameState.players.findIndex(p => p.id === myPlayerId);
+    const nextIndex = myIndex >= 0 ? (myIndex + 1) % gameState.players.length : -1;
+    const nextPlayerId = (nextIndex >= 0 && nextIndex !== myIndex)
+      ? gameState.players[nextIndex]?.id
+      : null;
+
     const orderedPlayers = [...gameState.players].sort((a, b) => {
       if (a.id === myPlayerId) return -1;
       if (b.id === myPlayerId) return 1;
+      if (a.id === nextPlayerId) return -1;
+      if (b.id === nextPlayerId) return 1;
       return 0;
     });
 
+    // En mode 3+ joueurs : grille complète pour moi + joueur suivant, liste compacte pour les autres
+    const multiMode = gameState.players.length > 2;
+
+    // Joueurs affichés en pleine grille
+    const fullGridIds = new Set([myPlayerId]);
+    if (multiMode && nextPlayerId) fullGridIds.add(nextPlayerId);
+    // En mode 2 joueurs ou moins : tout le monde en pleine grille
+    if (!multiMode) gameState.players.forEach(p => fullGridIds.add(p.id));
+
+    // Séparation : grilles complètes d'abord, compacts ensuite
+    const fullPlayers = orderedPlayers.filter(p => fullGridIds.has(p.id));
+    const compactPlayers = orderedPlayers.filter(p => !fullGridIds.has(p.id));
+
+    // Helper : cartes encore face cachée (non révélées, non éliminées)
+    const countHidden = (pid) => {
+      let n = 0;
+      for (let r = 0; r < ROWS; r++)
+        for (let c = 0; c < COLS; c++)
+          if (!gameState.eliminated[pid][c] && !gameState.revealed[pid][r][c]) n++;
+      return n;
+    };
+
     let playersHtml = '';
-    orderedPlayers.forEach(p => {
+
+    // ── Grilles complètes ──
+    fullPlayers.forEach(p => {
       const isMe = p.id === myPlayerId;
-      const isCurrent = gameState.phase === 'playing' && gameState.players[gameState.currentPlayerIndex]?.id === p.id;
+      const isCurrent = currentPlayerId === p.id;
       const visibleScore = calcVisibleScore(p.id);
       const totalScore = gameState.totalScores[p.id] || 0;
       const discoTag = p.disconnected ? '<span class="reconnecting-badge">⚠️ déconnecté</span>' : '';
-      // Index de couleur stable basé sur la position initiale du joueur
       const colorIdx = gameState.players.findIndex(pl => pl.id === p.id) % 8;
-      // Bouton exclure en jeu : visible pour l'hôte sur les autres joueurs humains non-hôte
       const kickInGameBtn = (isHost && !isMe && !p.isHost && !p.isBot)
         ? `<button class="kick-in-game-btn" onclick="App.confirmKickPlayer('${p.id}','${p.name.replace(/'/g,String.fromCharCode(39))}')">✕ Exclure</button>`
         : '';
@@ -2105,6 +2202,49 @@ const Render = (() => {
       }
       playersHtml += '</div></div>';
     });
+
+    // ── Liste compacte ──
+    if (compactPlayers.length > 0) {
+      playersHtml += '<div class="compact-players-list">';
+      compactPlayers.forEach(p => {
+        const isCurrent = currentPlayerId === p.id;
+        const visibleScore = calcVisibleScore(p.id);
+        const totalScore = gameState.totalScores[p.id] || 0;
+        const hidden = countHidden(p.id);
+        const colorIdx = gameState.players.findIndex(pl => pl.id === p.id) % 8;
+        const initials = p.name.substring(0, 2).toUpperCase();
+        const discoTag = p.disconnected ? ' ⚠️' : '';
+        const kickBtn = (isHost && !p.isHost && !p.isBot)
+          ? `<button class="kick-in-game-btn" onclick="App.confirmKickPlayer('${p.id}','${p.name.replace(/'/g,String.fromCharCode(39))}')">✕</button>`
+          : '';
+
+        // Mini-cartes (1ère ligne seulement, max 4)
+        let miniCards = '<div class="compact-mini-cards">';
+        for (let c = 0; c < COLS; c++) {
+          if (!gameState.eliminated[p.id][c]) {
+            const r = 0;
+            if (gameState.revealed[p.id][r][c]) {
+              const val = gameState.hands[p.id][r][c];
+              miniCards += `<div class="compact-mini-card ${getCardClass(val)}">${val}</div>`;
+            } else {
+              miniCards += `<div class="compact-mini-card face-down"></div>`;
+            }
+          }
+        }
+        miniCards += '</div>';
+
+        playersHtml += `<div class="compact-player-row pcolor-${colorIdx} ${isCurrent ? 'current-turn' : ''}">
+          <div class="compact-player-avatar">${initials}</div>
+          <div class="compact-player-info">
+            <div class="compact-player-name">${p.name}${discoTag} ${kickBtn}</div>
+            <div class="compact-player-scores">Visible : <strong>${visibleScore}</strong> &nbsp;·&nbsp; Total : <strong>${totalScore}</strong> &nbsp;·&nbsp; <span style="color:#e67e22">🂠 ${hidden}</span></div>
+          </div>
+          ${miniCards}
+          ${isCurrent ? '<div class="compact-turn-dot"></div>' : '<div style="width:8px;flex-shrink:0"></div>'}
+        </div>`;
+      });
+      playersHtml += '</div>';
+    }
     // DOM diffing : ne réécrire les joueurs que si le contenu a changé
     if (playersArea.dataset.lastHtml !== playersHtml) {
       playersArea.dataset.lastHtml = playersHtml;
