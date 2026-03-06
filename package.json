@@ -1,0 +1,12 @@
+{
+  "name": "skyjo-peer-server",
+  "version": "1.0.0",
+  "description": "Serveur PeerJS pour Skyjo multijoueur",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "peer": "^0.6.1"
+  }
+}
