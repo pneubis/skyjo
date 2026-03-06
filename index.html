@@ -2720,6 +2720,8 @@ const App = (() => {
   let _checkRoomPeer = null;
   let _checkRoomTimer = null;
 
+   function checkRoomStatus(code) {
+  return; // désactivé
   function checkRoomStatus(val) {
     const badge = document.getElementById('room-status-badge');
     if (!badge) return;
