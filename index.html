@@ -2747,7 +2747,12 @@ const App = (() => {
           if (window.Peer) { res(window); return; }
           document.head.appendChild(s);
         });
-        _checkRoomPeer = new Peer({ host: PEER_SERVER_HOST, port: 443, path: PEER_SERVER_PATH, secure: true });
+        _checkRoomPeer = new Peer({
+  host: PEER_SERVER_HOST,
+  port: 443,
+  path: PEER_SERVER_PATH,
+  secure: true
+});
         await new Promise((res, rej) => {
           _checkRoomPeer.on('open', res);
           _checkRoomPeer.on('error', rej);
