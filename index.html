@@ -1273,7 +1273,7 @@ const Network = (() => {
         if (!gameState) { conn.send({ type: 'error', msg: 'Salle non prête, réessayez' }); return; }
         if (gameState.phase !== 'lobby') {
           // Vérifier si ce joueur (même nom) était déjà dans la partie et s'est déconnecté
-          const disconnectedPlayer = gameState.players.find(p => p.disconnected && (p.id === data.id || p.name === data.name));
+          const disconnectedPlayer = gameState.players.find(p => p.disconnected && (p.id === data.id || p.id === data.lastId || p.name === data.name));
           if (disconnectedPlayer) {
             connections[disconnectedPlayer.id] = conn;
             disconnectedPlayer.disconnected = false;
@@ -2816,7 +2816,13 @@ const App = (() => {
       clearTimeout(connTimer);
       UI.setConnStatus('connected', '');
       reconnectAttempt = 0;
-      hostConn.send({ type: 'join', name: myName, id: myPeerId });
+      // Sauvegarder l'identité pour permettre la reconnexion
+      try { localStorage.setItem('skyjo_lastPeerId', myPeerId); } catch(e) {}
+      try { localStorage.setItem('skyjo_lastName', myName); } catch(e) {}
+      try { localStorage.setItem('skyjo_lastRoom', roomCode); } catch(e) {}
+      // Envoyer aussi l'ancien ID si disponible (reconnexion)
+      const lastPeerId = (() => { try { return localStorage.getItem('skyjo_lastPeerId') || myPeerId; } catch(e) { return myPeerId; } })();
+      hostConn.send({ type: 'join', name: myName, id: myPeerId, lastId: lastPeerId });
       hostConn.on('data', (data) => {
         switch(data.type) {
           case 'state':
