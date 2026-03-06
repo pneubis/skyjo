@@ -474,7 +474,7 @@ input::placeholder{color:#666}
 // ── Service Worker ───────────────────────────────────────────────
 if ('serviceWorker' in navigator) {
   const sw = `
-    const CACHE = 'skyjo-v1.5.5';
+    const CACHE = 'skyjo-v1.5.6';
     self.addEventListener('install', e => {
       e.waitUntil(
         caches.open(CACHE).then(c => c.addAll(['./'])).catch(() => {})
@@ -511,7 +511,7 @@ if ('serviceWorker' in navigator) {
       <div class="splash-card">8</div>
       <div class="splash-card">12</div>
     </div>
-    <div class="splash-version">v1.5.5</div>
+    <div class="splash-version">v1.5.6</div>
     <div class="splash-tagline">crédits : claude.ai · @Pneubis</div>
   </div>
   <div class="splash-progress"><div class="splash-progress-bar"></div></div>
@@ -558,7 +558,7 @@ if ('serviceWorker' in navigator) {
 <!-- SCREEN: MENU -->
 <div class="screen active" id="screen-menu">
   <h1>SKYJO</h1>
-  <p style="font-size:.85em;color:rgba(255,255,255,.45);letter-spacing:3px;margin:-4px 0 10px;font-weight:600">v1.5.5</p>
+  <p style="font-size:.85em;color:rgba(255,255,255,.45);letter-spacing:3px;margin:-4px 0 10px;font-weight:600">v1.5.6</p>
   <p class="subtitle" style="margin-top:0">
     <button onclick="UI.showRules()" style="background:none;border:1px solid rgba(255,255,255,.25);color:#aaa;font-size:.8em;font-weight:600;padding:3px 12px;border-radius:20px;cursor:pointer;min-height:auto;transition:all .2s" onmouseover="this.style.borderColor='rgba(255,255,255,.55)';this.style.color='#fff'" onmouseout="this.style.borderColor='rgba(255,255,255,.25)';this.style.color='#aaa'">ⓘ Règles</button>
     <button onclick="UI.showOptions()" style="background:none;border:1px solid rgba(155,89,182,.35);color:rgba(155,89,182,.8);font-size:.8em;font-weight:600;padding:3px 12px;border-radius:20px;cursor:pointer;min-height:auto;transition:all .2s;margin-left:8px" onmouseover="this.style.borderColor='rgba(155,89,182,.8)';this.style.color='#bb86fc'" onmouseout="this.style.borderColor='rgba(155,89,182,.35)';this.style.color='rgba(155,89,182,.8)'">⚙️ Options</button>
@@ -582,7 +582,7 @@ if ('serviceWorker' in navigator) {
 <!-- SCREEN: JOIN -->
 <div class="screen" id="screen-join">
   <h1>SKYJO</h1>
-  <p style="font-size:.85em;color:rgba(255,255,255,.45);letter-spacing:3px;margin:-4px 0 10px;font-weight:600">v1.5.5</p>
+  <p style="font-size:.85em;color:rgba(255,255,255,.45);letter-spacing:3px;margin:-4px 0 10px;font-weight:600">v1.5.6</p>
   <h2 id="join-screen-title">Rejoindre une partie</h2>
   <div style="width:100%;max-width:320px;display:flex;flex-direction:column;gap:10px">
     <input type="text" id="join-name" placeholder="Votre pseudo" maxlength="12" autocomplete="off"
@@ -1272,8 +1272,7 @@ const Network = (() => {
       case 'join':
         if (!gameState) { conn.send({ type: 'error', msg: 'Salle non prête, réessayez' }); return; }
         if (gameState.phase !== 'lobby') {
-          // Vérifier si ce joueur (même nom) était déjà dans la partie et s'est déconnecté
-          const disconnectedPlayer = gameState.players.find(p => p.name === data.name && p.disconnected);
+          const disconnectedPlayer = gameState.players.find(p => p.disconnected && (p.id === data.id || p.name === data.name));
           if (disconnectedPlayer) {
             connections[disconnectedPlayer.id] = conn;
             disconnectedPlayer.disconnected = false;
