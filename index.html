@@ -1275,7 +1275,6 @@ const Network = (() => {
           // Vérifier si ce joueur (même nom) était déjà dans la partie et s'est déconnecté
           const disconnectedPlayer = gameState.players.find(p => p.name === data.name && p.disconnected);
           if (disconnectedPlayer) {
-            // Traiter comme un rejoin automatique
             connections[disconnectedPlayer.id] = conn;
             disconnectedPlayer.disconnected = false;
             Network.broadcastToast(disconnectedPlayer.name + ' est de retour !');
@@ -2757,86 +2756,9 @@ const App = (() => {
   let _checkRoomPeer = null;
   let _checkRoomTimer = null;
 
-   function checkRoomStatus(code) {
-  return; // désactivé
-  function checkRoomStatus(val) {
+  function checkRoomStatus(code) {
     const badge = document.getElementById('room-status-badge');
-    if (!badge) return;
-    const code = val.trim().toUpperCase();
-    if (code.length < 5) { badge.style.display = 'none'; return; }
-
-    // Annuler vérif précédente
-    clearTimeout(_checkRoomTimer);
-    if (_checkRoomPeer) { try { _checkRoomPeer.destroy(); } catch(e) {} _checkRoomPeer = null; }
-
-    badge.style.display = '';
-    badge.style.background = 'rgba(255,255,255,.07)';
-    badge.style.border = '1.5px solid rgba(255,255,255,.15)';
-    badge.style.color = '#aaa';
-    badge.textContent = '⏳ Vérification...';
-
-    _checkRoomTimer = setTimeout(async () => {
-      try {
-        const { Peer } = await new Promise((res, rej) => {
-          const s = document.createElement('script');
-          s.src = 'https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js';
-          s.onload = () => res(window);
-          s.onerror = rej;
-          // PeerJS déjà chargé
-          if (window.Peer) { res(window); return; }
-          document.head.appendChild(s);
-        });
-        _checkRoomPeer = new Peer({
-  host: PEER_SERVER_HOST,
-  port: 443,
-  path: PEER_SERVER_PATH,
-  secure: true
-});
-        await new Promise((res, rej) => {
-          _checkRoomPeer.on('open', res);
-          _checkRoomPeer.on('error', rej);
-          setTimeout(rej, 15000);
-        });
-        const conn = _checkRoomPeer.connect('skyjo' + code, { reliable: true });
-        let answered = false;
-        conn.on('open', () => {
-          conn.send({ type: 'status_check' });
-          setTimeout(() => {
-            if (!answered) {
-              answered = true;
-              showRoomBadge('green', '🟢 Salle disponible — en attente de joueurs');
-              try { _checkRoomPeer.destroy(); } catch(e) {} _checkRoomPeer = null;
-            }
-          }, 2000);
-        });
-        conn.on('data', (data) => {
-          if (answered) return;
-          answered = true;
-          if (data.type === 'status_response') {
-            if (data.status === 'playing') showRoomBadge('red', '🔴 Partie en cours — salle occupée');
-            else if (data.status === 'full') showRoomBadge('red', '🔴 Salle pleine');
-            else showRoomBadge('green', '🟢 Salle disponible — en attente de joueurs');
-          }
-          try { _checkRoomPeer.destroy(); } catch(e) {} _checkRoomPeer = null;
-        });
-        conn.on('error', (err) => {
-  console.warn('checkRoom conn error:', err);
-  if (!answered) {
-    answered = true;
-    // Peer non trouvé = salle inexistante ou hôte pas encore connecté
-    showRoomBadge('gray', '⚪ Salle introuvable');
-  }
-  try { _checkRoomPeer.destroy(); } catch(e) {} _checkRoomPeer = null;
-});
-        setTimeout(() => {
-          if (!answered) { answered = true; showRoomBadge('gray', '⚪ Salle introuvable'); }
-          try { if (_checkRoomPeer) { _checkRoomPeer.destroy(); _checkRoomPeer = null; } } catch(e) {}
-        }, 15000);
-      } catch(e) {
-        showRoomBadge('gray', '⚪ Impossible de vérifier');
-        try { if (_checkRoomPeer) { _checkRoomPeer.destroy(); _checkRoomPeer = null; } } catch(e) {}
-      }
-    }, 600);
+    if (badge) badge.style.display = 'none';
   }
 
   function showRoomBadge(color, text) {
