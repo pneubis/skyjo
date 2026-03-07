@@ -482,7 +482,7 @@ input::placeholder{color:#666}
 // ── Service Worker ───────────────────────────────────────────────
 if ('serviceWorker' in navigator) {
   const sw = `
-    const CACHE = 'skyjo-v1.5.7';
+    const CACHE = 'skyjo-v1.5.8';
     self.addEventListener('install', e => {
       e.waitUntil(
         caches.open(CACHE).then(c => c.addAll(['./'])).catch(() => {})
@@ -519,7 +519,7 @@ if ('serviceWorker' in navigator) {
       <div class="splash-card">8</div>
       <div class="splash-card">12</div>
     </div>
-    <div class="splash-version">v1.5.7</div>
+    <div class="splash-version">v1.5.8</div>
     <div class="splash-tagline">crédits : claude.ai · @Pneubis</div>
   </div>
   <div class="splash-progress"><div class="splash-progress-bar"></div></div>
@@ -566,7 +566,7 @@ if ('serviceWorker' in navigator) {
 <!-- SCREEN: MENU -->
 <div class="screen active" id="screen-menu">
   <h1>SKYJO</h1>
-  <p style="font-size:.85em;color:rgba(255,255,255,.45);letter-spacing:3px;margin:-4px 0 10px;font-weight:600">v1.5.6</p>
+  <p style="font-size:.85em;color:rgba(255,255,255,.45);letter-spacing:3px;margin:-4px 0 10px;font-weight:600">v1.5.8</p>
   <p class="subtitle" style="margin-top:0">
     <button onclick="UI.showRules()" style="background:none;border:1px solid rgba(255,255,255,.25);color:#aaa;font-size:.8em;font-weight:600;padding:3px 12px;border-radius:20px;cursor:pointer;min-height:auto;transition:all .2s" onmouseover="this.style.borderColor='rgba(255,255,255,.55)';this.style.color='#fff'" onmouseout="this.style.borderColor='rgba(255,255,255,.25)';this.style.color='#aaa'">ⓘ Règles</button>
     <button onclick="UI.showOptions()" style="background:none;border:1px solid rgba(155,89,182,.35);color:rgba(155,89,182,.8);font-size:.8em;font-weight:600;padding:3px 12px;border-radius:20px;cursor:pointer;min-height:auto;transition:all .2s;margin-left:8px" onmouseover="this.style.borderColor='rgba(155,89,182,.8)';this.style.color='#bb86fc'" onmouseout="this.style.borderColor='rgba(155,89,182,.35)';this.style.color='rgba(155,89,182,.8)'">⚙️ Options</button>
@@ -590,7 +590,7 @@ if ('serviceWorker' in navigator) {
 <!-- SCREEN: JOIN -->
 <div class="screen" id="screen-join">
   <h1>SKYJO</h1>
-  <p style="font-size:.85em;color:rgba(255,255,255,.45);letter-spacing:3px;margin:-4px 0 10px;font-weight:600">v1.5.6</p>
+  <p style="font-size:.85em;color:rgba(255,255,255,.45);letter-spacing:3px;margin:-4px 0 10px;font-weight:600">v1.5.8</p>
   <h2 id="join-screen-title">Rejoindre une partie</h2>
   <div style="width:100%;max-width:320px;display:flex;flex-direction:column;gap:10px">
     <input type="text" id="join-name" placeholder="Votre pseudo" maxlength="12" autocomplete="off"
@@ -712,7 +712,7 @@ if ('serviceWorker' in navigator) {
 <script>
 "use strict";
 // ============================================================
-// SKYJO MULTIJOUEUR — Version 1.5.7
+// SKYJO MULTIJOUEUR — Version 1.5.8
 //
 // ARCHITECTURE (chaque section est clairement délimitée) :
 //  1. CONSTANTS        — Valeurs immuables du jeu
@@ -1284,10 +1284,15 @@ const Network = (() => {
       case 'join':
         if (!gameState) { conn.send({ type: 'error', msg: 'Salle non prête, réessayez' }); return; }
         if (gameState.phase !== 'lobby') {
-          // Vérifier si ce joueur (même nom) était déjà dans la partie et s'est déconnecté
+          // Vérifier si ce joueur était déjà dans la partie et s'est déconnecté
           const disconnectedPlayer = gameState.players.find(p => p.disconnected && (p.id === data.id || p.id === data.lastId || p.name === data.name));
           if (disconnectedPlayer) {
-            connections[disconnectedPlayer.id] = conn;
+            // Mettre à jour l'ID si le peerId a changé
+            if (disconnectedPlayer.id !== conn.peer) {
+              delete connections[disconnectedPlayer.id];
+              disconnectedPlayer.id = conn.peer;
+            }
+            connections[conn.peer] = conn;
             disconnectedPlayer.disconnected = false;
             Network.broadcastToast(disconnectedPlayer.name + ' est de retour !');
             ActionLog.add('🔄 ' + disconnectedPlayer.name + ' reconnecté');
@@ -1313,13 +1318,22 @@ const Network = (() => {
         break;
 
       case 'rejoin': {
-        // Un joueur déconnecté qui revient
-        const rejoiningPlayer = gameState && gameState.players.find(p => p.id === data.id);
+        // Un joueur déconnecté qui revient — son peerId PeerJS peut avoir changé
+        // On cherche par l'ID envoyé, l'ancien ID sauvegardé, ou le nom
+        const rejoiningPlayer = gameState && gameState.players.find(p =>
+          p.id === data.id || p.id === data.lastId || (p.disconnected && p.name === data.name)
+        );
         if (rejoiningPlayer) {
-          connections[data.id] = conn;
+          // Supprimer l'ancienne entrée de connections si l'ID a changé
+          if (rejoiningPlayer.id !== conn.peer) {
+            delete connections[rejoiningPlayer.id];
+            rejoiningPlayer.id = conn.peer; // mettre à jour l'ID avec le nouveau peerId
+          }
+          connections[conn.peer] = conn;
           rejoiningPlayer.disconnected = false;
           Network.broadcastToast(rejoiningPlayer.name + ' est de retour !');
           ActionLog.add('🔄 ' + rejoiningPlayer.name + ' reconnecté');
+          try { conn.send({ type: 'approved' }); } catch(e) {}
           try { conn.send({ type: 'state', state: gameState }); } catch(e) {}
           Network.broadcastState();
         } else {
@@ -1405,7 +1419,9 @@ const Network = (() => {
       clearTimeout(_hostMigrationTimer);
       reconnectAttempt = 0;
       UI.setConnStatus('connected', '');
-      hostConn.send({ type: 'rejoin', id: myPeerId, name: myName });
+      // Envoyer l'ID actuel ET le dernier ID connu pour que l'hôte puisse matcher
+      const lastId = (() => { try { return localStorage.getItem('skyjo_lastPeerId') || myPeerId; } catch(e) { return myPeerId; } })();
+      hostConn.send({ type: 'rejoin', id: myPeerId, lastId, name: myName });
       hostConn.on('data', (data) => handleClientMessage(data));
     });
     hostConn.on('close', () => scheduleReconnect());
@@ -1489,6 +1505,12 @@ const Network = (() => {
     switch(data.type) {
       case 'state':
         gameState = data.state;
+        // Après reconnexion, l'hôte a peut-être mis à jour notre ID dans le gameState
+        // On resynchronise myPlayerId avec notre peerId actuel
+        if (myPeerId && gameState.players) {
+          const me = gameState.players.find(p => p.id === myPeerId);
+          if (me) myPlayerId = myPeerId;
+        }
         Render.fromState();
         break;
       case 'peer_list':
@@ -2947,12 +2969,19 @@ const App = (() => {
             break;
           case 'error':
             if (data.msg && data.msg.includes('en cours')) {
-              _rejectedByHost = true;
-              UI.toast('⚠️ ' + data.msg);
-              UI.showGameInProgressWarning();
-              try { if (hostConn) hostConn.close(); } catch(e) {}
-              try { if (peer) { peer.destroy(); peer = null; } } catch(e) {}
-              App.backToMenu();
+              // Si on était en jeu (gameState existe), c'est qu'on n'a pas été reconnu
+              // comme joueur déconnecté — retenter avec scheduleReconnect plutôt que backToMenu
+              if (gameState && gameState.phase !== 'lobby') {
+                UI.toast('⚠️ Reconnexion en cours...');
+                Network.scheduleReconnect();
+              } else {
+                _rejectedByHost = true;
+                UI.toast('⚠️ ' + data.msg);
+                UI.showGameInProgressWarning();
+                try { if (hostConn) hostConn.close(); } catch(e) {}
+                try { if (peer) { peer.destroy(); peer = null; } } catch(e) {}
+                App.backToMenu();
+              }
             } else {
               UI.toast(data.msg);
             }
