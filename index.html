@@ -496,7 +496,7 @@ input::placeholder{color:#888}
 // ── Service Worker ───────────────────────────────────────────────
 if ('serviceWorker' in navigator) {
   const sw = `
-    const CACHE = 'skyjo-v1.6.3';
+    const CACHE = 'skyjo-v1.6.4';
     self.addEventListener('install', e => {
       e.waitUntil(
         caches.open(CACHE).then(c => c.addAll(['./'])).catch(() => {})
@@ -533,7 +533,7 @@ if ('serviceWorker' in navigator) {
       <div class="splash-card">8</div>
       <div class="splash-card">12</div>
     </div>
-    <div class="splash-version">v1.6.3</div>
+    <div class="splash-version">v1.6.4</div>
     <div class="splash-tagline">crédits : claude.ai · @Pneubis</div>
   </div>
   <div class="splash-progress"><div class="splash-progress-bar"></div></div>
@@ -580,7 +580,7 @@ if ('serviceWorker' in navigator) {
 <!-- SCREEN: MENU -->
 <div class="screen active" id="screen-menu">
   <h1>SKYJO</h1>
-  <p style="font-size:.85em;color:rgba(255,255,255,.65);letter-spacing:3px;margin:-4px 0 10px;font-weight:600">v1.6.3</p>
+  <p style="font-size:.85em;color:rgba(255,255,255,.65);letter-spacing:3px;margin:-4px 0 10px;font-weight:600">v1.6.4</p>
   <p class="subtitle" style="margin-top:0">
     <button onclick="UI.showRules()" style="background:none;border:1px solid rgba(255,255,255,.25);color:#aaa;font-size:.8em;font-weight:600;padding:3px 12px;border-radius:20px;cursor:pointer;min-height:auto;transition:all .2s" onmouseover="this.style.borderColor='rgba(255,255,255,.55)';this.style.color='#fff'" onmouseout="this.style.borderColor='rgba(255,255,255,.25)';this.style.color='#aaa'">ⓘ Règles</button>
     <button onclick="UI.showOptions()" style="background:none;border:1px solid rgba(155,89,182,.35);color:rgba(155,89,182,.8);font-size:.8em;font-weight:600;padding:3px 12px;border-radius:20px;cursor:pointer;min-height:auto;transition:all .2s;margin-left:8px" onmouseover="this.style.borderColor='rgba(155,89,182,.8)';this.style.color='#bb86fc'" onmouseout="this.style.borderColor='rgba(155,89,182,.35)';this.style.color='rgba(155,89,182,.8)'">⚙️ Options</button>
@@ -613,7 +613,7 @@ if ('serviceWorker' in navigator) {
 <!-- SCREEN: JOIN -->
 <div class="screen" id="screen-join">
   <h1>SKYJO</h1>
-  <p style="font-size:.85em;color:rgba(255,255,255,.65);letter-spacing:3px;margin:-4px 0 10px;font-weight:600">v1.6.3</p>
+  <p style="font-size:.85em;color:rgba(255,255,255,.65);letter-spacing:3px;margin:-4px 0 10px;font-weight:600">v1.6.4</p>
   <h2 id="join-screen-title">Rejoindre une partie</h2>
   <div style="width:100%;max-width:320px;display:flex;flex-direction:column;gap:10px">
     <input type="text" id="join-name" placeholder="Votre pseudo" maxlength="12" autocomplete="off"
@@ -735,7 +735,7 @@ if ('serviceWorker' in navigator) {
 <script>
 "use strict";
 // ============================================================
-// SKYJO MULTIJOUEUR — Version 1.6.3
+// SKYJO MULTIJOUEUR — Version 1.6.4
 //
 // ARCHITECTURE (chaque section est clairement délimitée) :
 //  1. CONSTANTS        — Valeurs immuables du jeu
@@ -1216,50 +1216,51 @@ const ActionLog = (() => {
 const Network = (() => {
 
   // ── CONFIGURATION RESEAU ────────────────────────────────────────────
-  // Serveur de signalement : Cloudflare Worker (remplace le CDN PeerJS public)
-  // ⚠️  Remplacez VOTRE_WORKER par le sous-domaine réel de votre Worker Cloudflare
-  //     ex: "skyjo-peer.mon-compte.workers.dev"
+  // Serveur de signalement principal (Render) + fallback serveur public PeerJS
   const PEER_SERVER_HOST = 'skyjo-i51h.onrender.com';
   const PEER_SERVER_PATH = '/peerjs';
+  const PEER_SERVER_HOST_FALLBACK = '0.peerjs.com';
+  const PEER_SERVER_PATH_FALLBACK = '/';
 
   const ICE_CONFIG = {
     iceServers: [
       { urls: 'stun:stun.l.google.com:19302' },
       { urls: 'stun:stun1.l.google.com:19302' },
       { urls: 'stun:stun2.l.google.com:19302' },
-      { urls: 'stun:stun3.l.google.com:19302' },
-      { urls: 'stun:stun4.l.google.com:19302' },
       { urls: 'stun:stun.cloudflare.com:3478' },
-      { urls: 'stun:freestun.net:3479' },
-      { urls: 'turn:freestun.net:3479',  username: 'free', credential: 'free' },
-      { urls: 'turns:freestun.net:5350', username: 'free', credential: 'free' },
+      // TURN OpenRelay — fiable et gratuit
+      { urls: 'turn:openrelay.metered.ca:80',    username: 'openrelayproject', credential: 'openrelayproject' },
+      { urls: 'turn:openrelay.metered.ca:443',   username: 'openrelayproject', credential: 'openrelayproject' },
+      { urls: 'turns:openrelay.metered.ca:443',  username: 'openrelayproject', credential: 'openrelayproject' },
     ],
     iceCandidatePoolSize: 10,
   };
 
-  // initPeer : id=null => ID aleatoire attribue par le serveur (pour les clients)
+  // initPeer : id=null => ID aléatoire (clients). Tente le serveur principal, fallback public si timeout.
   function initPeer(id) {
     if (peer) { try { peer.destroy(); } catch(e) {} peer = null; }
-    return new Promise(function(resolve, reject) {
+
+    function tryServer(host, port, path, secure, resolve, reject, isLast) {
       var settled = false;
       function done(err, pid) {
         if (settled) return; settled = true; clearTimeout(timer);
-        if (err) reject(err); else { myPeerId = pid; resolve(pid); }
+        if (err) {
+          try { if (peer) { peer.destroy(); peer = null; } } catch(e) {}
+          reject(err);
+        } else { myPeerId = pid; resolve(pid); }
       }
+      // Timeout 12s par tentative
       var timer = setTimeout(function() {
-        done(new Error('Serveur PeerJS inaccessible (timeout 15s)'));
-        try { if (peer) { peer.destroy(); peer = null; } } catch(e) {}
-      }, 15000);
+        if (!isLast) {
+          // Basculer sur le serveur fallback
+          UI.setConnStatus('connecting', '📡 Serveur alternatif...');
+          done(new Error('timeout'), null);
+        } else {
+          done(new Error('Serveur PeerJS inaccessible — vérifiez votre connexion'));
+        }
+      }, 12000);
       try {
-        // Cloudflare Worker comme serveur de signalement PeerJS
-        var opts = {
-          host: PEER_SERVER_HOST,
-          port: 443,
-          path: PEER_SERVER_PATH,
-          secure: true,
-          config: ICE_CONFIG,
-          debug: 1
-        };
+        var opts = { host, port, path, secure, config: ICE_CONFIG, debug: 1 };
         peer = id ? new Peer(id, opts) : new Peer(opts);
       } catch(e) { done(new Error(e.message)); return; }
       peer.on('open', function(pid) {
@@ -1267,16 +1268,26 @@ const Network = (() => {
         done(null, pid);
       });
       peer.on('error', function(err) {
-        console.warn('PeerJS error:', err.type, err.message);
         if (err.type === 'unavailable-id') {
           done(new Error('Code déjà utilisé — relancez'));
         } else {
-          done(new Error('Erreur réseau (' + err.type + ') — vérifiez votre connexion'));
+          done(new Error('timeout')); // forcer le fallback
         }
       });
-      peer.on('disconnected', function() {
-        if (!settled) peer.reconnect();
-      });
+      peer.on('disconnected', function() { if (peer) peer.reconnect(); });
+    }
+
+    return new Promise(function(resolve, reject) {
+      // Tentative 1 : serveur Render
+      tryServer(PEER_SERVER_HOST, 443, PEER_SERVER_PATH, true,
+        resolve,
+        function() {
+          // Tentative 2 : serveur public PeerJS
+          tryServer(PEER_SERVER_HOST_FALLBACK, 443, PEER_SERVER_PATH_FALLBACK, true,
+            resolve, reject, true);
+        },
+        false
+      );
     });
   }
 
@@ -2982,7 +2993,7 @@ const App = (() => {
     const hostId = 'skyjo' + roomCode;
     hostConn = peer.connect(hostId, { reliable: true });
 
-    // Timeout 20s : si WebRTC ne peut pas s'etablir (NAT symetrique, 4G->box)
+    // Timeout 35s : absorbe le réveil du serveur Render + négociation ICE
     const connTimer = setTimeout(() => {
       if (!hostConn || !hostConn.open) {
         UI.setConnStatus('', '');
@@ -2990,7 +3001,7 @@ const App = (() => {
         try { if (hostConn) hostConn.close(); } catch(e) {}
         try { if (peer) { peer.destroy(); peer = null; } } catch(e) {}
       }
-    }, 20000);
+    }, 35000);
 
     hostConn.on('open', () => {
       clearTimeout(connTimer);
