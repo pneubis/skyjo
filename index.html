@@ -496,7 +496,7 @@ input::placeholder{color:#888}
 // ── Service Worker ───────────────────────────────────────────────
 if ('serviceWorker' in navigator) {
   const sw = `
-    const CACHE = 'skyjo-v1.6.0';
+    const CACHE = 'skyjo-v1.6.1';
     self.addEventListener('install', e => {
       e.waitUntil(
         caches.open(CACHE).then(c => c.addAll(['./'])).catch(() => {})
@@ -533,7 +533,7 @@ if ('serviceWorker' in navigator) {
       <div class="splash-card">8</div>
       <div class="splash-card">12</div>
     </div>
-    <div class="splash-version">v1.6.0</div>
+    <div class="splash-version">v1.6.1</div>
     <div class="splash-tagline">crédits : claude.ai · @Pneubis</div>
   </div>
   <div class="splash-progress"><div class="splash-progress-bar"></div></div>
@@ -580,7 +580,7 @@ if ('serviceWorker' in navigator) {
 <!-- SCREEN: MENU -->
 <div class="screen active" id="screen-menu">
   <h1>SKYJO</h1>
-  <p style="font-size:.85em;color:rgba(255,255,255,.65);letter-spacing:3px;margin:-4px 0 10px;font-weight:600">v1.6.0</p>
+  <p style="font-size:.85em;color:rgba(255,255,255,.65);letter-spacing:3px;margin:-4px 0 10px;font-weight:600">v1.6.1</p>
   <p class="subtitle" style="margin-top:0">
     <button onclick="UI.showRules()" style="background:none;border:1px solid rgba(255,255,255,.25);color:#aaa;font-size:.8em;font-weight:600;padding:3px 12px;border-radius:20px;cursor:pointer;min-height:auto;transition:all .2s" onmouseover="this.style.borderColor='rgba(255,255,255,.55)';this.style.color='#fff'" onmouseout="this.style.borderColor='rgba(255,255,255,.25)';this.style.color='#aaa'">ⓘ Règles</button>
     <button onclick="UI.showOptions()" style="background:none;border:1px solid rgba(155,89,182,.35);color:rgba(155,89,182,.8);font-size:.8em;font-weight:600;padding:3px 12px;border-radius:20px;cursor:pointer;min-height:auto;transition:all .2s;margin-left:8px" onmouseover="this.style.borderColor='rgba(155,89,182,.8)';this.style.color='#bb86fc'" onmouseout="this.style.borderColor='rgba(155,89,182,.35)';this.style.color='rgba(155,89,182,.8)'">⚙️ Options</button>
@@ -613,7 +613,7 @@ if ('serviceWorker' in navigator) {
 <!-- SCREEN: JOIN -->
 <div class="screen" id="screen-join">
   <h1>SKYJO</h1>
-  <p style="font-size:.85em;color:rgba(255,255,255,.65);letter-spacing:3px;margin:-4px 0 10px;font-weight:600">v1.6.0</p>
+  <p style="font-size:.85em;color:rgba(255,255,255,.65);letter-spacing:3px;margin:-4px 0 10px;font-weight:600">v1.6.1</p>
   <h2 id="join-screen-title">Rejoindre une partie</h2>
   <div style="width:100%;max-width:320px;display:flex;flex-direction:column;gap:10px">
     <input type="text" id="join-name" placeholder="Votre pseudo" maxlength="12" autocomplete="off"
@@ -735,7 +735,7 @@ if ('serviceWorker' in navigator) {
 <script>
 "use strict";
 // ============================================================
-// SKYJO MULTIJOUEUR — Version 1.6.0
+// SKYJO MULTIJOUEUR — Version 1.6.1
 //
 // ARCHITECTURE (chaque section est clairement délimitée) :
 //  1. CONSTANTS        — Valeurs immuables du jeu
@@ -3010,11 +3010,14 @@ const App = (() => {
             break;
           case 'error':
             if (data.msg && data.msg.includes('en cours')) {
-              // Si on était en jeu (gameState existe), c'est qu'on n'a pas été reconnu
-              // comme joueur déconnecté — retenter avec scheduleReconnect plutôt que backToMenu
-              if (gameState && gameState.phase !== 'lobby') {
+              // Détecter si on tente une reprise (session sauvegardée) ou une reconnexion active
+              const hasActiveSession = (() => { try { return !!localStorage.getItem('skyjo_activeRoom'); } catch(e) { return false; } })();
+              if ((gameState && gameState.phase !== 'lobby') || hasActiveSession) {
+                // On était en jeu ou on revient via le bandeau — tenter via rejoin
                 UI.toast('⚠️ Reconnexion en cours...');
-                Network.scheduleReconnect();
+                try { if (hostConn) hostConn.close(); } catch(e) {}
+                // Reconnecter en envoyant un rejoin avec les IDs sauvegardés
+                setTimeout(() => Network.tryReconnect(), 500);
               } else {
                 _rejectedByHost = true;
                 UI.toast('⚠️ ' + data.msg);
