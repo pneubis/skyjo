@@ -496,7 +496,7 @@ input::placeholder{color:#888}
 // ── Service Worker ───────────────────────────────────────────────
 if ('serviceWorker' in navigator) {
   const sw = `
-    const CACHE = 'skyjo-v1.6.4';
+    const CACHE = 'skyjo-v1.6.5';
     self.addEventListener('install', e => {
       e.waitUntil(
         caches.open(CACHE).then(c => c.addAll(['./'])).catch(() => {})
@@ -533,7 +533,7 @@ if ('serviceWorker' in navigator) {
       <div class="splash-card">8</div>
       <div class="splash-card">12</div>
     </div>
-    <div class="splash-version">v1.6.4</div>
+    <div class="splash-version">v1.6.5</div>
     <div class="splash-tagline">crédits : claude.ai · @Pneubis</div>
   </div>
   <div class="splash-progress"><div class="splash-progress-bar"></div></div>
@@ -580,7 +580,7 @@ if ('serviceWorker' in navigator) {
 <!-- SCREEN: MENU -->
 <div class="screen active" id="screen-menu">
   <h1>SKYJO</h1>
-  <p style="font-size:.85em;color:rgba(255,255,255,.65);letter-spacing:3px;margin:-4px 0 10px;font-weight:600">v1.6.4</p>
+  <p style="font-size:.85em;color:rgba(255,255,255,.65);letter-spacing:3px;margin:-4px 0 10px;font-weight:600">v1.6.5</p>
   <p class="subtitle" style="margin-top:0">
     <button onclick="UI.showRules()" style="background:none;border:1px solid rgba(255,255,255,.25);color:#aaa;font-size:.8em;font-weight:600;padding:3px 12px;border-radius:20px;cursor:pointer;min-height:auto;transition:all .2s" onmouseover="this.style.borderColor='rgba(255,255,255,.55)';this.style.color='#fff'" onmouseout="this.style.borderColor='rgba(255,255,255,.25)';this.style.color='#aaa'">ⓘ Règles</button>
     <button onclick="UI.showOptions()" style="background:none;border:1px solid rgba(155,89,182,.35);color:rgba(155,89,182,.8);font-size:.8em;font-weight:600;padding:3px 12px;border-radius:20px;cursor:pointer;min-height:auto;transition:all .2s;margin-left:8px" onmouseover="this.style.borderColor='rgba(155,89,182,.8)';this.style.color='#bb86fc'" onmouseout="this.style.borderColor='rgba(155,89,182,.35)';this.style.color='rgba(155,89,182,.8)'">⚙️ Options</button>
@@ -613,7 +613,7 @@ if ('serviceWorker' in navigator) {
 <!-- SCREEN: JOIN -->
 <div class="screen" id="screen-join">
   <h1>SKYJO</h1>
-  <p style="font-size:.85em;color:rgba(255,255,255,.65);letter-spacing:3px;margin:-4px 0 10px;font-weight:600">v1.6.4</p>
+  <p style="font-size:.85em;color:rgba(255,255,255,.65);letter-spacing:3px;margin:-4px 0 10px;font-weight:600">v1.6.5</p>
   <h2 id="join-screen-title">Rejoindre une partie</h2>
   <div style="width:100%;max-width:320px;display:flex;flex-direction:column;gap:10px">
     <input type="text" id="join-name" placeholder="Votre pseudo" maxlength="12" autocomplete="off"
@@ -735,7 +735,7 @@ if ('serviceWorker' in navigator) {
 <script>
 "use strict";
 // ============================================================
-// SKYJO MULTIJOUEUR — Version 1.6.4
+// SKYJO MULTIJOUEUR — Version 1.6.5
 //
 // ARCHITECTURE (chaque section est clairement délimitée) :
 //  1. CONSTANTS        — Valeurs immuables du jeu
@@ -1557,11 +1557,14 @@ const Network = (() => {
     switch(data.type) {
       case 'state':
         gameState = data.state;
-        // Après reconnexion, l'hôte a peut-être mis à jour notre ID dans le gameState
-        // On resynchronise myPlayerId avec notre peerId actuel
-        if (myPeerId && gameState.players) {
-          const me = gameState.players.find(p => p.id === myPeerId);
-          if (me) myPlayerId = myPeerId;
+        // Resynchroniser myPlayerId après reconnexion :
+        // l'hôte peut avoir changé notre ID (nouveau peerId) ou conservé l'ancien
+        if (gameState.players) {
+          // 1. Chercher par peerId actuel
+          let me = gameState.players.find(p => p.id === myPeerId);
+          // 2. Fallback : chercher par nom si le peerId ne matche pas
+          if (!me && myName) me = gameState.players.find(p => p.name === myName && !p.isBot);
+          if (me) { myPlayerId = me.id; myPeerId = me.id; }
         }
         Render.fromState();
         break;
@@ -3029,6 +3032,12 @@ const App = (() => {
         switch(data.type) {
           case 'state':
             gameState = data.state;
+            // Resynchroniser myPlayerId — chercher par peerId puis par nom
+            if (gameState.players) {
+              let me = gameState.players.find(p => p.id === myPeerId);
+              if (!me && myName) me = gameState.players.find(p => p.name === myName && !p.isBot);
+              if (me) { myPlayerId = me.id; myPeerId = me.id; }
+            }
             hideWaitingApproval();
             Render.fromState();
             break;
