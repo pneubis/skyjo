@@ -496,7 +496,7 @@ input::placeholder{color:#888}
 // ── Service Worker ───────────────────────────────────────────────
 if ('serviceWorker' in navigator) {
   const sw = `
-    const CACHE = 'skyjo-v1.6.1';
+    const CACHE = 'skyjo-v1.6.2';
     self.addEventListener('install', e => {
       e.waitUntil(
         caches.open(CACHE).then(c => c.addAll(['./'])).catch(() => {})
@@ -533,7 +533,7 @@ if ('serviceWorker' in navigator) {
       <div class="splash-card">8</div>
       <div class="splash-card">12</div>
     </div>
-    <div class="splash-version">v1.6.1</div>
+    <div class="splash-version">v1.6.2</div>
     <div class="splash-tagline">crédits : claude.ai · @Pneubis</div>
   </div>
   <div class="splash-progress"><div class="splash-progress-bar"></div></div>
@@ -580,7 +580,7 @@ if ('serviceWorker' in navigator) {
 <!-- SCREEN: MENU -->
 <div class="screen active" id="screen-menu">
   <h1>SKYJO</h1>
-  <p style="font-size:.85em;color:rgba(255,255,255,.65);letter-spacing:3px;margin:-4px 0 10px;font-weight:600">v1.6.1</p>
+  <p style="font-size:.85em;color:rgba(255,255,255,.65);letter-spacing:3px;margin:-4px 0 10px;font-weight:600">v1.6.2</p>
   <p class="subtitle" style="margin-top:0">
     <button onclick="UI.showRules()" style="background:none;border:1px solid rgba(255,255,255,.25);color:#aaa;font-size:.8em;font-weight:600;padding:3px 12px;border-radius:20px;cursor:pointer;min-height:auto;transition:all .2s" onmouseover="this.style.borderColor='rgba(255,255,255,.55)';this.style.color='#fff'" onmouseout="this.style.borderColor='rgba(255,255,255,.25)';this.style.color='#aaa'">ⓘ Règles</button>
     <button onclick="UI.showOptions()" style="background:none;border:1px solid rgba(155,89,182,.35);color:rgba(155,89,182,.8);font-size:.8em;font-weight:600;padding:3px 12px;border-radius:20px;cursor:pointer;min-height:auto;transition:all .2s;margin-left:8px" onmouseover="this.style.borderColor='rgba(155,89,182,.8)';this.style.color='#bb86fc'" onmouseout="this.style.borderColor='rgba(155,89,182,.35)';this.style.color='rgba(155,89,182,.8)'">⚙️ Options</button>
@@ -613,7 +613,7 @@ if ('serviceWorker' in navigator) {
 <!-- SCREEN: JOIN -->
 <div class="screen" id="screen-join">
   <h1>SKYJO</h1>
-  <p style="font-size:.85em;color:rgba(255,255,255,.65);letter-spacing:3px;margin:-4px 0 10px;font-weight:600">v1.6.1</p>
+  <p style="font-size:.85em;color:rgba(255,255,255,.65);letter-spacing:3px;margin:-4px 0 10px;font-weight:600">v1.6.2</p>
   <h2 id="join-screen-title">Rejoindre une partie</h2>
   <div style="width:100%;max-width:320px;display:flex;flex-direction:column;gap:10px">
     <input type="text" id="join-name" placeholder="Votre pseudo" maxlength="12" autocomplete="off"
@@ -735,7 +735,7 @@ if ('serviceWorker' in navigator) {
 <script>
 "use strict";
 // ============================================================
-// SKYJO MULTIJOUEUR — Version 1.6.1
+// SKYJO MULTIJOUEUR — Version 1.6.2
 //
 // ARCHITECTURE (chaque section est clairement délimitée) :
 //  1. CONSTANTS        — Valeurs immuables du jeu
@@ -1308,7 +1308,16 @@ const Network = (() => {
         if (!gameState) { conn.send({ type: 'error', msg: 'Salle non prête, réessayez' }); return; }
         if (gameState.phase !== 'lobby') {
           // Vérifier si ce joueur était déjà dans la partie et s'est déconnecté
-          const disconnectedPlayer = gameState.players.find(p => p.disconnected && (p.id === data.id || p.id === data.lastId || p.name === data.name));
+          const disconnectedPlayer = gameState.players.find(p => {
+            if (p.isBot || p.isHost) return false;
+            if (p.id === data.id || p.id === data.lastId) return true;
+            // Reconnaître par nom si la connexion existante est morte ou absente
+            if (p.name === data.name) {
+              const existingConn = connections[p.id];
+              return !existingConn || !existingConn.open || p.disconnected;
+            }
+            return false;
+          });
           if (disconnectedPlayer) {
             // Mettre à jour l'ID si le peerId a changé
             if (disconnectedPlayer.id !== conn.peer) {
@@ -1342,10 +1351,17 @@ const Network = (() => {
 
       case 'rejoin': {
         // Un joueur déconnecté qui revient — son peerId PeerJS peut avoir changé
-        // On cherche par l'ID envoyé, l'ancien ID sauvegardé, ou le nom
-        const rejoiningPlayer = gameState && gameState.players.find(p =>
-          p.id === data.id || p.id === data.lastId || (p.disconnected && p.name === data.name)
-        );
+        // On cherche par l'ID envoyé, l'ancien ID sauvegardé, ou le nom (connexion morte ou marquée déconnectée)
+        const rejoiningPlayer = gameState && gameState.players.find(p => {
+          if (p.isBot || p.isHost) return false;
+          if (p.id === data.id || p.id === data.lastId) return true;
+          // Reconnaître par nom si la connexion existante est morte ou absente
+          if (p.name === data.name) {
+            const existingConn = connections[p.id];
+            return !existingConn || !existingConn.open || p.disconnected;
+          }
+          return false;
+        });
         if (rejoiningPlayer) {
           // Supprimer l'ancienne entrée de connections si l'ID a changé
           if (rejoiningPlayer.id !== conn.peer) {
@@ -1518,7 +1534,9 @@ const Network = (() => {
   }
 
   function scheduleReconnect() {
-    if (currentScreen === 'screen-menu') return;
+    // Autoriser la reconnexion depuis l'accueil si on a une session active à reprendre
+    const hasActiveSession = (() => { try { return !!localStorage.getItem('skyjo_activeRoom'); } catch(e) { return false; } })();
+    if (currentScreen === 'screen-menu' && !hasActiveSession) return;
     const delay = Math.min(2000 * reconnectAttempt, 8000);
     reconnectTimer = setTimeout(tryReconnect, delay);
   }
