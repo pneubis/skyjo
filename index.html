@@ -188,7 +188,21 @@ input::placeholder{color:#888}
   animation:reconnectBlink 1.2s ease-in-out infinite;
 }
 
-/* --- Lobby --- */
+/* --- Bannière reprise de partie --- */
+#resume-game-banner{
+  width:100%;max-width:320px;
+  background:linear-gradient(135deg,rgba(52,152,219,.18),rgba(155,89,182,.18));
+  border:1.5px solid rgba(52,152,219,.55);
+  border-radius:12px;padding:12px 16px;
+  display:flex;align-items:center;justify-content:space-between;gap:10px;
+  animation:resumePulse 2.5s ease-in-out infinite;
+}
+@keyframes resumePulse{0%,100%{border-color:rgba(52,152,219,.55)}50%{border-color:rgba(52,152,219,.95);box-shadow:0 0 14px rgba(52,152,219,.3)}}
+#resume-game-banner .resume-info{flex:1;min-width:0}
+#resume-game-banner .resume-label{font-size:.7em;color:#aaa;text-transform:uppercase;letter-spacing:.8px;font-weight:600}
+#resume-game-banner .resume-code{font-size:1.1em;font-weight:800;color:#3498db;letter-spacing:3px;font-family:monospace}
+#resume-game-banner .resume-btn{background:linear-gradient(135deg,#3498db,#9b59b6);color:#fff;border:none;padding:9px 16px;border-radius:10px;font-size:.85em;font-weight:700;cursor:pointer;white-space:nowrap;min-height:auto;touch-action:manipulation}
+#resume-game-banner .resume-dismiss{background:none;border:none;color:#aaa;font-size:1.1em;cursor:pointer;padding:4px;min-height:auto;line-height:1;flex-shrink:0}
 .lobby-box{background:rgba(255,255,255,.05);border-radius:16px;padding:24px;max-width:400px;width:100%;text-align:center}
 .lobby-players{list-style:none;margin:16px 0;text-align:left}
 .lobby-players li{padding:10px 16px;background:rgba(255,255,255,.05);border-radius:8px;margin-bottom:6px;display:flex;justify-content:space-between;align-items:center}
@@ -482,7 +496,7 @@ input::placeholder{color:#888}
 // ── Service Worker ───────────────────────────────────────────────
 if ('serviceWorker' in navigator) {
   const sw = `
-    const CACHE = 'skyjo-v1.5.9';
+    const CACHE = 'skyjo-v1.6.0';
     self.addEventListener('install', e => {
       e.waitUntil(
         caches.open(CACHE).then(c => c.addAll(['./'])).catch(() => {})
@@ -519,7 +533,7 @@ if ('serviceWorker' in navigator) {
       <div class="splash-card">8</div>
       <div class="splash-card">12</div>
     </div>
-    <div class="splash-version">v1.5.9</div>
+    <div class="splash-version">v1.6.0</div>
     <div class="splash-tagline">crédits : claude.ai · @Pneubis</div>
   </div>
   <div class="splash-progress"><div class="splash-progress-bar"></div></div>
@@ -566,7 +580,7 @@ if ('serviceWorker' in navigator) {
 <!-- SCREEN: MENU -->
 <div class="screen active" id="screen-menu">
   <h1>SKYJO</h1>
-  <p style="font-size:.85em;color:rgba(255,255,255,.65);letter-spacing:3px;margin:-4px 0 10px;font-weight:600">v1.5.9</p>
+  <p style="font-size:.85em;color:rgba(255,255,255,.65);letter-spacing:3px;margin:-4px 0 10px;font-weight:600">v1.6.0</p>
   <p class="subtitle" style="margin-top:0">
     <button onclick="UI.showRules()" style="background:none;border:1px solid rgba(255,255,255,.25);color:#aaa;font-size:.8em;font-weight:600;padding:3px 12px;border-radius:20px;cursor:pointer;min-height:auto;transition:all .2s" onmouseover="this.style.borderColor='rgba(255,255,255,.55)';this.style.color='#fff'" onmouseout="this.style.borderColor='rgba(255,255,255,.25)';this.style.color='#aaa'">ⓘ Règles</button>
     <button onclick="UI.showOptions()" style="background:none;border:1px solid rgba(155,89,182,.35);color:rgba(155,89,182,.8);font-size:.8em;font-weight:600;padding:3px 12px;border-radius:20px;cursor:pointer;min-height:auto;transition:all .2s;margin-left:8px" onmouseover="this.style.borderColor='rgba(155,89,182,.8)';this.style.color='#bb86fc'" onmouseout="this.style.borderColor='rgba(155,89,182,.35)';this.style.color='rgba(155,89,182,.8)'">⚙️ Options</button>
@@ -579,6 +593,15 @@ if ('serviceWorker' in navigator) {
     <button onclick="App.createGame()" style="width:100%">👥 Créer une partie</button>
     <button id="join-btn" class="secondary" onclick="App.showJoinScreen()" style="width:100%">🔗 Rejoindre une partie</button>
   </div>
+  <!-- Bannière reprise de partie en cours -->
+  <div id="resume-game-banner" style="display:none;margin-top:14px">
+    <div class="resume-info">
+      <div class="resume-label">🔄 Partie en cours</div>
+      <div class="resume-code" id="resume-code">XXXXX</div>
+    </div>
+    <button class="resume-btn" onclick="App.resumeGame()">Reprendre</button>
+    <button class="resume-dismiss" onclick="App.dismissResume()" title="Ignorer">✕</button>
+  </div>
   <div id="game-in-progress-banner" style="display:none;margin-top:10px;width:100%;max-width:320px;background:rgba(231,76,60,.1);border:1.5px solid rgba(231,76,60,.4);border-radius:10px;padding:8px 14px;text-align:center;font-size:.8em;color:#e74c3c;font-weight:600">
     ⚠️ Une partie est déjà en cours sur ce code
   </div>
@@ -590,7 +613,7 @@ if ('serviceWorker' in navigator) {
 <!-- SCREEN: JOIN -->
 <div class="screen" id="screen-join">
   <h1>SKYJO</h1>
-  <p style="font-size:.85em;color:rgba(255,255,255,.65);letter-spacing:3px;margin:-4px 0 10px;font-weight:600">v1.5.9</p>
+  <p style="font-size:.85em;color:rgba(255,255,255,.65);letter-spacing:3px;margin:-4px 0 10px;font-weight:600">v1.6.0</p>
   <h2 id="join-screen-title">Rejoindre une partie</h2>
   <div style="width:100%;max-width:320px;display:flex;flex-direction:column;gap:10px">
     <input type="text" id="join-name" placeholder="Votre pseudo" maxlength="12" autocomplete="off"
@@ -704,7 +727,7 @@ if ('serviceWorker' in navigator) {
     <div class="duration-badge" id="final-duration" style="display:none">⏱ Partie terminée en <strong id="final-duration-value"></strong></div>
     <div class="leaderboard-box" id="final-leaderboard"></div>
     <div class="btn-group" style="margin-top:16px;width:100%;justify-content:center">
-      <button onclick="App.backToMenu()">Menu principal</button>
+      <button onclick="App.backToMenu(true)">Menu principal</button>
     </div>
   </div>
 </div>
@@ -712,7 +735,7 @@ if ('serviceWorker' in navigator) {
 <script>
 "use strict";
 // ============================================================
-// SKYJO MULTIJOUEUR — Version 1.5.9
+// SKYJO MULTIJOUEUR — Version 1.6.0
 //
 // ARCHITECTURE (chaque section est clairement délimitée) :
 //  1. CONSTANTS        — Valeurs immuables du jeu
@@ -960,7 +983,7 @@ const UI = (() => {
     document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
     document.getElementById(id).classList.add('active');
     currentScreen = id;
-    if (id === 'screen-menu') { Leaderboard.render('menu-leaderboard'); UI.resetJoinButton(); }
+    if (id === 'screen-menu') { Leaderboard.render('menu-leaderboard'); UI.resetJoinButton(); setTimeout(() => { try { App.checkResume(); } catch(e) {} }, 0); }
     if (id === 'screen-game') _doFullscreen();
     // Bouton quitter uniquement visible en jeu
     const quitBtn = document.getElementById('fullscreen-btn');
@@ -1076,7 +1099,7 @@ const UI = (() => {
       'Que souhaitez-vous faire ?',
       [
         { text: 'Continuer à jouer', action: 'UI.closeModal()' },
-        { text: '🏠 Menu principal', action: 'UI.closeModal();App.backToMenu()' },
+        { text: '🏠 Menu principal', action: 'UI.closeModal();App.backToMenu(true)' },
         { text: '✕ Fermer l\'app', action: 'UI.closeModal();UI.closeApp()' }
       ]
     );
@@ -1529,7 +1552,7 @@ const Network = (() => {
       case 'rejected':
         hideWaitingApproval();
         UI.toast('\u274C ' + (data.msg || 'Accès refusé'));
-        setTimeout(() => App.backToMenu(), 1200);
+        setTimeout(() => App.backToMenu(true), 1200);
         break;
       case 'error':
         UI.toast(data.msg);
@@ -2185,6 +2208,8 @@ const Render = (() => {
           );
           gameState.players.forEach(p => Leaderboard.update(p.name, p.id === sorted[0].id));
         }
+        // Partie terminée normalement — effacer la reprise
+        try { localStorage.removeItem('skyjo_activeRoom'); } catch(e) {}
         UI.showScreen('screen-final-scores');
         renderFinalScores();
         Sound.play('win');
@@ -2958,6 +2983,8 @@ const App = (() => {
       try { localStorage.setItem('skyjo_lastPeerId', myPeerId); } catch(e) {}
       try { localStorage.setItem('skyjo_lastName', myName); } catch(e) {}
       try { localStorage.setItem('skyjo_lastRoom', roomCode); } catch(e) {}
+      try { localStorage.setItem('skyjo_activeRoom', roomCode); } catch(e) {}
+      try { localStorage.setItem('skyjo_activeName', myName); } catch(e) {}
       // Envoyer aussi l'ancien ID si disponible (reconnexion)
       const lastPeerId = (() => { try { return localStorage.getItem('skyjo_lastPeerId') || myPeerId; } catch(e) { return myPeerId; } })();
       hostConn.send({ type: 'join', name: myName, id: myPeerId, lastId: lastPeerId });
@@ -2979,7 +3006,7 @@ const App = (() => {
             _rejectedByHost = true;
             hideWaitingApproval();
             UI.toast('❌ ' + (data.msg || "Accès refusé par l'hôte"));
-            setTimeout(() => App.backToMenu(), 1500);
+            setTimeout(() => App.backToMenu(true), 1500);
             break;
           case 'error':
             if (data.msg && data.msg.includes('en cours')) {
@@ -2994,7 +3021,7 @@ const App = (() => {
                 UI.showGameInProgressWarning();
                 try { if (hostConn) hostConn.close(); } catch(e) {}
                 try { if (peer) { peer.destroy(); peer = null; } } catch(e) {}
-                App.backToMenu();
+                App.backToMenu(true);
               }
             } else {
               UI.toast(data.msg);
@@ -3053,10 +3080,10 @@ const App = (() => {
   function leaveLobby() {
     if (peer) peer.destroy();
     peer = null; connections = {}; hostConn = null; gameState = null;
-    backToMenu();
+    backToMenu(true); // quitter volontaire
   }
 
-  function backToMenu() {
+  function backToMenu(voluntary = false) {
     clearTimeout(reconnectTimer);
     clearTimeout(_hostMigrationTimer);
     Bot.clearTimers();
@@ -3065,7 +3092,51 @@ const App = (() => {
     reconnectAttempt = 0;
     UI.setConnStatus('', '');
     ActionLog.clear();
+    // Effacer la reprise SEULEMENT si quitter volontaire
+    // En cas de déconnexion involontaire, on conserve pour permettre la reprise
+    if (voluntary) {
+      try { localStorage.removeItem('skyjo_activeRoom'); } catch(e) {}
+    }
     UI.showScreen('screen-menu');
+  }
+
+  // --- Reprise de partie depuis l'accueil ---
+  function checkResume() {
+    const banner = document.getElementById('resume-game-banner');
+    const codeEl = document.getElementById('resume-code');
+    if (!banner || !codeEl) return;
+    try {
+      const code = localStorage.getItem('skyjo_activeRoom');
+      const name = localStorage.getItem('skyjo_activeName') || localStorage.getItem('skyjo_lastName') || '';
+      if (code) {
+        codeEl.textContent = code;
+        banner.style.display = 'flex';
+        // Pré-remplir le pseudo si connu
+        const nameInput = document.getElementById('player-name');
+        if (nameInput && !nameInput.value && name) nameInput.value = name;
+      } else {
+        banner.style.display = 'none';
+      }
+    } catch(e) { banner.style.display = 'none'; }
+  }
+
+  function resumeGame() {
+    try {
+      const code = localStorage.getItem('skyjo_activeRoom');
+      const name = localStorage.getItem('skyjo_activeName') || localStorage.getItem('skyjo_lastName') || '';
+      if (!code) return;
+      const nameInput = document.getElementById('player-name');
+      if (nameInput && !nameInput.value && name) nameInput.value = name;
+      const roomInput = document.getElementById('room-input');
+      if (roomInput) roomInput.value = code;
+      joinGame();
+    } catch(e) {}
+  }
+
+  function dismissResume() {
+    try { localStorage.removeItem('skyjo_activeRoom'); } catch(e) {}
+    const banner = document.getElementById('resume-game-banner');
+    if (banner) banner.style.display = 'none';
   }
 
   // --- Démarrer la partie ---
@@ -3074,6 +3145,11 @@ const App = (() => {
     const minPlayers = gameState.isSolo ? 1 : 2;
     if (gameState.players.length < minPlayers) return;
     gameState.gameStartTime = Date.now();
+    // Sauvegarder la partie active pour permettre la reprise (hôte)
+    if (!gameState.isSolo) {
+      try { localStorage.setItem('skyjo_activeRoom', roomCode); } catch(e) {}
+      try { localStorage.setItem('skyjo_activeName', myName); } catch(e) {}
+    }
     initRound();
     // Déclencher le bot si la partie démarre sur son tour
     setTimeout(() => Bot.maybePlay(), 200);
@@ -3119,7 +3195,7 @@ const App = (() => {
         setTimeout(() => { try { c.close(); } catch(e) {} }, 300);
       });
       UI.toast(player.name + ' expulsé — retour à l\'accueil');
-      setTimeout(() => App.backToMenu(), 800);
+      setTimeout(() => App.backToMenu(true), 800);
       return;
     }
 
@@ -3151,7 +3227,7 @@ const App = (() => {
     requestAnimationFrame(() => Bot.maybePlay());
   }
 
-  return { showJoinScreen, createSoloGame, createGame, switchToMulti, setBotDifficulty, joinGame, showLobby, copyCode, leaveLobby, backToMenu, startGame, nextRound, kickPlayer, confirmKickPlayer, checkRoomStatus };
+  return { showJoinScreen, createSoloGame, createGame, switchToMulti, setBotDifficulty, joinGame, showLobby, copyCode, leaveLobby, backToMenu, startGame, nextRound, kickPlayer, confirmKickPlayer, checkRoomStatus, resumeGame, dismissResume, checkResume };
 })();
 App._targetScore = END_SCORE; // score cible par défaut
 
@@ -3240,6 +3316,7 @@ window.addEventListener('load', () => {
   }
 
   Leaderboard.render('menu-leaderboard');
+  setTimeout(() => { try { App.checkResume(); } catch(e) {} }, 100);
 });
 </script>
 </body>
