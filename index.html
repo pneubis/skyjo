@@ -376,6 +376,8 @@ input::placeholder{color:#888}
 #conn-status.connecting{display:block;background:rgba(241,196,15,.2);color:#f1c40f;border:1px solid rgba(241,196,15,.4)}
 #conn-status.reconnecting{display:block;background:rgba(231,76,60,.2);color:#e74c3c;border:1px solid rgba(231,76,60,.4);animation:reconnectBlink 1.2s infinite}
 #conn-status.connected{display:none}
+#conn-status-bar{height:3px;border-radius:2px;background:#f1c40f;width:0%;transition:width .4s ease;margin-top:3px}
+#conn-status.reconnecting #conn-status-bar{background:#e74c3c}
 
 /* --- Action log (barre fixe basse) --- */
 #action-log{width:100%;max-width:700px;padding:0;pointer-events:none;margin:0 auto;overflow:hidden;max-height:calc(2 * 1.4em + 4px);text-align:center}
@@ -496,7 +498,7 @@ input::placeholder{color:#888}
 // ── Service Worker ───────────────────────────────────────────────
 if ('serviceWorker' in navigator) {
   const sw = `
-    const CACHE = 'skyjo-v1.6.8';
+    const CACHE = 'skyjo-v1.6.9';
     self.addEventListener('install', e => {
       e.waitUntil(
         caches.open(CACHE).then(c => c.addAll(['./'])).catch(() => {})
@@ -533,7 +535,7 @@ if ('serviceWorker' in navigator) {
       <div class="splash-card">8</div>
       <div class="splash-card">12</div>
     </div>
-    <div class="splash-version">v1.6.8</div>
+    <div class="splash-version">v1.6.9</div>
     <div class="splash-tagline">crédits : claude.ai · @Pneubis</div>
   </div>
   <div class="splash-progress"><div class="splash-progress-bar"></div></div>
@@ -544,7 +546,7 @@ if ('serviceWorker' in navigator) {
      ============================================================ -->
 
 <!-- Connection status -->
-<div id="conn-status"></div>
+<div id="conn-status"><span id="conn-status-text"></span><div id="conn-status-bar"></div></div>
 
 <!-- Toast -->
 <div class="toast" id="toast"></div>
@@ -580,7 +582,7 @@ if ('serviceWorker' in navigator) {
 <!-- SCREEN: MENU -->
 <div class="screen active" id="screen-menu">
   <h1>SKYJO</h1>
-  <p style="font-size:.85em;color:rgba(255,255,255,.65);letter-spacing:3px;margin:-4px 0 10px;font-weight:600">v1.6.8</p>
+  <p style="font-size:.85em;color:rgba(255,255,255,.65);letter-spacing:3px;margin:-4px 0 10px;font-weight:600">v1.6.9</p>
   <p class="subtitle" style="margin-top:0">
     <button onclick="UI.showRules()" style="background:none;border:1px solid rgba(255,255,255,.25);color:#aaa;font-size:.8em;font-weight:600;padding:3px 12px;border-radius:20px;cursor:pointer;min-height:auto;transition:all .2s" onmouseover="this.style.borderColor='rgba(255,255,255,.55)';this.style.color='#fff'" onmouseout="this.style.borderColor='rgba(255,255,255,.25)';this.style.color='#aaa'">ⓘ Règles</button>
     <button onclick="UI.showOptions()" style="background:none;border:1px solid rgba(155,89,182,.35);color:rgba(155,89,182,.8);font-size:.8em;font-weight:600;padding:3px 12px;border-radius:20px;cursor:pointer;min-height:auto;transition:all .2s;margin-left:8px" onmouseover="this.style.borderColor='rgba(155,89,182,.8)';this.style.color='#bb86fc'" onmouseout="this.style.borderColor='rgba(155,89,182,.35)';this.style.color='rgba(155,89,182,.8)'">⚙️ Options</button>
@@ -613,7 +615,7 @@ if ('serviceWorker' in navigator) {
 <!-- SCREEN: JOIN -->
 <div class="screen" id="screen-join">
   <h1>SKYJO</h1>
-  <p style="font-size:.85em;color:rgba(255,255,255,.65);letter-spacing:3px;margin:-4px 0 10px;font-weight:600">v1.6.8</p>
+  <p style="font-size:.85em;color:rgba(255,255,255,.65);letter-spacing:3px;margin:-4px 0 10px;font-weight:600">v1.6.9</p>
   <h2 id="join-screen-title">Rejoindre une partie</h2>
   <div style="width:100%;max-width:320px;display:flex;flex-direction:column;gap:10px">
     <input type="text" id="join-name" placeholder="Votre pseudo" maxlength="12" autocomplete="off"
@@ -735,7 +737,7 @@ if ('serviceWorker' in navigator) {
 <script>
 "use strict";
 // ============================================================
-// SKYJO MULTIJOUEUR — Version 1.6.8
+// SKYJO MULTIJOUEUR — Version 1.6.9
 //
 // ARCHITECTURE (chaque section est clairement délimitée) :
 //  1. CONSTANTS        — Valeurs immuables du jeu
@@ -1061,8 +1063,43 @@ const UI = (() => {
 
   function setConnStatus(status, msg) {
     const el = document.getElementById('conn-status');
-    el.className = status; // '', 'connecting', 'reconnecting', 'connected'
-    el.textContent = msg || '';
+    el.className = status;
+    _connStatusMsg = msg || '';
+    const txt = document.getElementById('conn-status-text');
+    if (txt) txt.textContent = _connStatusMsg;
+    if (!status) { clearInterval(_progressTimer); setConnProgress(0); }
+  }
+
+  let _progressTimer = null;
+  let _connStatusMsg = '';
+  // Lance une progression simulée de 0 → maxPct sur durationMs
+  function startConnProgress(durationMs, maxPct) {
+    clearInterval(_progressTimer);
+    setConnProgress(0);
+    const steps = 40;
+    const interval = durationMs / steps;
+    let step = 0;
+    _progressTimer = setInterval(() => {
+      step++;
+      const t = step / steps;
+      const pct = Math.round(maxPct * (1 - Math.pow(1 - t, 2)));
+      setConnProgress(pct);
+      // Mettre à jour le % dans le texte
+      const txt = document.getElementById('conn-status-text');
+      if (txt && _connStatusMsg) txt.textContent = _connStatusMsg + ' ' + pct + '%';
+      if (step >= steps) clearInterval(_progressTimer);
+    }, interval);
+  }
+  function finishConnProgress() {
+    clearInterval(_progressTimer);
+    setConnProgress(100);
+    const txt = document.getElementById('conn-status-text');
+    if (txt && _connStatusMsg) txt.textContent = _connStatusMsg + ' 100%';
+    setTimeout(() => setConnProgress(0), 400);
+  }
+  function setConnProgress(pct) {
+    const bar = document.getElementById('conn-status-bar');
+    if (bar) bar.style.width = pct + '%';
   }
 
   // iOS: tip si besoin (plein écran natif non supporté)
@@ -1177,7 +1214,7 @@ const UI = (() => {
     if (banner) banner.style.display = 'none';
   }
 
-  return { showScreen, toast, showModal, closeModal, showRules, toggleFullscreen, _doFullscreen, closeFsTip, setConnStatus, confirmResetLeaderboard, resetLeaderboard, confirmQuitGame, closeApp, showOptions, setTargetScore, showGameInProgressWarning, resetJoinButton };
+  return { showScreen, toast, showModal, closeModal, showRules, toggleFullscreen, _doFullscreen, closeFsTip, setConnStatus, startConnProgress, finishConnProgress, confirmResetLeaderboard, resetLeaderboard, confirmQuitGame, closeApp, showOptions, setTargetScore, showGameInProgressWarning, resetJoinButton };
 })();
 
 
@@ -1243,6 +1280,8 @@ const Network = (() => {
 
     function tryServer(host, port, path, secure, resolve, reject, isLast) {
       var settled = false;
+      // Lancer la barre de progression sur 12s vers 95%
+      UI.startConnProgress(12000, isLast ? 95 : 90);
       function done(err, pid) {
         if (settled) return; settled = true; clearTimeout(timer);
         if (err) {
@@ -1253,7 +1292,6 @@ const Network = (() => {
       // Timeout 12s par tentative
       var timer = setTimeout(function() {
         if (!isLast) {
-          // Basculer sur le serveur fallback
           UI.setConnStatus('connecting', '📡 Serveur alternatif...');
           done(new Error('timeout'), null);
         } else {
@@ -1265,6 +1303,7 @@ const Network = (() => {
         peer = id ? new Peer(id, opts) : new Peer(opts);
       } catch(e) { done(new Error(e.message)); return; }
       peer.on('open', function(pid) {
+        UI.finishConnProgress();
         UI.setConnStatus('connecting', '📡 Connecté au serveur');
         done(null, pid);
       });
