@@ -496,7 +496,7 @@ input::placeholder{color:#888}
 // ── Service Worker ───────────────────────────────────────────────
 if ('serviceWorker' in navigator) {
   const sw = `
-    const CACHE = 'skyjo-v1.6.6';
+    const CACHE = 'skyjo-v1.6.7';
     self.addEventListener('install', e => {
       e.waitUntil(
         caches.open(CACHE).then(c => c.addAll(['./'])).catch(() => {})
@@ -533,7 +533,7 @@ if ('serviceWorker' in navigator) {
       <div class="splash-card">8</div>
       <div class="splash-card">12</div>
     </div>
-    <div class="splash-version">v1.6.6</div>
+    <div class="splash-version">v1.6.7</div>
     <div class="splash-tagline">crédits : claude.ai · @Pneubis</div>
   </div>
   <div class="splash-progress"><div class="splash-progress-bar"></div></div>
@@ -580,7 +580,7 @@ if ('serviceWorker' in navigator) {
 <!-- SCREEN: MENU -->
 <div class="screen active" id="screen-menu">
   <h1>SKYJO</h1>
-  <p style="font-size:.85em;color:rgba(255,255,255,.65);letter-spacing:3px;margin:-4px 0 10px;font-weight:600">v1.6.6</p>
+  <p style="font-size:.85em;color:rgba(255,255,255,.65);letter-spacing:3px;margin:-4px 0 10px;font-weight:600">v1.6.7</p>
   <p class="subtitle" style="margin-top:0">
     <button onclick="UI.showRules()" style="background:none;border:1px solid rgba(255,255,255,.25);color:#aaa;font-size:.8em;font-weight:600;padding:3px 12px;border-radius:20px;cursor:pointer;min-height:auto;transition:all .2s" onmouseover="this.style.borderColor='rgba(255,255,255,.55)';this.style.color='#fff'" onmouseout="this.style.borderColor='rgba(255,255,255,.25)';this.style.color='#aaa'">ⓘ Règles</button>
     <button onclick="UI.showOptions()" style="background:none;border:1px solid rgba(155,89,182,.35);color:rgba(155,89,182,.8);font-size:.8em;font-weight:600;padding:3px 12px;border-radius:20px;cursor:pointer;min-height:auto;transition:all .2s;margin-left:8px" onmouseover="this.style.borderColor='rgba(155,89,182,.8)';this.style.color='#bb86fc'" onmouseout="this.style.borderColor='rgba(155,89,182,.35)';this.style.color='rgba(155,89,182,.8)'">⚙️ Options</button>
@@ -613,7 +613,7 @@ if ('serviceWorker' in navigator) {
 <!-- SCREEN: JOIN -->
 <div class="screen" id="screen-join">
   <h1>SKYJO</h1>
-  <p style="font-size:.85em;color:rgba(255,255,255,.65);letter-spacing:3px;margin:-4px 0 10px;font-weight:600">v1.6.6</p>
+  <p style="font-size:.85em;color:rgba(255,255,255,.65);letter-spacing:3px;margin:-4px 0 10px;font-weight:600">v1.6.7</p>
   <h2 id="join-screen-title">Rejoindre une partie</h2>
   <div style="width:100%;max-width:320px;display:flex;flex-direction:column;gap:10px">
     <input type="text" id="join-name" placeholder="Votre pseudo" maxlength="12" autocomplete="off"
@@ -735,7 +735,7 @@ if ('serviceWorker' in navigator) {
 <script>
 "use strict";
 // ============================================================
-// SKYJO MULTIJOUEUR — Version 1.6.6
+// SKYJO MULTIJOUEUR — Version 1.6.7
 //
 // ARCHITECTURE (chaque section est clairement délimitée) :
 //  1. CONSTANTS        — Valeurs immuables du jeu
@@ -1269,7 +1269,8 @@ const Network = (() => {
       });
       peer.on('error', function(err) {
         if (err.type === 'unavailable-id') {
-          done(new Error('Code déjà utilisé — relancez'));
+          // L'ID hôte est déjà pris — migration déjà effectuée par un autre joueur
+          done(new Error('HOST_MIGRATED'));
         } else {
           done(new Error('timeout')); // forcer le fallback
         }
@@ -1472,19 +1473,19 @@ const Network = (() => {
 
   // --- Client : reconnexion automatique ---
   function tryReconnect() {
+    // Après 2 tentatives échouées en partie, déclencher la migration hôte directement
+    if (reconnectAttempt >= 2 && gameState && gameState.phase !== 'lobby' && !isHost) {
+      attemptHostMigration();
+      return;
+    }
     if (reconnectAttempt >= 5) {
-      // Avant d'abandonner, tenter une migration d'hôte
-      if (gameState && gameState.phase !== 'lobby' && !isHost) {
-        attemptHostMigration();
-      } else {
-        UI.toast('Connexion perdue définitivement');
-        UI.setConnStatus('', '');
-        App.backToMenu();
-      }
+      UI.toast('Connexion perdue définitivement');
+      UI.setConnStatus('', '');
+      App.backToMenu();
       return;
     }
     reconnectAttempt++;
-    UI.setConnStatus('reconnecting', `Reconnexion... (${reconnectAttempt}/5)`);
+    UI.setConnStatus('reconnecting', `Reconnexion... (${reconnectAttempt}/2)`);
     const hostId = 'skyjo' + roomCode;
     hostConn = peer.connect(hostId, { reliable: true });
     hostConn.on('open', () => {
@@ -1492,24 +1493,28 @@ const Network = (() => {
       clearTimeout(_hostMigrationTimer);
       reconnectAttempt = 0;
       UI.setConnStatus('connected', '');
-      // Envoyer l'ID actuel ET le dernier ID connu pour que l'hôte puisse matcher
       const lastId = (() => { try { return localStorage.getItem('skyjo_prevPeerId') || localStorage.getItem('skyjo_lastPeerId') || myPeerId; } catch(e) { return myPeerId; } })();
       hostConn.send({ type: 'rejoin', id: myPeerId, lastId, name: myName });
       hostConn.on('data', (data) => handleClientMessage(data));
     });
     hostConn.on('close', () => scheduleReconnect());
-    hostConn.on('error', () => scheduleReconnect());
+    hostConn.on('error', (err) => {
+      // Si l'erreur est 'peer-unavailable', l'hôte migré n'est pas encore prêt → réessayer
+      scheduleReconnect();
+    });
   }
 
   // --- Élection du nouvel hôte par ordre lexicographique des peerIds ---
   function attemptHostMigration() {
     if (!gameState || isHost) return;
+    clearTimeout(_hostMigrationTimer);
+    clearTimeout(reconnectTimer);
 
-    // Construire la liste des IDs encore en jeu (non déconnectés), hors ancien hôte
+    // Candidats : joueurs non-bot, non-hôte actuel, non-déconnectés
+    // On utilise uniquement les joueurs du gameState (stable et cohérent)
     const candidates = (gameState.players || [])
-      .filter(p => !p.disconnected && !p.isBot && p.id !== myPlayerId)
+      .filter(p => !p.isBot && !p.isHost && !p.disconnected)
       .map(p => p.id)
-      .concat([myPlayerId])
       .sort();
 
     if (candidates.length === 0) {
@@ -1518,52 +1523,75 @@ const Network = (() => {
       return;
     }
 
-    // Le premier dans l'ordre lexicographique devient hôte
+    // Élu = premier dans l'ordre lexicographique (calcul identique sur tous les clients)
     const electedId = candidates[0];
-    if (electedId !== myPlayerId) {
-      // On n'est pas élu : attendre que le nouvel hôte nous contacte
-      UI.setConnStatus('reconnecting', '⏳ Migration hôte...');
+    const amElected = (electedId === myPlayerId);
+
+    if (!amElected) {
+      UI.setConnStatus('reconnecting', '⏳ Nouvel hôte en cours...');
       UI.toast('🔄 Migration vers un nouvel hôte...');
-      // Retenter la connexion dans 3s (le nouvel hôte aura eu le temps de s'initialiser)
       reconnectAttempt = 0;
-      reconnectTimer = setTimeout(tryReconnect, 3000);
+      reconnectTimer = setTimeout(tryReconnect, 4000);
       return;
     }
 
-    // On est élu nouvel hôte !
+    // ── On est élu nouvel hôte ──
     UI.toast('👑 Vous devenez l\'hôte !');
     UI.setConnStatus('connecting', '👑 Migration hôte...');
 
-    // Marquer l'ancien hôte comme déconnecté dans le gameState
+    // Marquer l'ancien hôte comme déconnecté (il pourra rejoindre comme client)
     const oldHost = (gameState.players || []).find(p => p.isHost);
-    if (oldHost) {
-      oldHost.disconnected = true;
-      oldHost.isHost = false;
-    }
+    if (oldHost) { oldHost.disconnected = true; oldHost.isHost = false; }
 
-    // Se promouvoir hôte
+    // Se promouvoir
     const me = (gameState.players || []).find(p => p.id === myPlayerId);
     if (me) me.isHost = true;
     isHost = true;
     hostConn = null;
 
-    // Réinitialiser le Peer avec l'ID hôte de la salle
-    const hostPeerId = 'skyjo' + roomCode;
-    Network.initPeer(hostPeerId).then(() => {
+    // Si le tour était à l'ancien hôte, passer au joueur suivant
+    if (oldHost && gameState.phase === 'playing') {
+      const cp = gameState.players[gameState.currentPlayerIndex];
+      if (cp && cp.id === oldHost.id) {
+        const active = gameState.players.filter(p => !p.disconnected);
+        const nextActive = active[(active.findIndex(p => p.id === cp.id) + 1) % active.length];
+        if (nextActive) {
+          gameState.currentPlayerIndex = gameState.players.findIndex(p => p.id === nextActive.id);
+          gameState.turnPhase = 'draw';
+          gameState.drawnCard = null;
+          gameState.drawnByPlayerId = null;
+        }
+      }
+    }
+
+    // Reconstruire le deck si vide
+    if (!gameState.deck || gameState.deck.length === 0) gameState.deck = createDeck();
+
+    Network.initPeer('skyjo' + roomCode).then(() => {
       connections = {};
       Network.setupHostListeners();
-      // Reconstruire le deck manquant si nécessaire (les clients n'ont pas le deck)
-      if (!gameState.deck) gameState.deck = [];
-      Network.broadcastState();
-      Network.broadcastToast('👑 ' + (me ? me.name : 'Quelqu\'un') + ' est le nouvel hôte !');
-      ActionLog.add('👑 Migration hôte effectuée');
+      if (!gameState.deck || gameState.deck.length === 0) gameState.deck = createDeck();
+      setTimeout(() => {
+        Network.broadcastState();
+        Network.broadcastToast('👑 ' + (me ? me.name : 'Quelqu\'un') + ' est le nouvel hôte !');
+        ActionLog.add('👑 Migration hôte — ' + (me ? me.name : '?'));
+      }, 600);
       UI.setConnStatus('connected', '');
       Render.fromState();
-      // Relancer le bot si nécessaire
-      setTimeout(() => { try { Bot.maybePlay(); } catch(e) {} }, 500);
-    }).catch(() => {
-      UI.toast('Migration hôte échouée — retour au menu');
-      App.backToMenu();
+      setTimeout(() => { try { Bot.maybePlay(); } catch(e) {} }, 1200);
+    }).catch((e) => {
+      if (e && e.message === 'HOST_MIGRATED') {
+        // Un autre joueur a déjà pris le rôle d'hôte — se reconnecter comme client
+        UI.toast('🔄 Un autre joueur est déjà hôte — reconnexion...');
+        isHost = false;
+        const mePlayer = (gameState.players || []).find(p => p.id === myPlayerId);
+        if (mePlayer) mePlayer.isHost = false;
+        reconnectAttempt = 0;
+        setTimeout(() => Network.tryReconnect(), 2000);
+      } else {
+        UI.toast('Migration hôte échouée — retour au menu');
+        App.backToMenu();
+      }
     });
   }
 
@@ -1669,7 +1697,7 @@ const Network = (() => {
 
   // --- Broadcast la liste des peerIds (pour élection hôte) ---
   function broadcastPeerList() {
-    const peerIds = Object.keys(connections);
+    const peerIds = [myPlayerId, ...Object.keys(connections)].filter(Boolean);
     broadcast({ type: 'peer_list', peerIds, roomCode });
   }
 
@@ -3118,16 +3146,8 @@ const App = (() => {
         return;
       }
       if (currentScreen !== 'screen-menu') {
-        // En partie : tenter la reconnexion d'abord, migration si ça échoue
         UI.setConnStatus('reconnecting', 'Reconnexion...');
-        // Donner un délai pour distinguer coupure temporaire vs crash hôte
-        clearTimeout(_hostMigrationTimer);
-        _hostMigrationTimer = setTimeout(() => {
-          // Si on n'est toujours pas reconnecté, déclencher la migration
-          if (!isHost && gameState && gameState.phase !== 'lobby') {
-            Network.attemptHostMigration();
-          }
-        }, HOST_MIGRATION_DELAY_MS * 4);
+        // tryReconnect déclenchera la migration après 2 échecs — pas besoin d'un timer séparé
         Network.scheduleReconnect();
       }
     });
