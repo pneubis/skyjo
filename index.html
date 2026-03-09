@@ -496,7 +496,7 @@ input::placeholder{color:#888}
 // ── Service Worker ───────────────────────────────────────────────
 if ('serviceWorker' in navigator) {
   const sw = `
-    const CACHE = 'skyjo-v1.6.7';
+    const CACHE = 'skyjo-v1.6.8';
     self.addEventListener('install', e => {
       e.waitUntil(
         caches.open(CACHE).then(c => c.addAll(['./'])).catch(() => {})
@@ -533,7 +533,7 @@ if ('serviceWorker' in navigator) {
       <div class="splash-card">8</div>
       <div class="splash-card">12</div>
     </div>
-    <div class="splash-version">v1.6.7</div>
+    <div class="splash-version">v1.6.8</div>
     <div class="splash-tagline">crédits : claude.ai · @Pneubis</div>
   </div>
   <div class="splash-progress"><div class="splash-progress-bar"></div></div>
@@ -580,7 +580,7 @@ if ('serviceWorker' in navigator) {
 <!-- SCREEN: MENU -->
 <div class="screen active" id="screen-menu">
   <h1>SKYJO</h1>
-  <p style="font-size:.85em;color:rgba(255,255,255,.65);letter-spacing:3px;margin:-4px 0 10px;font-weight:600">v1.6.7</p>
+  <p style="font-size:.85em;color:rgba(255,255,255,.65);letter-spacing:3px;margin:-4px 0 10px;font-weight:600">v1.6.8</p>
   <p class="subtitle" style="margin-top:0">
     <button onclick="UI.showRules()" style="background:none;border:1px solid rgba(255,255,255,.25);color:#aaa;font-size:.8em;font-weight:600;padding:3px 12px;border-radius:20px;cursor:pointer;min-height:auto;transition:all .2s" onmouseover="this.style.borderColor='rgba(255,255,255,.55)';this.style.color='#fff'" onmouseout="this.style.borderColor='rgba(255,255,255,.25)';this.style.color='#aaa'">ⓘ Règles</button>
     <button onclick="UI.showOptions()" style="background:none;border:1px solid rgba(155,89,182,.35);color:rgba(155,89,182,.8);font-size:.8em;font-weight:600;padding:3px 12px;border-radius:20px;cursor:pointer;min-height:auto;transition:all .2s;margin-left:8px" onmouseover="this.style.borderColor='rgba(155,89,182,.8)';this.style.color='#bb86fc'" onmouseout="this.style.borderColor='rgba(155,89,182,.35)';this.style.color='rgba(155,89,182,.8)'">⚙️ Options</button>
@@ -613,7 +613,7 @@ if ('serviceWorker' in navigator) {
 <!-- SCREEN: JOIN -->
 <div class="screen" id="screen-join">
   <h1>SKYJO</h1>
-  <p style="font-size:.85em;color:rgba(255,255,255,.65);letter-spacing:3px;margin:-4px 0 10px;font-weight:600">v1.6.7</p>
+  <p style="font-size:.85em;color:rgba(255,255,255,.65);letter-spacing:3px;margin:-4px 0 10px;font-weight:600">v1.6.8</p>
   <h2 id="join-screen-title">Rejoindre une partie</h2>
   <div style="width:100%;max-width:320px;display:flex;flex-direction:column;gap:10px">
     <input type="text" id="join-name" placeholder="Votre pseudo" maxlength="12" autocomplete="off"
@@ -735,7 +735,7 @@ if ('serviceWorker' in navigator) {
 <script>
 "use strict";
 // ============================================================
-// SKYJO MULTIJOUEUR — Version 1.6.7
+// SKYJO MULTIJOUEUR — Version 1.6.8
 //
 // ARCHITECTURE (chaque section est clairement délimitée) :
 //  1. CONSTANTS        — Valeurs immuables du jeu
@@ -786,6 +786,7 @@ let reconnectAttempt = 0;
 let _rejectedByHost = false;
 let _hostMigrationTimer = null;
 let _allPeerIds = []; // liste de tous les peerIds (clients) pour l'élection
+let _awaitingNewHost = false; // vrai quand on attend que le nouvel hôte élu soit prêt
 
 
 // ============================================================
@@ -1473,7 +1474,13 @@ const Network = (() => {
 
   // --- Client : reconnexion automatique ---
   function tryReconnect() {
-    // Après 2 tentatives échouées en partie, déclencher la migration hôte directement
+    // Si on attend que le nouvel hôte élu soit prêt, ne pas interférer
+    if (_awaitingNewHost) {
+      UI.setConnStatus('reconnecting', '⏳ Connexion au nouvel hôte...');
+      reconnectTimer = setTimeout(tryReconnect, 3000);
+      return;
+    }
+    // Après 2 tentatives échouées en partie, déclencher la migration hôte
     if (reconnectAttempt >= 2 && gameState && gameState.phase !== 'lobby' && !isHost) {
       attemptHostMigration();
       return;
@@ -1491,6 +1498,7 @@ const Network = (() => {
     hostConn.on('open', () => {
       clearTimeout(reconnectTimer);
       clearTimeout(_hostMigrationTimer);
+      _awaitingNewHost = false;
       reconnectAttempt = 0;
       UI.setConnStatus('connected', '');
       const lastId = (() => { try { return localStorage.getItem('skyjo_prevPeerId') || localStorage.getItem('skyjo_lastPeerId') || myPeerId; } catch(e) { return myPeerId; } })();
@@ -1498,10 +1506,7 @@ const Network = (() => {
       hostConn.on('data', (data) => handleClientMessage(data));
     });
     hostConn.on('close', () => scheduleReconnect());
-    hostConn.on('error', (err) => {
-      // Si l'erreur est 'peer-unavailable', l'hôte migré n'est pas encore prêt → réessayer
-      scheduleReconnect();
-    });
+    hostConn.on('error', () => scheduleReconnect());
   }
 
   // --- Élection du nouvel hôte par ordre lexicographique des peerIds ---
@@ -1528,10 +1533,12 @@ const Network = (() => {
     const amElected = (electedId === myPlayerId);
 
     if (!amElected) {
+      _awaitingNewHost = true;
       UI.setConnStatus('reconnecting', '⏳ Nouvel hôte en cours...');
       UI.toast('🔄 Migration vers un nouvel hôte...');
       reconnectAttempt = 0;
-      reconnectTimer = setTimeout(tryReconnect, 4000);
+      // 15s : temps que le nouvel hôte initialise son Peer (Render peut prendre ~12s au réveil)
+      reconnectTimer = setTimeout(() => { _awaitingNewHost = false; tryReconnect(); }, 15000);
       return;
     }
 
@@ -3185,7 +3192,7 @@ const App = (() => {
     Bot.clearTimers();
     if (peer) { peer.destroy(); peer = null; }
     connections = {}; hostConn = null; gameState = null; isHost = false;
-    reconnectAttempt = 0;
+    reconnectAttempt = 0; _awaitingNewHost = false;
     UI.setConnStatus('', '');
     ActionLog.clear();
     // Effacer la reprise SEULEMENT si quitter volontaire
