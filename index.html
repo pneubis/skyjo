@@ -498,7 +498,7 @@ input::placeholder{color:#888}
 // ── Service Worker ───────────────────────────────────────────────
 if ('serviceWorker' in navigator) {
   const sw = `
-    const CACHE = 'skyjo-v1.6.9';
+    const CACHE = 'skyjo-v1.7.0';
     self.addEventListener('install', e => {
       e.waitUntil(
         caches.open(CACHE).then(c => c.addAll(['./'])).catch(() => {})
@@ -535,7 +535,7 @@ if ('serviceWorker' in navigator) {
       <div class="splash-card">8</div>
       <div class="splash-card">12</div>
     </div>
-    <div class="splash-version">v1.6.9</div>
+    <div class="splash-version">v1.7.0</div>
     <div class="splash-tagline">crédits : claude.ai · @Pneubis</div>
   </div>
   <div class="splash-progress"><div class="splash-progress-bar"></div></div>
@@ -582,7 +582,7 @@ if ('serviceWorker' in navigator) {
 <!-- SCREEN: MENU -->
 <div class="screen active" id="screen-menu">
   <h1>SKYJO</h1>
-  <p style="font-size:.85em;color:rgba(255,255,255,.65);letter-spacing:3px;margin:-4px 0 10px;font-weight:600">v1.6.9</p>
+  <p style="font-size:.85em;color:rgba(255,255,255,.65);letter-spacing:3px;margin:-4px 0 10px;font-weight:600">v1.7.0</p>
   <p class="subtitle" style="margin-top:0">
     <button onclick="UI.showRules()" style="background:none;border:1px solid rgba(255,255,255,.25);color:#aaa;font-size:.8em;font-weight:600;padding:3px 12px;border-radius:20px;cursor:pointer;min-height:auto;transition:all .2s" onmouseover="this.style.borderColor='rgba(255,255,255,.55)';this.style.color='#fff'" onmouseout="this.style.borderColor='rgba(255,255,255,.25)';this.style.color='#aaa'">ⓘ Règles</button>
     <button onclick="UI.showOptions()" style="background:none;border:1px solid rgba(155,89,182,.35);color:rgba(155,89,182,.8);font-size:.8em;font-weight:600;padding:3px 12px;border-radius:20px;cursor:pointer;min-height:auto;transition:all .2s;margin-left:8px" onmouseover="this.style.borderColor='rgba(155,89,182,.8)';this.style.color='#bb86fc'" onmouseout="this.style.borderColor='rgba(155,89,182,.35)';this.style.color='rgba(155,89,182,.8)'">⚙️ Options</button>
@@ -615,7 +615,7 @@ if ('serviceWorker' in navigator) {
 <!-- SCREEN: JOIN -->
 <div class="screen" id="screen-join">
   <h1>SKYJO</h1>
-  <p style="font-size:.85em;color:rgba(255,255,255,.65);letter-spacing:3px;margin:-4px 0 10px;font-weight:600">v1.6.9</p>
+  <p style="font-size:.85em;color:rgba(255,255,255,.65);letter-spacing:3px;margin:-4px 0 10px;font-weight:600">v1.7.0</p>
   <h2 id="join-screen-title">Rejoindre une partie</h2>
   <div style="width:100%;max-width:320px;display:flex;flex-direction:column;gap:10px">
     <input type="text" id="join-name" placeholder="Votre pseudo" maxlength="12" autocomplete="off"
@@ -737,7 +737,7 @@ if ('serviceWorker' in navigator) {
 <script>
 "use strict";
 // ============================================================
-// SKYJO MULTIJOUEUR — Version 1.6.9
+// SKYJO MULTIJOUEUR — Version 1.7.0
 //
 // ARCHITECTURE (chaque section est clairement délimitée) :
 //  1. CONSTANTS        — Valeurs immuables du jeu
@@ -1274,60 +1274,63 @@ const Network = (() => {
     iceCandidatePoolSize: 10,
   };
 
-  // initPeer : id=null => ID aléatoire (clients). Tente le serveur principal, fallback public si timeout.
+  let _activePeerServer = null; // serveur PeerJS actuellement utilisé
   function initPeer(id) {
     if (peer) { try { peer.destroy(); } catch(e) {} peer = null; }
 
-    function tryServer(host, port, path, secure, resolve, reject, isLast) {
+    function tryServer(host, port, path, secure, onSuccess, onFail) {
       var settled = false;
-      // Lancer la barre de progression sur 12s vers 95%
-      UI.startConnProgress(12000, isLast ? 95 : 90);
-      function done(err, pid) {
-        if (settled) return; settled = true; clearTimeout(timer);
-        if (err) {
-          try { if (peer) { peer.destroy(); peer = null; } } catch(e) {}
-          reject(err);
-        } else { myPeerId = pid; resolve(pid); }
+      UI.startConnProgress(12000, 90);
+      function succeed(pid) {
+        if (settled) return; settled = true;
+        clearTimeout(timer);
+        myPeerId = pid;
+        _activePeerServer = { host, port, path, secure };
+        onSuccess(pid);
       }
-      // Timeout 12s par tentative
-      var timer = setTimeout(function() {
-        if (!isLast) {
-          UI.setConnStatus('connecting', '📡 Serveur alternatif...');
-          done(new Error('timeout'), null);
-        } else {
-          done(new Error('Serveur PeerJS inaccessible — vérifiez votre connexion'));
-        }
-      }, 12000);
+      function fail(err) {
+        if (settled) return; settled = true;
+        clearTimeout(timer);
+        try { if (peer) { peer.destroy(); peer = null; } } catch(e) {}
+        onFail(err);
+      }
+      var timer = setTimeout(function() { fail(new Error('timeout')); }, 12000);
       try {
         var opts = { host, port, path, secure, config: ICE_CONFIG, debug: 1 };
         peer = id ? new Peer(id, opts) : new Peer(opts);
-      } catch(e) { done(new Error(e.message)); return; }
+      } catch(e) { fail(new Error(e.message)); return; }
       peer.on('open', function(pid) {
         UI.finishConnProgress();
         UI.setConnStatus('connecting', '📡 Connecté au serveur');
-        done(null, pid);
+        succeed(pid);
       });
       peer.on('error', function(err) {
         if (err.type === 'unavailable-id') {
-          // L'ID hôte est déjà pris — migration déjà effectuée par un autre joueur
-          done(new Error('HOST_MIGRATED'));
+          fail(new Error('HOST_MIGRATED'));
         } else {
-          done(new Error('timeout')); // forcer le fallback
+          fail(new Error(err.type || 'peer-error'));
         }
       });
-      peer.on('disconnected', function() { if (peer) peer.reconnect(); });
+      peer.on('disconnected', function() { if (peer && !settled) peer.reconnect(); });
     }
 
     return new Promise(function(resolve, reject) {
-      // Tentative 1 : serveur Render
-      tryServer(PEER_SERVER_HOST, 443, PEER_SERVER_PATH, true,
+      tryServer(
+        PEER_SERVER_HOST, 443, PEER_SERVER_PATH, true,
         resolve,
-        function() {
-          // Tentative 2 : serveur public PeerJS
-          tryServer(PEER_SERVER_HOST_FALLBACK, 443, PEER_SERVER_PATH_FALLBACK, true,
-            resolve, reject, true);
-        },
-        false
+        function(err1) {
+          // Erreur unavailable-id = ne pas retenter sur le fallback
+          if (err1 && err1.message === 'HOST_MIGRATED') { reject(err1); return; }
+          UI.setConnStatus('connecting', '📡 Serveur alternatif...');
+          tryServer(
+            PEER_SERVER_HOST_FALLBACK, 443, PEER_SERVER_PATH_FALLBACK, true,
+            resolve,
+            function(err2) {
+              // Sur le fallback, unavailable-id = impossible (ID aléatoire ou conflit réel)
+              reject(err2 && err2.message === 'HOST_MIGRATED' ? err2 : new Error('Serveur inaccessible — vérifiez votre connexion'));
+            }
+          );
+        }
       );
     });
   }
@@ -1513,13 +1516,11 @@ const Network = (() => {
 
   // --- Client : reconnexion automatique ---
   function tryReconnect() {
-    // Si on attend que le nouvel hôte élu soit prêt, ne pas interférer
     if (_awaitingNewHost) {
       UI.setConnStatus('reconnecting', '⏳ Connexion au nouvel hôte...');
       reconnectTimer = setTimeout(tryReconnect, 3000);
       return;
     }
-    // Après 2 tentatives échouées en partie, déclencher la migration hôte
     if (reconnectAttempt >= 2 && gameState && gameState.phase !== 'lobby' && !isHost) {
       attemptHostMigration();
       return;
@@ -1532,20 +1533,54 @@ const Network = (() => {
     }
     reconnectAttempt++;
     UI.setConnStatus('reconnecting', `Reconnexion... (${reconnectAttempt}/2)`);
-    const hostId = 'skyjo' + roomCode;
-    hostConn = peer.connect(hostId, { reliable: true });
-    hostConn.on('open', () => {
-      clearTimeout(reconnectTimer);
-      clearTimeout(_hostMigrationTimer);
-      _awaitingNewHost = false;
-      reconnectAttempt = 0;
-      UI.setConnStatus('connected', '');
-      const lastId = (() => { try { return localStorage.getItem('skyjo_prevPeerId') || localStorage.getItem('skyjo_lastPeerId') || myPeerId; } catch(e) { return myPeerId; } })();
-      hostConn.send({ type: 'rejoin', id: myPeerId, lastId, name: myName });
-      hostConn.on('data', (data) => handleClientMessage(data));
-    });
-    hostConn.on('close', () => scheduleReconnect());
-    hostConn.on('error', () => scheduleReconnect());
+
+    function attemptConnect(host, port, path, secure, onFail) {
+      // Réinitialiser le peer sur ce serveur si nécessaire
+      if (!peer || peer.disconnected || peer.destroyed) {
+        if (peer) { try { peer.destroy(); } catch(e) {} peer = null; }
+        var opts = { host, port, path, secure, config: ICE_CONFIG, debug: 1 };
+        try { peer = new Peer(opts); } catch(e) { onFail(); return; }
+        peer.on('error', () => {});
+        peer.on('open', () => doConnect());
+        setTimeout(() => { if (!peer || !peer.open) onFail(); }, 8000);
+      } else {
+        doConnect();
+      }
+
+      function doConnect() {
+        const hostId = 'skyjo' + roomCode;
+        try { if (hostConn) hostConn.close(); } catch(e) {}
+        hostConn = peer.connect(hostId, { reliable: true });
+        var connTimer = setTimeout(() => {
+          if (!hostConn || !hostConn.open) onFail();
+        }, 8000);
+        hostConn.on('open', () => {
+          clearTimeout(connTimer);
+          clearTimeout(reconnectTimer);
+          clearTimeout(_hostMigrationTimer);
+          _awaitingNewHost = false;
+          reconnectAttempt = 0;
+          UI.setConnStatus('connected', '');
+          const lastId = (() => { try { return localStorage.getItem('skyjo_prevPeerId') || localStorage.getItem('skyjo_lastPeerId') || myPeerId; } catch(e) { return myPeerId; } })();
+          hostConn.send({ type: 'rejoin', id: myPeerId, lastId, name: myName });
+          hostConn.on('data', (data) => handleClientMessage(data));
+        });
+        hostConn.on('close', () => { clearTimeout(connTimer); scheduleReconnect(); });
+        hostConn.on('error', () => { clearTimeout(connTimer); onFail(); });
+      }
+    }
+
+    // Essayer le serveur principal, puis le fallback
+    attemptConnect(
+      PEER_SERVER_HOST, 443, PEER_SERVER_PATH, true,
+      () => {
+        UI.setConnStatus('reconnecting', '📡 Serveur alternatif...');
+        attemptConnect(
+          PEER_SERVER_HOST_FALLBACK, 443, PEER_SERVER_PATH_FALLBACK, true,
+          () => scheduleReconnect()
+        );
+      }
+    );
   }
 
   // --- Élection du nouvel hôte par ordre lexicographique des peerIds ---
